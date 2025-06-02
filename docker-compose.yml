@@ -52,6 +52,17 @@ services:
     networks:
       - temporal-network
 
+  temporal-qdrant:
+    image: qdrant/qdrant
+    container_name: temporal-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    depends_on:
+      - temporal
+    networks:
+      - temporal-network
+
   worker:
     build:
       context: .

@@ -1,8 +1,5 @@
 package demo.activities;
 
-import java.io.IOException;
-
-import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
@@ -10,5 +7,14 @@ import io.temporal.activity.ActivityMethod;
 public interface Completions {
 
     @ActivityMethod
-    public String generateGreeting(String name) throws OllamaBaseException, IOException, InterruptedException;
+    public String generateGreeting(String name);
+
+    @ActivityMethod
+    public String generateEmbeddings(String text);
+
+    @ActivityMethod
+    public String generateCompletion(String prompt);
+
+    @ActivityMethod
+    public String[] searchEmbeddings(String query, Integer top);
 }
