@@ -74,7 +74,7 @@ services:
       - .env
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-    command: mvn compile exec:java -Dexec.mainClass="demo.DemoWorker"
+    command: mvn compile exec:java -Dexec.mainClass="demo.RepkaTemporalWorker"
     networks:
       - temporal-network
 

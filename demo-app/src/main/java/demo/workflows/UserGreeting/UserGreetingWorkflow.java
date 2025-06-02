@@ -1,4 +1,4 @@
-package demo;
+package demo.workflows.UserGreeting;
 
 import java.io.IOException;
 
