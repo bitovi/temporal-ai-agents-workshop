@@ -1,5 +1,6 @@
 package demo;
 
+import demo.activities.CompletionsImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
@@ -20,7 +21,12 @@ public class DemoWorker {
 
         Worker worker = factory.newWorker("default");
 
+        // Register the workflow with the worker
         worker.registerWorkflowImplementationTypes(DemoImpl.class);
+
+        // Register the activities with the worker
+        worker.registerActivitiesImplementations(new CompletionsImpl());
+
 
         factory.start();
     }

@@ -30,6 +30,11 @@
       <artifactId>temporal-sdk</artifactId>
       <version>1.19.1</version>
     </dependency>
+    <dependency>
+      <groupId>io.github.ollama4j</groupId>
+      <artifactId>ollama4j</artifactId>
+      <version>1.0.100</version>
+    </dependency>
   </dependencies>
 
   <build>
