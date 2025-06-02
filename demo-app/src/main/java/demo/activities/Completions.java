@@ -1,5 +1,7 @@
 package demo.activities;
 
+import java.util.List;
+
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
@@ -10,7 +12,7 @@ public interface Completions {
     public String generateGreeting(String name);
 
     @ActivityMethod
-    public String generateEmbeddings(String text);
+    public List<List<Double>> generateEmbeddings(String text);
 
     @ActivityMethod
     public String generateCompletion(String prompt);

@@ -7,7 +7,7 @@ import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import java.util.UUID;
 
-public class Starter {
+public class RepkaTemporalClient {
     public static void main(String[] args) throws Exception {
 
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
@@ -18,14 +18,14 @@ public class Starter {
 
         WorkflowClient client = WorkflowClient.newInstance(service);
 
-        String randomWorkflowId = "my-first-workflow" + UUID.randomUUID().toString();
+        String randomWorkflowId = "ollama-greetings-workflow-" + UUID.randomUUID().toString();
 
         WorkflowOptions options = WorkflowOptions.newBuilder()
                 .setWorkflowId(randomWorkflowId)
                 .setTaskQueue("default")
                 .build();
 
-        Demo workflow = client.newWorkflowStub(Demo.class, options);
+        UserGreetingWorkflow workflow = client.newWorkflowStub(UserGreetingWorkflow.class, options);
 
         String greeting = workflow.greetSomeone("Mark");
 
@@ -33,5 +33,6 @@ public class Starter {
 
         System.out.println(workflowId + " " + greeting);
 
+        service.shutdown();
     }
 }

@@ -8,7 +8,7 @@ import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Workflow;
 
-public class DemoImpl implements Demo {
+public class UserGreetingWorkflowImpl implements UserGreetingWorkflow {
     ActivityOptions defaulActivityOptions = ActivityOptions.newBuilder()
             .setStartToCloseTimeout(Duration.ofSeconds(120))
             .build();

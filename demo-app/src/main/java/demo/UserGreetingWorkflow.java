@@ -7,7 +7,7 @@ import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface
-public interface Demo {
+public interface UserGreetingWorkflow {
     
     @WorkflowMethod
     String greetSomeone(String name) throws OllamaBaseException, IOException, InterruptedException;
