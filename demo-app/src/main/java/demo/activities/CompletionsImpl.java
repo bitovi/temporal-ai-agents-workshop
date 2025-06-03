@@ -1,13 +1,9 @@
 package demo.activities;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
-import io.github.ollama4j.OllamaAPI;
-import io.github.ollama4j.exceptions.OllamaBaseException;
-import io.github.ollama4j.models.embeddings.OllamaEmbedResponseModel;
-import io.github.ollama4j.models.response.OllamaResult;
+import demo.common.LLMPRovider;
+import demo.common.LLMProviderException;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;
 import io.qdrant.client.grpc.Collections.Distance;
@@ -21,57 +17,34 @@ public class CompletionsImpl implements Completions {
 
     @Override
     public String generateGreeting(String name) {
-        OllamaAPI ollamaAPI = getOllamaAPI();
-
         StringBuilder builder = new StringBuilder();
         builder.append("Write a friendly greeting to a user named '")
                 .append(name)
                 .append("'. You should respond with only the greeting, nothing else, assume that the user is a human being and a friend of yours.");
 
-        OllamaResult result;
         try {
-            // Generate a greeting using the Ollama API
-            result = ollamaAPI.generate("gemma3:4b", builder.toString(), null);
-        } catch (OllamaBaseException | IOException | InterruptedException e) {
+            return LLMPRovider.completion(builder.toString());
+        } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
-
-        String greeting = result.getResponse();
-        return greeting;
     }
 
     @Override
     public List<List<Double>> generateEmbeddings(String text) {
-        createCollectionIfNotExists("embeddings");
-
-        OllamaAPI ollamaAPI = getOllamaAPI();
-
-        OllamaEmbedResponseModel result;
         try {
-            // Generate a greeting using the Ollama API
-            result = ollamaAPI.embed("gemma3:4b", Arrays.asList(text));
-        } catch (OllamaBaseException | IOException | InterruptedException e) {
+            return LLMPRovider.generateEmbeddings(text);
+        } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
-
-        List<List<Double>> embeddings = result.getEmbeddings();
-        return embeddings;
     }
 
     @Override
     public String generateCompletion(String prompt) {
-        OllamaAPI ollamaAPI = getOllamaAPI();
-
-        OllamaResult result;
         try {
-            // Generate a greeting using the Ollama API
-            result = ollamaAPI.generate("gemma3:4b", prompt, null);
-        } catch (OllamaBaseException | IOException | InterruptedException e) {
+            return LLMPRovider.completion(prompt);
+        } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
-
-        String response = result.getResponse();
-        return response;
     }
 
     @Override
@@ -98,10 +71,5 @@ public class CompletionsImpl implements Completions {
                 throw new RuntimeException("Failed to create collection: " + collectionName, createException);
             }
         }
-    }
-
-    private OllamaAPI getOllamaAPI() {
-        String host = "http://fractal.local.repkam09.com:11434/";
-        return new OllamaAPI(host);
     }
 }
