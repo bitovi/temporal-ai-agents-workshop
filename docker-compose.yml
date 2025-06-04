@@ -63,6 +63,17 @@ services:
     networks:
       - temporal-network
 
+  temporal-localstack:
+    container_name: temporal-localstack
+    image: localstack/localstack
+    ports:
+      - "4566:4566" # LocalStack Gateway
+      - "4510-4559:4510-4559" # external services port range
+    environment:
+      - SERVICES=s3
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
   worker:
     build:
       context: .
@@ -74,7 +85,7 @@ services:
       - .env
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-    command: mvn compile exec:java -Dexec.mainClass="demo.RepkaTemporalWorker"
+    command: mvn compile exec:java -Dexec.mainClass="bitovi.RepkaTemporalWorker"
     networks:
       - temporal-network
 

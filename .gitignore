@@ -3,4 +3,4 @@ build
 .env
 **/*/*.class
 .DS_Store
-demo-app/target/
+1-intro-to-ai-agents/target/

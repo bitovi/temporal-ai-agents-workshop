@@ -13,10 +13,10 @@ You can add the Temporal SDK to your Java projects by adding the following depen
 
 ## Create a new Maven Project
 ```
-mvn -B archetype:generate -DgroupId=demo -DartifactId=demo-app -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
+mvn -B archetype:generate -DgroupId=demo -DartifactId=1-intro-to-ai-agents -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
 ```
 
-This results in a new `demo-app` directory with a pom.xml and src directory, App.java and AppTest.java files.
+This results in a new `1-intro-to-ai-agents` directory with a pom.xml and src directory, App.java and AppTest.java files.
 
 
 Default pom.xml was wrong and needed to be updated to Java 8+
@@ -33,7 +33,7 @@ Default pom.xml was wrong and needed to be updated to Java 8+
 Defining a Java Interface as a WorkflowInterface is done using a decorator, @WorkflowInterface and one of the methods within it as a WorkflowMethod by the @WorkflowMethod decorator
 
 ```java
-package main.java.demo;
+package main.java.bitovi;
 
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
