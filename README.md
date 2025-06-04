@@ -13,7 +13,7 @@ You can add the Temporal SDK to your Java projects by adding the following depen
 
 ## Create a new Maven Project
 ```
-mvn -B archetype:generate -DgroupId=demo -DartifactId=1-intro-to-ai-agents -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
+mvn -B archetype:generate -DgroupId=bitovi -DartifactId=1-intro-to-ai-agents -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
 ```
 
 This results in a new `1-intro-to-ai-agents` directory with a pom.xml and src directory, App.java and AppTest.java files.

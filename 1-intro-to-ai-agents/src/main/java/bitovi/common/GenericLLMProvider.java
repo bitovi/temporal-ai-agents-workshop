@@ -15,24 +15,15 @@ import io.github.ollama4j.models.chat.OllamaChatResult;
 import io.github.ollama4j.models.embeddings.OllamaEmbedResponseModel;
 import io.github.ollama4j.models.response.OllamaResult;
 import io.github.ollama4j.tools.Tools;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrock.BedrockClient;
-import software.amazon.awssdk.services.bedrock.model.FoundationModelDetails;
 import software.amazon.awssdk.services.bedrock.model.FoundationModelSummary;
-import software.amazon.awssdk.services.bedrock.model.GetFoundationModelResponse;
 import software.amazon.awssdk.services.bedrock.model.ListFoundationModelsResponse;
-import software.amazon.awssdk.services.bedrock.model.ValidationException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
 
 public class GenericLLMProvider {
     public static String completion(String prompt) throws LLMProviderException {
