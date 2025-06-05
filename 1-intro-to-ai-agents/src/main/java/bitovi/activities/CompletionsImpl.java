@@ -2,8 +2,8 @@ package bitovi.activities;
 
 import java.util.List;
 
-import bitovi.common.GenericLLMProvider;
-import bitovi.common.LLMProviderException;
+import bitovi.providers.LLMProviderException;
+import bitovi.providers.OllamaProvider;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;
 import io.qdrant.client.grpc.Collections.Distance;
@@ -23,7 +23,8 @@ public class CompletionsImpl implements Completions {
                 .append("'. You should respond with only the greeting, nothing else, assume that the user is a human being and a friend of yours.");
 
         try {
-            return GenericLLMProvider.completion(builder.toString());
+            OllamaProvider ollama = new OllamaProvider();
+            return ollama.completion(builder.toString());
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
@@ -32,7 +33,9 @@ public class CompletionsImpl implements Completions {
     @Override
     public List<List<Double>> generateEmbeddings(String text) {
         try {
-            return GenericLLMProvider.generateEmbeddings(text);
+            OllamaProvider ollama = new OllamaProvider();
+            // Assuming the text is a single string, we can wrap it in a list
+            return ollama.embedding(List.of(text));
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
@@ -41,7 +44,8 @@ public class CompletionsImpl implements Completions {
     @Override
     public String generateCompletion(String prompt) {
         try {
-            return GenericLLMProvider.completion(prompt);
+            OllamaProvider ollama = new OllamaProvider();
+            return ollama.completion(prompt);
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }

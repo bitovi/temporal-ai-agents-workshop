@@ -1,77 +1,34 @@
 package bitovi;
 
-import bitovi.common.GenericLLMProvider;
-import bitovi.common.tools.WeatherTool;
-import io.github.ollama4j.OllamaAPI;
-import io.github.ollama4j.models.chat.OllamaChatMessageRole;
-import io.github.ollama4j.models.chat.OllamaChatRequest;
-import io.github.ollama4j.models.chat.OllamaChatRequestBuilder;
-import io.github.ollama4j.models.chat.OllamaChatResult;
-import io.github.ollama4j.tools.Tools;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.bedrock.BedrockClient;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import java.util.ArrayList;
+
+import bitovi.providers.LLMProvider;
+import bitovi.providers.LLMProviderChatMessage;
+import bitovi.providers.OllamaProvider;
+import bitovi.providers.BedrockProvider;
 
 public class RepkaStandalone {
         public static void main(String[] args) throws Exception {
-
-                // Test some Bedrock
-
-                BedrockClient bedrockClient = BedrockClient.builder()
-                                .credentialsProvider(
-                                                ProfileCredentialsProvider.builder().profileName("BitoviSandbox")
-                                                                .build())
-                                // .endpointOverride(new URI("http://localhost:4566")) // LocalStack only
-                                // supports Bedrock on their Pro version. Grrr.
-                                .region(Region.US_EAST_1)
-                                .build();
-
-                GenericLLMProvider.listFoundationModels(bedrockClient, Region.US_EAST_2);
-
-                // GetInferenceProfileResponse response = bedrockClient
-                //                 .getInferenceProfile(GetInferenceProfileRequest.builder().inferenceProfileIdentifier(
-                //                                 "arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0")
-                //                                 .build());
-
-                // System.out.println("Inference Profile ARN: " + response.inferenceProfileArn());
-
-                // Create a Bedrock Runtime client in the AWS Region you want to use.
-                // Replace the DefaultCredentialsProvider with your preferred credentials
-                // provider.
-                BedrockRuntimeClient bedrockRuntimeClient = BedrockRuntimeClient.builder()
-                                .credentialsProvider(ProfileCredentialsProvider.builder().profileName("BitoviSandbox")
-                                                .build())
-                                .region(Region.US_EAST_2)
-                                .build();
-
-                GenericLLMProvider.converse(bedrockRuntimeClient,
-                                "What is the purpose of a Hello World program? Explain in a brief paragraph.");
-
-                System.out.println("Starting RepkaStandalone...");
-
                 System.out.println("Creating Ollama Instance...");
-                OllamaAPI ollamaAPI = GenericLLMProvider.getOllamaInstance();
+                OllamaProvider ollamaProvider = new OllamaProvider();
+                test(ollamaProvider);
 
-                System.out.println("Selecting Model...");
-                String modelName = GenericLLMProvider.getOllamaModel();
-                OllamaChatRequestBuilder builder = OllamaChatRequestBuilder.getInstance(modelName);
+                System.out.println("Creating Bedrock Instance...");
+                BedrockProvider bedrockProvider = new BedrockProvider();
+                test(bedrockProvider);
+        }
 
-                System.out.println("Registering Weather Tool...");
-                final Tools.ToolSpecification weatherToolSpec = WeatherTool.getSpecification();
-
-                ollamaAPI.registerTool(weatherToolSpec);
-
-                System.out.println("Creating Chat Request...");
-                OllamaChatRequest requestModel = builder
-                                .withMessage(OllamaChatMessageRole.USER,
-                                                "What is the weather in New York today?")
-                                .build();
+        public static void test(LLMProvider provider) throws Exception {
+                System.out.println("Creating Completion Request...");
+                String completionResponse = provider.completion("Tell me about yourself.");
+                System.out.println("Completion Response: " + completionResponse);
 
                 System.out.println("Sending Chat Request...");
-                OllamaChatResult chatResult = ollamaAPI.chat(requestModel);
+                ArrayList<LLMProviderChatMessage> chatHistory = new ArrayList<LLMProviderChatMessage>();
+                chatHistory.add(new LLMProviderChatMessage("user", "Tell me about yourself."));
+                LLMProviderChatMessage chatResponse = provider.chat(chatHistory);
 
                 System.out.println("Chat Result Received.");
-                System.out.println("First answer: " + chatResult.getResponseModel().getMessage().getContent());
+                System.out.println("First answer: " + chatResponse.getContent());
         }
 }

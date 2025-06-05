@@ -1,11 +1,10 @@
-package bitovi.workflows.AgentGoal.helpers;
+package bitovi.providers;
 
-
-public class ChatMessage {
+public class LLMProviderChatMessage {
     private String role;
     private String content;
 
-    public ChatMessage(String role, String content) {
+    public LLMProviderChatMessage(String role, String content) {
         this.role = role;
         this.content = content;
     }

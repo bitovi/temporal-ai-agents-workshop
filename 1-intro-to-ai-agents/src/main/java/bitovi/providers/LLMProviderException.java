@@ -1,4 +1,4 @@
-package bitovi.common;
+package bitovi.providers;
 
 public class LLMProviderException extends Exception {
     private String message;

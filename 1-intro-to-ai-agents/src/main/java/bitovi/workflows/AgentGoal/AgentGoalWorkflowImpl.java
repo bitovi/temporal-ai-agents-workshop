@@ -6,16 +6,15 @@ import java.util.ArrayList;
 import bitovi.Config;
 import bitovi.activities.AgentGoalActivities;
 import bitovi.activities.helpers.ValidationResult;
-import bitovi.workflows.AgentGoal.helpers.ChatMessage;
-import bitovi.workflows.AgentGoal.helpers.ConversationHistory;
+import bitovi.providers.LLMProviderChatMessage;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
 public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
-    private ConversationHistory conversationHistory = new ConversationHistory();
+    private ArrayList<LLMProviderChatMessage> conversationHistory = new ArrayList<LLMProviderChatMessage>();
 
-    private ArrayList<ChatMessage> promptQueue = new ArrayList<ChatMessage>();
+    private ArrayList<LLMProviderChatMessage> promptQueue = new ArrayList<LLMProviderChatMessage>();
 
     private String currentGoal = null;
 
@@ -27,7 +26,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     @Override
     public void prompt(String prompt) {
-        this.promptQueue.add(new ChatMessage("user", prompt));
+        this.promptQueue.add(new LLMProviderChatMessage("user", prompt));
     }
 
     @Override
@@ -57,19 +56,20 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             // If there are prompts in the queue, process them.
             if (this.promptQueue.size() > 0) {
                 Workflow.getLogger("AgentGoalWorkflowImpl").info("Processing user prompt from queue.");
-                ChatMessage prompt = this.promptQueue.remove(0);
+                LLMProviderChatMessage prompt = this.promptQueue.remove(0);
 
                 // Add the user prompt to the conversation history.
-                this.conversationHistory.addMessage((prompt));
+                this.conversationHistory.add((prompt));
 
                 // Validate the user input.
                 ValidationResult validationResult = activities.validateUserInput(prompt,
-                        this.conversationHistory.getConversation(), this.currentGoal);
+                        this.conversationHistory, this.currentGoal);
                 if (!validationResult.isValid()) {
                     Workflow.getLogger("AgentGoalWorkflowImpl")
                             .error("User input validation failed: " + validationResult.getMessage());
 
-                    this.conversationHistory.addMessage(new ChatMessage("assistant", validationResult.getMessage()));
+                    this.conversationHistory
+                            .add(new LLMProviderChatMessage("assistant", validationResult.getMessage()));
                     continue; // Skip to the next iteration to wait for more input.
                 }
 

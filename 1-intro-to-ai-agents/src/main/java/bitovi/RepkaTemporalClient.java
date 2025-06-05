@@ -26,7 +26,7 @@ public class RepkaTemporalClient {
         runGreetingsWorkflow(client, "Mark");
 
         // Run the agent workflow demo
-        // runAgentWorkflow(client);
+        runAgentWorkflow(client);
 
         service.shutdown();
     }
