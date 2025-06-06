@@ -6,6 +6,8 @@ import bitovi.providers.LLMProvider;
 import bitovi.providers.LLMProviderChatMessage;
 import bitovi.providers.OllamaProvider;
 import bitovi.providers.OpenAIProvider;
+import software.amazon.awssdk.services.bedrockruntime.model.Tool;
+import bitovi.common.tools.ConsineTool.CosineToolImpl;
 import bitovi.providers.BedrockProvider;
 
 public class RepkaStandalone {
@@ -17,17 +19,26 @@ public class RepkaStandalone {
                         return;
                 }
 
-                System.out.println("Creating Ollama Instance...");
-                OllamaProvider ollamaProvider = new OllamaProvider();
-                test(ollamaProvider);
-
-                System.out.println("Creating OpenAI Instance...");
-                OpenAIProvider openaiProvider = new OpenAIProvider();
-                test(openaiProvider);
-
                 System.out.println("Creating Bedrock Instance...");
                 BedrockProvider bedrockProvider = new BedrockProvider();
-                test(bedrockProvider);
+
+                ArrayList<LLMProviderChatMessage> chatHistory = new ArrayList<LLMProviderChatMessage>();
+                chatHistory.add(new LLMProviderChatMessage("user", "What is the cosine of 1.57 radians?"));
+
+                ArrayList<Tool> tools = new ArrayList<Tool>();
+                tools.add(CosineToolImpl.getBedrockToolSpecification());
+
+                LLMProviderChatMessage chatResponse = bedrockProvider.chatWithTools(chatHistory, tools);
+                System.out.println("Answer: " + chatResponse.getContent());
+
+                // System.out.println("Creating Ollama Instance...");
+                // OllamaProvider ollamaProvider = new OllamaProvider();
+                // test(ollamaProvider);
+
+                // System.out.println("Creating OpenAI Instance...");
+                // OpenAIProvider openaiProvider = new OpenAIProvider();
+                // test(openaiProvider);
+
         }
 
         public static void test(LLMProvider provider) throws Exception {

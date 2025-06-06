@@ -3,39 +3,16 @@ package bitovi.common.tools;
 import java.util.Map;
 
 import io.github.ollama4j.tools.Tools;
+import io.github.ollama4j.tools.Tools.PromptFuncDefinition;
 
 public class WeatherTool {
         public static Tools.ToolSpecification getSpecification() {
+                PromptFuncDefinition tool = new PromptFuncDefinition();
                 return Tools.ToolSpecification.builder()
                                 .functionName("get-location-weather-info")
                                 .functionDescription("Get current weather for a city by its name")
                                 .toolFunction(WeatherTool::getCurrentWeather)
-                                .toolPrompt(
-                                                Tools.PromptFuncDefinition.builder()
-                                                                .type("prompt")
-                                                                .function(
-                                                                                Tools.PromptFuncDefinition.PromptFuncSpec
-                                                                                                .builder()
-                                                                                                .name("get-location-weather-info")
-                                                                                                .description("Get location details")
-                                                                                                .parameters(
-                                                                                                                Tools.PromptFuncDefinition.Parameters
-                                                                                                                                .builder()
-                                                                                                                                .type("object")
-                                                                                                                                .properties(
-                                                                                                                                                Map.of(
-                                                                                                                                                                "city",
-                                                                                                                                                                Tools.PromptFuncDefinition.Property
-                                                                                                                                                                                .builder()
-                                                                                                                                                                                .type("string")
-                                                                                                                                                                                .description("The city, e.g. New Delhi, India or New York, USA.")
-                                                                                                                                                                                .required(true)
-                                                                                                                                                                                .build()))
-                                                                                                                                .required(java.util.List
-                                                                                                                                                .of("city"))
-                                                                                                                                .build())
-                                                                                                .build())
-                                                                .build())
+                                .toolPrompt(tool)
                                 .build();
         }
 
