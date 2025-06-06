@@ -4,3 +4,4 @@ build
 **/*/*.class
 .DS_Store
 1-intro-to-ai-agents/target/
+1-intro-to-ai-agents/config.properties

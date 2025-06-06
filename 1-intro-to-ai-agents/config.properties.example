@@ -1,0 +1,14 @@
+OPENAI_MODEL_ID=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=secret-api-key-value
+
+AWS_ACCESS_KEY_ID=aws-access-key-id
+AWS_SECRET_ACCESS_KEY=aws-secret-access-key
+AWS_SESSION_TOKEN=aws-session-token
+AWS_MODEL_ARN=arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0
+AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
+
+OLLAMA_HOST=http://localhost:11434/
+OLLAMA_MODEL_ID=mistral:latest
+
+CONFIG_EXISTS=true

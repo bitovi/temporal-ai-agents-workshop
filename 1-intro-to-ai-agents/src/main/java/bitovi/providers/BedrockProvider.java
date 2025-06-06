@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import bitovi.Config;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
@@ -18,24 +20,37 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 public class BedrockProvider implements LLMProvider {
 
-    private final static String MODEL_ID = "meta.llama3-1-8b-instruct-v1:0";
-    private final static String MODEL_ARN = "arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0";
+    private String AWS_MODEL_ID;
+    private String AWS_MODEL_ARN;
 
     private BedrockClient bedrockClient;
     private BedrockRuntimeClient bedrockRuntimeClient;
     private final Region region = Region.US_EAST_2; // Default region, can be changed as needed
 
     public BedrockProvider() {
+        this.AWS_MODEL_ID = Config.getProperty("AWS_MODEL_ID");
+        this.AWS_MODEL_ARN = Config.getProperty("AWS_MODEL_ARN");
+
+        String AWS_ACCESS_KEY_ID = Config.getProperty("AWS_ACCESS_KEY_ID");
+        String AWS_SECRET_ACCESS_KEY = Config.getProperty("AWS_SECRET_ACCESS_KEY");
+        String AWS_SESSION_TOKEN = Config.getProperty("AWS_SESSION_TOKEN");
+
         this.bedrockClient = BedrockClient.builder()
                 .credentialsProvider(
-                        ProfileCredentialsProvider.builder().profileName("BitoviSandbox")
-                                .build())
+                        StaticCredentialsProvider.create(
+                                AwsSessionCredentials.create(
+                                        AWS_ACCESS_KEY_ID,
+                                        AWS_SECRET_ACCESS_KEY,
+                                        AWS_SESSION_TOKEN)))
                 .region(region)
                 .build();
 
         this.bedrockRuntimeClient = BedrockRuntimeClient.builder()
-                .credentialsProvider(ProfileCredentialsProvider.builder().profileName("BitoviSandbox")
-                        .build())
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsSessionCredentials.create(
+                                AWS_ACCESS_KEY_ID,
+                                AWS_SECRET_ACCESS_KEY,
+                                AWS_SESSION_TOKEN)))
                 .region(region)
                 .build();
     }
@@ -73,7 +88,7 @@ public class BedrockProvider implements LLMProvider {
                     .put("temperature", 0.5F);
 
             InvokeModelResponse invokeResponse = this.bedrockRuntimeClient.invokeModel(InvokeModelRequest.builder()
-                    .modelId(MODEL_ARN)
+                    .modelId(AWS_MODEL_ARN)
                     .body(SdkBytes.fromUtf8String(jsonBody.toString()))
                     .build());
 
@@ -83,14 +98,15 @@ public class BedrockProvider implements LLMProvider {
 
             return completion;
         } catch (SdkClientException e) {
-            System.err.printf("ERROR: Can't invoke '%s'. Reason: %s", MODEL_ID, e.getMessage());
+            System.err.printf("ERROR: Can't invoke '%s'. Reason: %s", AWS_MODEL_ID, e.getMessage());
             throw new LLMProviderException(e.getMessage());
         }
     }
 
     @Override
     public LLMProviderChatMessage chat(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
-        // TODO: Implement chat functionality for BedrockProvider instead of faking it with completion.
+        // TODO: Implement chat functionality for BedrockProvider instead of faking it
+        // with completion.
 
         // Convert the chat messages to a single prompt string
         StringBuilder promptBuilder = new StringBuilder();
