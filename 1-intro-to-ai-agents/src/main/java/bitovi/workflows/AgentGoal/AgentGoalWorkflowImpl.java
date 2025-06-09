@@ -76,7 +76,11 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                 Workflow.getLogger("AgentGoalWorkflowImpl").info("User input validated successfully.");
 
                 // Process the user input and determine the next steps.
+                String instructions = activities.generateInstructions(prompt, this.conversationHistory,
+                        this.currentGoal);
 
+                // Execute the tool_planner with the instructions.
+                var toolPlannerResult = activities.toolPlanner(instructions, this.conversationHistory);
             }
 
         }
