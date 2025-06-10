@@ -3,7 +3,7 @@ package bitovi;
 import java.util.ArrayList;
 
 import bitovi.providers.LLMProvider;
-import bitovi.providers.LLMProviderChatMessage;
+import bitovi.records.MessageRecord;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import bitovi.common.tools.ConsineTool.CosineToolImpl;
 import bitovi.providers.BedrockProvider;
@@ -20,14 +20,14 @@ public class BitoviStandalone {
                 System.out.println("Creating Bedrock Instance...");
                 BedrockProvider bedrockProvider = new BedrockProvider();
 
-                ArrayList<LLMProviderChatMessage> chatHistory = new ArrayList<LLMProviderChatMessage>();
-                chatHistory.add(new LLMProviderChatMessage("user", "What is the cosine of 1.57 radians?"));
+                ArrayList<MessageRecord> chatHistory = new ArrayList<MessageRecord>();
+                chatHistory.add(new MessageRecord("user", "What is the cosine of 1.57 radians?"));
 
                 ArrayList<Tool> tools = new ArrayList<Tool>();
                 tools.add(CosineToolImpl.getBedrockToolSpecification());
 
-                LLMProviderChatMessage chatResponse = bedrockProvider.chatWithTools(chatHistory, tools);
-                System.out.println("Answer: " + chatResponse.getContent());
+                MessageRecord chatResponse = bedrockProvider.chatWithTools(chatHistory, tools);
+                System.out.println("Answer: " + chatResponse.content());
 
                 // System.out.println("Creating Ollama Instance...");
                 // OllamaProvider ollamaProvider = new OllamaProvider();
@@ -40,11 +40,11 @@ public class BitoviStandalone {
                 System.out.println("Completion Response: " + completionResponse);
 
                 System.out.println("Sending Chat Request...");
-                ArrayList<LLMProviderChatMessage> chatHistory = new ArrayList<LLMProviderChatMessage>();
-                chatHistory.add(new LLMProviderChatMessage("user", "Tell me about yourself."));
-                LLMProviderChatMessage chatResponse = provider.chat(chatHistory);
+                ArrayList<MessageRecord> chatHistory = new ArrayList<MessageRecord>();
+                chatHistory.add(new MessageRecord("user", "Tell me about yourself."));
+                MessageRecord chatResponse = provider.chat(chatHistory);
 
                 System.out.println("Chat Result Received.");
-                System.out.println("First answer: " + chatResponse.getContent());
+                System.out.println("First answer: " + chatResponse.content());
         }
 }

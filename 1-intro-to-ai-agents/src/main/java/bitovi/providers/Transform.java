@@ -2,10 +2,12 @@ package bitovi.providers;
 
 import java.util.ArrayList;
 
+import bitovi.records.MessageRecord;
+
 public class Transform {
-    public static String LLMProviderChatMessagesToString(ArrayList<LLMProviderChatMessage> messages) {
+    public static String LLMProviderChatMessagesToString(ArrayList<MessageRecord> messages) {
         StringBuilder sb = new StringBuilder();
-        for (LLMProviderChatMessage message : messages) {
+        for (MessageRecord message : messages) {
             String str = LLMProviderChatMessageToString(message);
             sb.append(str);
             sb.append("\n");
@@ -13,7 +15,7 @@ public class Transform {
         return sb.toString();
     }
 
-    public static String LLMProviderChatMessageToString(LLMProviderChatMessage message) {
-        return message.getRole() + ": " + message.getContent();
+    public static String LLMProviderChatMessageToString(MessageRecord message) {
+        return message.role() + ": " + message.content();
     }
 }

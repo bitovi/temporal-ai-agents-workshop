@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bitovi.providers.BedrockProvider;
-import bitovi.providers.LLMProviderChatMessage;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.MCPToolIntegration;
+import bitovi.records.MessageRecord;
 import io.temporal.activity.Activity;
 
 public class MCPBedrockActivitiesImpl implements MCPBedrockActivities {
@@ -27,13 +27,13 @@ public class MCPBedrockActivitiesImpl implements MCPBedrockActivities {
     @Override
     public String processWithMCPTools(String userQuery) {
         try {
-            ArrayList<LLMProviderChatMessage> messages = new ArrayList<>();
-            messages.add(new LLMProviderChatMessage("user", userQuery));
+            ArrayList<MessageRecord> messages = new ArrayList<>();
+            messages.add(new MessageRecord("user", userQuery));
             
             // Use the enhanced chat method that includes MCP tools
-            LLMProviderChatMessage response = bedrockProvider.chatWithAllTools(messages);
+            MessageRecord response = bedrockProvider.chatWithAllTools(messages);
             
-            return response.getContent();
+            return response.content();
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }

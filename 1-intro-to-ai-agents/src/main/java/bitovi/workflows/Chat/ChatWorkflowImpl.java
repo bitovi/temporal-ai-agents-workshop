@@ -4,11 +4,11 @@ import java.util.ArrayList;
 
 import bitovi.Config;
 import bitovi.activities.ChatActivities;
-import bitovi.providers.LLMProviderChatMessage;
+import bitovi.records.MessageRecord;
 import io.temporal.workflow.Workflow;
 
 public class ChatWorkflowImpl implements ChatWorkflow {
-    private ArrayList<LLMProviderChatMessage> history = new ArrayList<LLMProviderChatMessage>();
+    private ArrayList<MessageRecord> history = new ArrayList<MessageRecord>();
     private ArrayList<String> promptQueue = new ArrayList<String>();
 
     private String lastResponse = null;
@@ -35,7 +35,7 @@ public class ChatWorkflowImpl implements ChatWorkflow {
                     continue; // Skip to the next iteration if the prompt is empty
                 }
 
-                history.add(new LLMProviderChatMessage("user", prompt));
+                history.add(new MessageRecord("user", prompt));
 
                 String response = activities.chat(history);
                 if (response == null || response.isEmpty()) {
@@ -45,7 +45,7 @@ public class ChatWorkflowImpl implements ChatWorkflow {
                 lastResponse = response;
 
                 // Add the assistant response back to the conversation
-                history.add(new LLMProviderChatMessage("assistant", response));
+                history.add(new MessageRecord("assistant", response));
             }
 
         }

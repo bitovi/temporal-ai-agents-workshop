@@ -3,6 +3,8 @@ package bitovi.providers;
 import java.util.ArrayList;
 import java.util.List;
 
+import bitovi.records.MessageRecord;
+
 public interface LLMProvider {
     ArrayList<String> getModels() throws LLMProviderException;
 
@@ -10,5 +12,5 @@ public interface LLMProvider {
 
     List<List<Double>> embedding(List<String> text) throws LLMProviderException;
 
-    LLMProviderChatMessage chat(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException;
+    MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException;
 }

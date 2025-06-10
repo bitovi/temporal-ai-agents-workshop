@@ -3,8 +3,8 @@ package bitovi;
 import java.util.ArrayList;
 
 import bitovi.providers.BedrockProvider;
-import bitovi.providers.LLMProviderChatMessage;
 import bitovi.providers.MCPToolIntegration;
+import bitovi.records.MessageRecord;
 
 /**
  * Simple standalone example of AWS Bedrock + MCP Tools integration
@@ -43,14 +43,14 @@ public class SimpleMCPBedrockExample {
                 
                 try {
                     // Create chat messages
-                    ArrayList<LLMProviderChatMessage> messages = new ArrayList<>();
-                    messages.add(new LLMProviderChatMessage("user", query));
+                    ArrayList<MessageRecord> messages = new ArrayList<>();
+                    messages.add(new MessageRecord("user", query));
                     
                     // Process with all available tools (local + MCP)
-                    LLMProviderChatMessage response = bedrockProvider.chatWithAllTools(messages);
-                    
-                    System.out.println("Response: " + response.getContent());
-                    
+                    MessageRecord response = bedrockProvider.chatWithAllTools(messages);
+
+                    System.out.println("Response: " + response.content());
+
                 } catch (Exception e) {
                     System.err.println("Error processing query: " + e.getMessage());
                 }

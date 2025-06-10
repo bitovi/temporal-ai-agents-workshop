@@ -6,16 +6,16 @@ import java.util.ArrayList;
 import bitovi.Config;
 import bitovi.activities.AgentGoalActivities;
 import bitovi.activities.helpers.ValidationResult;
-import bitovi.providers.LLMProviderChatMessage;
 import bitovi.providers.Transform;
+import bitovi.records.MessageRecord;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
 public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
-    private ArrayList<LLMProviderChatMessage> conversationHistory = new ArrayList<LLMProviderChatMessage>();
+    private ArrayList<MessageRecord> conversationHistory = new ArrayList<MessageRecord>();
 
-    private ArrayList<LLMProviderChatMessage> promptQueue = new ArrayList<LLMProviderChatMessage>();
+    private ArrayList<MessageRecord> promptQueue = new ArrayList<MessageRecord>();
 
     private String currentGoal = null;
 
@@ -27,7 +27,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     @Override
     public void prompt(String prompt) {
-        this.promptQueue.add(new LLMProviderChatMessage("user", prompt));
+        this.promptQueue.add(new MessageRecord("user", prompt));
     }
 
     @Override
@@ -57,7 +57,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             // If there are prompts in the queue, process them.
             if (this.promptQueue.size() > 0) {
                 Workflow.getLogger("AgentGoalWorkflowImpl").info("Processing user prompt from queue.");
-                LLMProviderChatMessage prompt = this.promptQueue.remove(0);
+                MessageRecord prompt = this.promptQueue.remove(0);
 
                 // Add the user prompt to the conversation history.
                 this.conversationHistory.add((prompt));
@@ -70,7 +70,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                             .error("User input validation failed: " + validationResult.getMessage());
 
                     this.conversationHistory
-                            .add(new LLMProviderChatMessage("assistant", validationResult.getMessage()));
+                            .add(new MessageRecord("assistant", validationResult.getMessage()));
                     continue; // Skip to the next iteration to wait for more input.
                 }
 

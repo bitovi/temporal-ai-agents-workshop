@@ -62,10 +62,10 @@ MCPToolIntegration mcpIntegration = new MCPToolIntegration();
 BedrockProvider bedrockProvider = new BedrockProvider();
 
 // Process a query that might use MCP tools
-ArrayList<LLMProviderChatMessage> messages = new ArrayList<>();
-messages.add(new LLMProviderChatMessage("user", "What's the weather in San Francisco?"));
+ArrayList<MessageRecord> messages = new ArrayList<>();
+messages.add(new MessageRecord("user", "What's the weather in San Francisco?"));
 
-LLMProviderChatMessage response = bedrockProvider.chatWithAllTools(messages);
+MessageRecord response = bedrockProvider.chatWithAllTools(messages);
 System.out.println("Response: " + response.getContent());
 ```
 

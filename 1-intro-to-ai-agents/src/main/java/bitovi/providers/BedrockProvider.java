@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import bitovi.Config;
 import bitovi.common.tools.ConsineTool.CosineToolImpl;
+import bitovi.records.MessageRecord;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
@@ -127,33 +128,33 @@ public class BedrockProvider implements LLMProvider {
     }
 
     @Override
-    public LLMProviderChatMessage chat(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
+    public MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException {
 
         // TODO: Implement chat functionality for BedrockProvider instead of faking it
         // with completion.
 
         // Convert the chat messages to a single prompt string
         StringBuilder promptBuilder = new StringBuilder();
-        for (LLMProviderChatMessage message : prompt) {
-            promptBuilder.append(message.getRole()).append(": ").append(message.getContent()).append("\n\n");
+        for (MessageRecord message : prompt) {
+            promptBuilder.append(message.role()).append(": ").append(message.content()).append("\n\n");
         }
         String completion = this.completion(promptBuilder.toString());
 
         // Create a new chat message with the model's response
-        LLMProviderChatMessage responseMessage = new LLMProviderChatMessage("assistant", completion);
+        MessageRecord responseMessage = new MessageRecord("assistant", completion);
         return responseMessage;
     }
 
-    public LLMProviderChatMessage chatWithTools(ArrayList<LLMProviderChatMessage> prompt,
+    public MessageRecord chatWithTools(ArrayList<MessageRecord> prompt,
             List<Tool> tools) throws LLMProviderException {
 
         List<Message> messages = new ArrayList<Message>();
 
         // Convert the chat messages to Bedrock's Message format
-        for (LLMProviderChatMessage message : prompt) {
+        for (MessageRecord message : prompt) {
             messages.add(Message.builder()
-                    .role(ConversationRole.fromValue(message.getRole()))
-                    .content(ContentBlock.fromText(message.getContent()))
+                    .role(ConversationRole.fromValue(message.role()))
+                    .content(ContentBlock.fromText(message.content()))
                     .build());
         }
 
@@ -170,8 +171,8 @@ public class BedrockProvider implements LLMProvider {
             throw new LLMProviderException("No response received from Bedrock.");
         }
 
-        // Convert the Bedrock response back to LLMProviderChatMessage format
-        LLMProviderChatMessage responseMessage = new LLMProviderChatMessage(
+        // Convert the Bedrock response back to MessageRecord format
+        MessageRecord responseMessage = new MessageRecord(
                 response.output().message().role().toString(),
                 response.output().message().content().get(0).text());
 
@@ -267,7 +268,7 @@ public class BedrockProvider implements LLMProvider {
     /**
      * Enhanced chat method that supports both local and MCP tools
      */
-    public LLMProviderChatMessage chatWithAllTools(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
+    public MessageRecord chatWithAllTools(ArrayList<MessageRecord> prompt) throws LLMProviderException {
         List<Tool> allTools = new ArrayList<>();
         
         // Add local tools

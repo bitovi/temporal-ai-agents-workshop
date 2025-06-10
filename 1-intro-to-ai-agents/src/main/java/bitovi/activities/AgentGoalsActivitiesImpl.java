@@ -4,14 +4,14 @@ import java.util.ArrayList;
 
 import bitovi.activities.helpers.ToolPlannerResult;
 import bitovi.activities.helpers.ValidationResult;
-import bitovi.providers.LLMProviderChatMessage;
 import bitovi.providers.OllamaProvider;
+import bitovi.records.MessageRecord;
 
 public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
 
     @Override
-    public ValidationResult validateUserInput(LLMProviderChatMessage userInput,
-            ArrayList<LLMProviderChatMessage> history,
+    public ValidationResult validateUserInput(MessageRecord userInput,
+            ArrayList<MessageRecord> history,
             String currentGoal) {
         return new ValidationResult(false, "The function is not implemented yet.");
     }
@@ -22,7 +22,7 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
     }
 
     @Override
-    public String generateInstructions(LLMProviderChatMessage userInput, ArrayList<LLMProviderChatMessage> history,
+    public String generateInstructions(MessageRecord userInput, ArrayList<MessageRecord> history,
             String currentGoal) {
         StringBuilder instructions = new StringBuilder();
         instructions.append("You are an AI agent that helps fill required arguments for the tools described below.");
@@ -31,11 +31,11 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
         instructions.append("=== Conversation History ===\n");
         instructions.append("This is the ongoing history to determine which tool and arguments to gather:\n");
         instructions.append("*BEGIN CONVERSATION HISTORY*\n");
-        for (LLMProviderChatMessage message : history) {
+        for (MessageRecord message : history) {
             instructions.append("\n");
-            instructions.append(message.getRole());
+            instructions.append(message.role());
             instructions.append(": ");
-            instructions.append(message.getContent());
+            instructions.append(message.content());
         }
         instructions.append("*END CONVERSATION HISTORY*\n");
 
@@ -89,17 +89,17 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
     @Override
     public ToolPlannerResult toolPlanner(String instructions, String prompt) {
 
-        ArrayList<LLMProviderChatMessage> messages = new ArrayList<>();
-        messages.add(new LLMProviderChatMessage("system", instructions));
+        ArrayList<MessageRecord> messages = new ArrayList<>();
+        messages.add(new MessageRecord("system", instructions));
         messages.add(
-                new LLMProviderChatMessage("system", "The current date and time is " + java.time.LocalDateTime.now()));
+                new MessageRecord("system", "The current date and time is " + java.time.LocalDateTime.now()));
 
-        messages.add(new LLMProviderChatMessage("user", prompt));
+        messages.add(new MessageRecord("user", prompt));
 
         try {
             OllamaProvider llm = new OllamaProvider();
-            LLMProviderChatMessage response = llm.chat(messages);
-            String cleanedResponse = clean(response.getContent());
+            MessageRecord response = llm.chat(messages);
+            String cleanedResponse = clean(response.content());
             ToolPlannerResult result = parse(cleanedResponse);
 
             if (result.nextStep == "confirm") {

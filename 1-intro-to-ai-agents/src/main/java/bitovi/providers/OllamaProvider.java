@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bitovi.Config;
+import bitovi.records.MessageRecord;
 import io.github.ollama4j.OllamaAPI;
 import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.github.ollama4j.models.chat.OllamaChatMessage;
@@ -66,7 +67,7 @@ public class OllamaProvider implements LLMProvider {
     }
 
     @Override
-    public LLMProviderChatMessage chat(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
+    public MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException {
         try {
             OllamaChatResult response = this.ollamaClient.chat(OLLAMA_MODEL_ID, this.convertCommonToOllama(prompt));
             var lastMessage = response.getResponseModel().getMessage();
@@ -91,12 +92,12 @@ public class OllamaProvider implements LLMProvider {
         return embeddings;
     }
 
-    private List<OllamaChatMessage> convertCommonToOllama(ArrayList<LLMProviderChatMessage> prompt) {
+    private List<OllamaChatMessage> convertCommonToOllama(ArrayList<MessageRecord> prompt) {
         ArrayList<OllamaChatMessage> ollamaMessages = new ArrayList<>();
-        for (LLMProviderChatMessage message : prompt) {
+        for (MessageRecord message : prompt) {
             OllamaChatMessage ollamaMessage = new OllamaChatMessage();
 
-            switch (message.getRole()) {
+            switch (message.role()) {
                 case "user":
                     ollamaMessage.setRole(OllamaChatMessageRole.USER);
                     break;
@@ -110,14 +111,14 @@ public class OllamaProvider implements LLMProvider {
                     ollamaMessage.setRole(OllamaChatMessageRole.USER); // Default to USER if role is unknown
             }
 
-            ollamaMessage.setContent(message.getContent());
+            ollamaMessage.setContent(message.content());
             ollamaMessages.add(ollamaMessage);
         }
 
         return ollamaMessages;
     }
 
-    private LLMProviderChatMessage convertOllamaToCommon(OllamaChatMessage ollamaMessage) {
-        return new LLMProviderChatMessage(ollamaMessage.getRole().toString(), ollamaMessage.getContent());
+    private MessageRecord convertOllamaToCommon(OllamaChatMessage ollamaMessage) {
+        return new MessageRecord(ollamaMessage.getRole().toString(), ollamaMessage.getContent());
     }
 }
