@@ -10,7 +10,7 @@ import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
-public class RepkaTemporalWorker {
+public class BitoviTemporalWorker {
     
     public static void main(String[] args) {
 
@@ -35,5 +35,7 @@ public class RepkaTemporalWorker {
         worker.registerActivitiesImplementations(new AgentGoalsActivitiesImpl());
 
         factory.start();
+
+        // Keep the worker running
     }
 }

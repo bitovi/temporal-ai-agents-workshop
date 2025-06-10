@@ -8,7 +8,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import bitovi.common.tools.ConsineTool.CosineToolImpl;
 import bitovi.providers.BedrockProvider;
 
-public class RepkaStandalone {
+public class BitoviStandalone {
         public static void main(String[] args) throws Exception {
                 System.out.println("Verifying Config...");
                 String exists = Config.getProperty("CONFIG_EXISTS");

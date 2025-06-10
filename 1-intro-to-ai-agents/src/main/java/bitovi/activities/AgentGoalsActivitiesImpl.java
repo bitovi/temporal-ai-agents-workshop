@@ -104,8 +104,10 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
 
             if (result.nextStep == "confirm") {
                 // Check if the args are valid
-                handleMissingArgs(result.args);
+                // handleMissingArgs(result.args);
             }
+
+            return result;
 
         } catch (Exception e) {
             return new ToolPlannerResult(false, "next", null, null);

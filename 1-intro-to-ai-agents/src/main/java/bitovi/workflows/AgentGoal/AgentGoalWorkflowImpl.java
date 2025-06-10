@@ -7,6 +7,7 @@ import bitovi.Config;
 import bitovi.activities.AgentGoalActivities;
 import bitovi.activities.helpers.ValidationResult;
 import bitovi.providers.LLMProviderChatMessage;
+import bitovi.providers.Transform;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
@@ -80,11 +81,12 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                         this.currentGoal);
 
                 // Execute the tool_planner with the instructions.
-                var toolPlannerResult = activities.toolPlanner(instructions, this.conversationHistory);
-            }
+                String conversation = Transform.LLMProviderChatMessagesToString(this.conversationHistory);
+                var toolPlannerResult = activities.toolPlanner(instructions, conversation);
 
+                System.out.println("Tool Planner Result: " + toolPlannerResult.toString());
+            }
         }
 
     }
-
 }

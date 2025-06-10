@@ -1,2 +1,2 @@
 mvn compile
-mvn compile exec:java -Dexec.mainClass="bitovi.RepkaStandalone"
+mvn compile exec:java -Dexec.mainClass="bitovi.BitoviStandalone"

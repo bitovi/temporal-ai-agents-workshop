@@ -11,7 +11,7 @@ import java.util.UUID;
 import bitovi.workflows.AgentGoal.AgentGoalWorkflow;
 import bitovi.workflows.UserGreeting.UserGreetingWorkflow;
 
-public class RepkaTemporalClient {
+public class BitoviTemporalClient {
     public static void main(String[] args) throws Exception {
 
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()

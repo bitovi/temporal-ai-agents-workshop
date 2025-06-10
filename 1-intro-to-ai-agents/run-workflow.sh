@@ -1,2 +1,2 @@
 mvn compile
-mvn compile exec:java -Dexec.mainClass="bitovi.RepkaTemporalClient"
+mvn compile exec:java -Dexec.mainClass="bitovi.BitoviTemporalClient"
