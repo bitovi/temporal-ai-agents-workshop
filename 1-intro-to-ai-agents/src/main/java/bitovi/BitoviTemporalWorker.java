@@ -2,7 +2,9 @@ package bitovi;
 
 import bitovi.activities.AgentGoalsActivitiesImpl;
 import bitovi.activities.CompletionsImpl;
+// import bitovi.activities.MCPBedrockActivitiesImpl;
 import bitovi.workflows.AgentGoal.AgentGoalWorkflowImpl;
+// import bitovi.workflows.MCPBedrock.MCPBedrockWorkflowImpl;
 import bitovi.workflows.UserGreeting.UserGreetingWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -27,12 +29,16 @@ public class BitoviTemporalWorker {
         // Register the workflow with the worker
         worker.registerWorkflowImplementationTypes(UserGreetingWorkflowImpl.class);
         worker.registerWorkflowImplementationTypes(AgentGoalWorkflowImpl.class);
+        // worker.registerWorkflowImplementationTypes(MCPBedrockWorkflowImpl.class);
 
         // Register the activities with the worker for completions
         worker.registerActivitiesImplementations(new CompletionsImpl());
 
         // Register the activities with the worker for agent goals
         worker.registerActivitiesImplementations(new AgentGoalsActivitiesImpl());
+        
+        // Register the activities with the worker for MCP-Bedrock integration
+        // worker.registerActivitiesImplementations(new MCPBedrockActivitiesImpl());
 
         factory.start();
 

@@ -2,6 +2,7 @@ package bitovi.providers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 
@@ -37,6 +38,9 @@ public class BedrockProvider implements LLMProvider {
     private BedrockClient bedrockClient;
     private BedrockRuntimeClient bedrockRuntimeClient;
     private final Region region = Region.US_EAST_2; // Default region, can be changed as needed
+    
+    // MCP Tool Integration
+    private MCPToolIntegration mcpIntegration;
 
     public BedrockProvider() {
         this.AWS_MODEL_ID = Config.getProperty("AWS_MODEL_ID");
@@ -64,6 +68,14 @@ public class BedrockProvider implements LLMProvider {
                                 AWS_SESSION_TOKEN)))
                 .region(region)
                 .build();
+                
+        // Initialize MCP tool integration
+        try {
+            this.mcpIntegration = new MCPToolIntegration();
+        } catch (Exception e) {
+            System.err.println("Failed to initialize MCP integration: " + e.getMessage());
+            this.mcpIntegration = null;
+        }
     }
 
     @Override
@@ -116,6 +128,7 @@ public class BedrockProvider implements LLMProvider {
 
     @Override
     public LLMProviderChatMessage chat(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
+
         // TODO: Implement chat functionality for BedrockProvider instead of faking it
         // with completion.
 
@@ -187,7 +200,26 @@ public class BedrockProvider implements LLMProvider {
                         }
 
                         default: {
-                            throw new LLMProviderException("Unknown tool used: " + toolUseBlock.name());
+                            // Try to execute as MCP tool
+                            if (mcpIntegration != null) {
+                                try {
+                                    // Convert Document map to Object map
+                                    Map<String, Object> objectMap = new java.util.HashMap<>();
+                                    Map<String, software.amazon.awssdk.core.document.Document> docMap = toolUseBlock.input().asMap();
+                                    for (Map.Entry<String, software.amazon.awssdk.core.document.Document> entry : docMap.entrySet()) {
+                                        objectMap.put(entry.getKey(), entry.getValue().toString());
+                                    }
+                                    result = mcpIntegration.executeMCPTool(
+                                        toolUseBlock.name(), 
+                                        objectMap
+                                    );
+                                } catch (Exception e) {
+                                    result = "Error executing MCP tool: " + e.getMessage();
+                                }
+                            } else {
+                                throw new LLMProviderException("Unknown tool used: " + toolUseBlock.name());
+                            }
+                            break;
                         }
                     }
 
@@ -232,4 +264,20 @@ public class BedrockProvider implements LLMProvider {
         throw new UnsupportedOperationException("Unimplemented method 'embedding'");
     }
 
+    /**
+     * Enhanced chat method that supports both local and MCP tools
+     */
+    public LLMProviderChatMessage chatWithAllTools(ArrayList<LLMProviderChatMessage> prompt) throws LLMProviderException {
+        List<Tool> allTools = new ArrayList<>();
+        
+        // Add local tools
+        allTools.add(CosineToolImpl.getBedrockToolSpecification());
+        
+        // Add MCP tools if integration is available
+        if (mcpIntegration != null) {
+            allTools.addAll(mcpIntegration.getBedrockToolSpecifications());
+        }
+        
+        return chatWithTools(prompt, allTools);
+    }
 }
