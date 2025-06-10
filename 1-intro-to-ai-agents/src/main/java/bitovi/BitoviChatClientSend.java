@@ -3,9 +3,7 @@ package bitovi;
 import java.io.IOException;
 import java.util.Scanner;
 
-import bitovi.workflows.Chat.ChatWorkflow;
 import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
