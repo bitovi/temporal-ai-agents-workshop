@@ -7,6 +7,7 @@ import bitovi.Config;
 
 public class LangfuseProvider {
     private LangfuseClient langfuseClient;
+    private OTelLLMTracer otelTracer;
 
     public LangfuseProvider() {
         String LANGFUSE_SECRET_KEY = Config.getProperty("LANGFUSE_SECRET_KEY");
@@ -17,6 +18,9 @@ public class LangfuseProvider {
                 .url(LANGFUSE_HOST)
                 .credentials(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY)
                 .build();
+        
+        // Initialize OpenTelemetry tracing
+        this.otelTracer = OTelLLMTracer.getInstance();
     }
 
     public LangfuseClient getLangfuseClient() {
@@ -27,8 +31,13 @@ public class LangfuseProvider {
         return langfuseClient.prompts().list();
     }
 
+    public OTelLLMTracer getTracer() {
+        return otelTracer;
+    }
 
-    public void OTELTrace() {
-        
+    public void shutdown() {
+        if (otelTracer != null) {
+            otelTracer.shutdown();
+        }
     }
 }

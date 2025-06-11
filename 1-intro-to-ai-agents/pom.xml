@@ -99,6 +99,19 @@
       <artifactId>langfuse-java</artifactId>
       <version>0.0.6</version>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.semconv</groupId>
+      <artifactId>opentelemetry-semconv</artifactId>
+      <version>1.25.0-alpha</version>
+    </dependency>
   </dependencies>
   <repositories>
     <repository>
