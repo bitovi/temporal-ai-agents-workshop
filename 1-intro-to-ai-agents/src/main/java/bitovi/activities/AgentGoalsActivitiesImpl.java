@@ -3,22 +3,22 @@ package bitovi.activities;
 import java.util.ArrayList;
 
 import bitovi.activities.helpers.ToolPlannerResult;
-import bitovi.activities.helpers.ValidationResult;
 import bitovi.providers.OllamaProvider;
 import bitovi.records.MessageRecord;
+import bitovi.records.ValidationResultRecord;
 
 public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
 
     @Override
-    public ValidationResult validateUserInput(MessageRecord userInput,
+    public ValidationResultRecord validateUserInput(MessageRecord userInput,
             ArrayList<MessageRecord> history,
             String currentGoal) {
-        return new ValidationResult(false, "The function is not implemented yet.");
+        return new ValidationResultRecord(false, "The function is not implemented yet.");
     }
 
     @Override
-    public ValidationResult validatePrompt() {
-        return new ValidationResult(true, "");
+    public ValidationResultRecord validatePrompt() {
+        return new ValidationResultRecord(true, "");
     }
 
     @Override

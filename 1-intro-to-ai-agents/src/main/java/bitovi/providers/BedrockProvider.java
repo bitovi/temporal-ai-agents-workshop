@@ -12,6 +12,7 @@ import bitovi.records.MessageRecord;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrock.BedrockClient;
@@ -39,7 +40,7 @@ public class BedrockProvider implements LLMProvider {
     private BedrockClient bedrockClient;
     private BedrockRuntimeClient bedrockRuntimeClient;
     private final Region region = Region.US_EAST_2; // Default region, can be changed as needed
-    
+
     // MCP Tool Integration
     private MCPToolIntegration mcpIntegration;
 
@@ -69,7 +70,7 @@ public class BedrockProvider implements LLMProvider {
                                 AWS_SESSION_TOKEN)))
                 .region(region)
                 .build();
-                
+
         // Initialize MCP tool integration
         try {
             this.mcpIntegration = new MCPToolIntegration();
@@ -158,12 +159,22 @@ public class BedrockProvider implements LLMProvider {
                     .build());
         }
 
+        ToolConfiguration.Builder toolConfig = ToolConfiguration.builder()
+                .tools(CosineToolImpl.getBedrockToolSpecification());
+
+        // Add MCP tools if integration is available
+        if (mcpIntegration != null) {
+            List<Tool> mcpTools = mcpIntegration.getBedrockToolSpecifications();
+            if (mcpTools != null && !mcpTools.isEmpty()) {
+                // Add MCP tools to the tool configuration
+                toolConfig.tools(mcpTools);
+            }
+        }
+
         ConverseRequest request = ConverseRequest.builder()
                 .modelId(AWS_MODEL_ARN)
                 .messages(messages)
-                .toolConfig(ToolConfiguration.builder()
-                        .tools(CosineToolImpl.getBedrockToolSpecification())
-                        .build())
+                .toolConfig(toolConfig.build())
                 .build();
 
         ConverseResponse response = converseWithToolsRecursive(messages, request, 0);
@@ -194,6 +205,7 @@ public class BedrockProvider implements LLMProvider {
 
                     ToolUseBlock toolUseBlock = block.toolUse();
                     switch (toolUseBlock.name()) {
+                        // One simple hardcoded tool for testing
                         case "calculate_cosine": {
                             double number = toolUseBlock.input().asMap().get("number").asNumber().doubleValue();
                             result = String.valueOf(CosineToolImpl.calculateCosine(number));
@@ -204,16 +216,16 @@ public class BedrockProvider implements LLMProvider {
                             // Try to execute as MCP tool
                             if (mcpIntegration != null) {
                                 try {
-                                    // Convert Document map to Object map
                                     Map<String, Object> objectMap = new java.util.HashMap<>();
-                                    Map<String, software.amazon.awssdk.core.document.Document> docMap = toolUseBlock.input().asMap();
-                                    for (Map.Entry<String, software.amazon.awssdk.core.document.Document> entry : docMap.entrySet()) {
+                                    Map<String, Document> docMap = toolUseBlock
+                                            .input().asMap();
+                                    for (Map.Entry<String, Document> entry : docMap
+                                            .entrySet()) {
                                         objectMap.put(entry.getKey(), entry.getValue().toString());
                                     }
                                     result = mcpIntegration.executeMCPTool(
-                                        toolUseBlock.name(), 
-                                        objectMap
-                                    );
+                                            toolUseBlock.name(),
+                                            objectMap);
                                 } catch (Exception e) {
                                     result = "Error executing MCP tool: " + e.getMessage();
                                 }
@@ -270,15 +282,15 @@ public class BedrockProvider implements LLMProvider {
      */
     public MessageRecord chatWithAllTools(ArrayList<MessageRecord> prompt) throws LLMProviderException {
         List<Tool> allTools = new ArrayList<>();
-        
+
         // Add local tools
         allTools.add(CosineToolImpl.getBedrockToolSpecification());
-        
+
         // Add MCP tools if integration is available
         if (mcpIntegration != null) {
             allTools.addAll(mcpIntegration.getBedrockToolSpecifications());
         }
-        
+
         return chatWithTools(prompt, allTools);
     }
 }

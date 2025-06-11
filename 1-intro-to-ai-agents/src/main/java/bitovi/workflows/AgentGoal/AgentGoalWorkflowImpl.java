@@ -5,9 +5,9 @@ import java.util.ArrayList;
 
 import bitovi.Config;
 import bitovi.activities.AgentGoalActivities;
-import bitovi.activities.helpers.ValidationResult;
 import bitovi.providers.Transform;
 import bitovi.records.MessageRecord;
+import bitovi.records.ValidationResultRecord;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
@@ -63,14 +63,14 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                 this.conversationHistory.add((prompt));
 
                 // Validate the user input.
-                ValidationResult validationResult = activities.validateUserInput(prompt,
+                ValidationResultRecord validationResult = activities.validateUserInput(prompt,
                         this.conversationHistory, this.currentGoal);
                 if (!validationResult.isValid()) {
                     Workflow.getLogger("AgentGoalWorkflowImpl")
-                            .error("User input validation failed: " + validationResult.getMessage());
+                            .error("User input validation failed: " + validationResult.message());
 
                     this.conversationHistory
-                            .add(new MessageRecord("assistant", validationResult.getMessage()));
+                            .add(new MessageRecord("assistant", validationResult.message()));
                     continue; // Skip to the next iteration to wait for more input.
                 }
 
