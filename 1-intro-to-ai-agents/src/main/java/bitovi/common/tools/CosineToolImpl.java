@@ -55,4 +55,9 @@ public class CosineToolImpl {
                 .toolSpec(specification)
                 .build();
     }
+
+    public static io.github.ollama4j.tools.Tools.ToolSpecification getOllamaTool() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getOllamaTool'");
+    }
 }

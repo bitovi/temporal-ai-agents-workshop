@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import bitovi.common.tools.CosineToolImpl;
-import bitovi.common.tools.MCPBedrockTool;
 import bitovi.common.tools.SearchToolmpl;
+import bitovi.common.tools.transform.MCPBedrockTool;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.MCPToolIntegration;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;

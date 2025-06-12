@@ -20,11 +20,19 @@
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
-                {
+        {
             "type": "java",
             "name": "Bedrock Tool Call",
             "request": "launch",
             "mainClass": "bitovi.BitoviBedrockToolCall",
+            "projectName": "1-intro-to-ai-agents",
+            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+        },
+                {
+            "type": "java",
+            "name": "Ollama Tool Call",
+            "request": "launch",
+            "mainClass": "bitovi.BitoviOllamaToolCall",
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
