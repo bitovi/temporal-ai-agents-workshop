@@ -31,7 +31,7 @@ public class MCPBedrockActivitiesImpl implements MCPBedrockActivities {
             messages.add(new MessageRecord("user", userQuery));
             
             // Use the enhanced chat method that includes MCP tools
-            MessageRecord response = bedrockProvider.chatWithAllTools(messages);
+            MessageRecord response = bedrockProvider.chatWithTools(messages);
             
             return response.content();
         } catch (LLMProviderException e) {

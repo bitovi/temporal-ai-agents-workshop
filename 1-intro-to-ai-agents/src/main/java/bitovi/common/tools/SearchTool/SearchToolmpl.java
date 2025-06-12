@@ -1,4 +1,4 @@
-package bitovi.common.tools.ConsineTool;
+package bitovi.common.tools.SearchTool;
 
 import bitovi.Config;
 import software.amazon.awssdk.core.document.Document;
@@ -6,13 +6,13 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
-public class CosineToolImpl {
+public class SearchToolmpl {
     public static Tool getBedrockToolSpecification() {
 
         // Read in the JSON file to get the tool definition
         String contents;
         try {
-            contents = Config.readFile("src/main/java/bitovi/common/tools/ConsineTool/definition.json");
+            contents = Config.readFile("src/main/java/bitovi/common/tools/SearchTool/definition.json");
         } catch (Exception e) {
             System.err.println("Error reading tool definition file: " + e.getMessage());
             return null;
@@ -20,8 +20,8 @@ public class CosineToolImpl {
 
         return Tool.builder()
                 .toolSpec(ToolSpecification.builder()
-                        .name("calculate_cosine")
-                        .description("Calculate the cosine of a number in radians")
+                        .name("web_search")
+                        .description("Search the web for a query string")
                         .inputSchema(ToolInputSchema.builder()
                                 .json(Document.fromString(contents))
                                 .build())
@@ -29,7 +29,7 @@ public class CosineToolImpl {
                 .build();
     }
 
-    public static double executeTool(double radians) {
-        return Math.cos(radians);
+    public static String executeTool(String query) {
+        return "Search results for: " + query;
     }
 }

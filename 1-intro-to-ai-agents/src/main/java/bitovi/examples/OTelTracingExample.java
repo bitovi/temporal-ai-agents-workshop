@@ -1,12 +1,10 @@
 package bitovi.examples;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import bitovi.Config;
 import bitovi.providers.TracedBedrockProvider;
 import bitovi.providers.TracedOllamaProvider;
-import bitovi.providers.LangfuseProvider;
 import bitovi.providers.OTelLLMTracer;
 import bitovi.providers.LLMProviderException;
 import bitovi.records.MessageRecord;
@@ -21,7 +19,6 @@ public class OTelTracingExample {
 
     public static void main(String[] args) {
         System.out.println("OpenTelemetry + Langfuse LLM Tracing Example");
-        System.out.println("============================================");
 
         try {
             // Verify configuration
@@ -37,7 +34,6 @@ public class OTelTracingExample {
             System.out.println("\nInitializing traced providers...");
             TracedBedrockProvider bedrockProvider = new TracedBedrockProvider();
             TracedOllamaProvider ollamaProvider = new TracedOllamaProvider();
-            LangfuseProvider langfuseProvider = new LangfuseProvider();
             OTelLLMTracer tracer = OTelLLMTracer.getInstance();
 
             // Example 1: Simple completion with Bedrock
@@ -105,7 +101,7 @@ public class OTelTracingExample {
             ArrayList<MessageRecord> messages = new ArrayList<>();
             messages.add(new MessageRecord("user", "Calculate the cosine of 1.57 radians"));
 
-            MessageRecord response = provider.chatWithAllTools(messages);
+            MessageRecord response = provider.chatWithTools(messages);
             System.out.println("User: Calculate the cosine of 1.57 radians");
             System.out.println("Assistant: " + response.content());
         } catch (Exception e) {
@@ -123,27 +119,29 @@ public class OTelTracingExample {
             System.err
                     .println("Ollama completion failed (this is expected if Ollama is not running): " + e.getMessage());
         }
-    }    private static void testCustomTracing(OTelLLMTracer tracer, TracedBedrockProvider provider) {
+    }
+
+    private static void testCustomTracing(OTelLLMTracer tracer, TracedBedrockProvider provider) {
         // Example of custom tracing with additional context
         Span parentSpan = tracer.startLLMSpan("custom.ai_conversation", "bedrock", "claude");
-        
+
         try (Scope scope = tracer.withSpan(parentSpan)) {
             parentSpan.setAttribute("user_id", "user_123");
             parentSpan.setAttribute("session_id", "session_456");
             parentSpan.setAttribute("conversation_type", "customer_support");
-            
+
             ArrayList<MessageRecord> messages = new ArrayList<>();
             messages.add(new MessageRecord("user", "I need help with my account"));
-            
+
             try {
                 MessageRecord response = provider.chat(messages);
-                
+
                 parentSpan.setAttribute("issue_category", "account_support");
                 parentSpan.setAttribute("response_sentiment", "helpful");
-                
+
                 System.out.println("Custom traced conversation completed");
                 System.out.println("Response: " + response.content());
-                
+
                 tracer.finishSpanSuccess(parentSpan);
             } catch (LLMProviderException e) {
                 System.out.println("Custom tracing failed: " + e.getMessage());
@@ -152,16 +150,18 @@ public class OTelTracingExample {
         } catch (Exception e) {
             tracer.finishSpanError(parentSpan, e);
         }
-    }    private static void testErrorHandling(TracedBedrockProvider provider) {
+    }
+
+    private static void testErrorHandling(TracedBedrockProvider provider) {
         // Example of error handling with tracing
         OTelLLMTracer tracer = OTelLLMTracer.getInstance();
         Span span = tracer.startLLMSpan("error.test", "bedrock", "test");
-        
+
         try (Scope scope = tracer.withSpan(span)) {
             // This will likely cause an error due to empty prompt
             ArrayList<MessageRecord> messages = new ArrayList<>();
             messages.add(new MessageRecord("user", ""));
-            
+
             try {
                 MessageRecord response = provider.chat(messages);
                 System.out.println("Unexpected success: " + response.content());

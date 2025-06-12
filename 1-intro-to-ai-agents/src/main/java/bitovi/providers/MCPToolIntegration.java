@@ -6,12 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import bitovi.Config;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import software.amazon.awssdk.core.document.Document;
@@ -29,7 +35,7 @@ public class MCPToolIntegration {
 
     public MCPToolIntegration() {
         initializeMCPClient();
-        loadAvailableTools();
+        refreshAvailableTools();
     }
 
     private void initializeMCPClient() {
@@ -58,14 +64,14 @@ public class MCPToolIntegration {
         this.mcpClient.initialize();
     }
 
-    private void loadAvailableTools() {
+    private void refreshAvailableTools() {
         try {
             ListToolsResult tools = mcpClient.listTools();
             this.availableTools = tools.tools();
             System.out.println("Loaded " + availableTools.size() + " MCP tools");
         } catch (Exception e) {
             System.err.println("Failed to load MCP tools: " + e.getMessage());
-            this.availableTools = new ArrayList<>();
+            this.availableTools = new ArrayList<Tool>();
         }
     }
 
@@ -77,8 +83,7 @@ public class MCPToolIntegration {
 
         for (Tool mcpTool : availableTools) {
             try {
-                // Convert MCP tool schema to Bedrock format
-                String schemaJson = convertMCPSchemaToBedrockSchema(mcpTool);
+                String converted = convertMCPSchemaToBedrockSchema(mcpTool);
 
                 software.amazon.awssdk.services.bedrockruntime.model.Tool bedrockTool = software.amazon.awssdk.services.bedrockruntime.model.Tool
                         .builder()
@@ -86,7 +91,7 @@ public class MCPToolIntegration {
                                 .name(mcpTool.name())
                                 .description(mcpTool.description())
                                 .inputSchema(ToolInputSchema.builder()
-                                        .json(Document.fromString(schemaJson))
+                                        .json(Document.fromString(converted))
                                         .build())
                                 .build())
                         .build();
@@ -119,23 +124,38 @@ public class MCPToolIntegration {
     }
 
     // Convert MCP input schema to Bedrock-compatible JSON schema
-    // TODO: Implement a proper conversion based on MCP schema
-    private String convertMCPSchemaToBedrockSchema(Tool mcpTool) {
-        // For this example, we'll create a basic schema
-        // In a real implementation, you'd parse the MCP tool's input schema
-        return "{\n" +
-                "  \"type\": \"object\",\n" +
-                "  \"properties\": {\n" +
-                "    \"input\": {\n" +
-                "      \"type\": \"string\",\n" +
-                "      \"description\": \"Input for " + mcpTool.name() + "\"\n" +
-                "    }\n" +
-                "  },\n" +
-                "  \"required\": [\"input\"]\n" +
-                "}";
+    public static String convertMCPSchemaToBedrockSchema(Tool mcpTool) {
+        System.out.println(
+                "Converting MCP tool schema to Bedrock format: " + mcpTool.name() + " - " + mcpTool.description());
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        JsonSchema inputSchema = mcpTool.inputSchema();
+
+        ObjectNode bedrockTool = objectMapper.createObjectNode();
+        bedrockTool.put("type", "object");
+        bedrockTool.put("properties", objectMapper.valueToTree(inputSchema.properties()));
+        bedrockTool.put("required", objectMapper.valueToTree(inputSchema.required()));
+        bedrockTool.put("additionalProperties", inputSchema.additionalProperties() != null
+                ? objectMapper.valueToTree(inputSchema.additionalProperties())
+                : BooleanNode.FALSE);
+
+        String bedrockJson;
+        try {
+            bedrockJson = objectMapper.writeValueAsString(bedrockTool);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return "{}"; // Return empty JSON object on error
+        }
+
+        System.out.println("Converted MCP tool schema to Bedrock format: " + bedrockJson);
+        return bedrockJson;
     }
 
     public List<Tool> getAvailableTools() {
+        if (availableTools == null || availableTools.isEmpty()) {
+            refreshAvailableTools();
+        }
         return availableTools;
     }
 

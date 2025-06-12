@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import bitovi.Config;
 import bitovi.common.tools.ConsineTool.CosineToolImpl;
+import bitovi.common.tools.SearchTool.SearchToolmpl;
 import bitovi.records.MessageRecord;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -34,8 +35,8 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 public class BedrockProvider implements LLMProvider {
 
-    private String AWS_MODEL_ID;
-    private String AWS_MODEL_ARN;
+    protected String AWS_MODEL_ID;
+    protected String AWS_MODEL_ARN;
 
     private BedrockClient bedrockClient;
     private BedrockRuntimeClient bedrockRuntimeClient;
@@ -146,9 +147,7 @@ public class BedrockProvider implements LLMProvider {
         return responseMessage;
     }
 
-    public MessageRecord chatWithTools(ArrayList<MessageRecord> prompt,
-            List<Tool> tools) throws LLMProviderException {
-
+    public MessageRecord chatWithTools(List<MessageRecord> prompt) throws LLMProviderException {
         List<Message> messages = new ArrayList<Message>();
 
         // Convert the chat messages to Bedrock's Message format
@@ -159,17 +158,25 @@ public class BedrockProvider implements LLMProvider {
                     .build());
         }
 
-        ToolConfiguration.Builder toolConfig = ToolConfiguration.builder()
-                .tools(CosineToolImpl.getBedrockToolSpecification());
+        ToolConfiguration.Builder toolConfig = ToolConfiguration.builder();
+
+        List<Tool> tools = new ArrayList<>();
+        // Add the cosine tool to the tool configuration
+        Tool cosineTool = CosineToolImpl.getBedrockToolSpecification();
+        tools.add(cosineTool);
+
+        // Add the search tool to the tool configuration
+        Tool searchTool = SearchToolmpl.getBedrockToolSpecification();
+        tools.add(searchTool);
 
         // Add MCP tools if integration is available
         if (mcpIntegration != null) {
             List<Tool> mcpTools = mcpIntegration.getBedrockToolSpecifications();
-            if (mcpTools != null && !mcpTools.isEmpty()) {
-                // Add MCP tools to the tool configuration
-                toolConfig.tools(mcpTools);
-            }
+            tools.addAll(mcpTools);
         }
+
+        System.out.println("Adding " + tools.size() + " tools to Bedrock tool configuration.");
+        toolConfig.tools(tools);
 
         ConverseRequest request = ConverseRequest.builder()
                 .modelId(AWS_MODEL_ARN)
@@ -208,7 +215,7 @@ public class BedrockProvider implements LLMProvider {
                         // One simple hardcoded tool for testing
                         case "calculate_cosine": {
                             double number = toolUseBlock.input().asMap().get("number").asNumber().doubleValue();
-                            result = String.valueOf(CosineToolImpl.calculateCosine(number));
+                            result = String.valueOf(CosineToolImpl.executeTool(number));
                             break;
                         }
 
@@ -277,20 +284,4 @@ public class BedrockProvider implements LLMProvider {
         throw new UnsupportedOperationException("Unimplemented method 'embedding'");
     }
 
-    /**
-     * Enhanced chat method that supports both local and MCP tools
-     */
-    public MessageRecord chatWithAllTools(ArrayList<MessageRecord> prompt) throws LLMProviderException {
-        List<Tool> allTools = new ArrayList<>();
-
-        // Add local tools
-        allTools.add(CosineToolImpl.getBedrockToolSpecification());
-
-        // Add MCP tools if integration is available
-        if (mcpIntegration != null) {
-            allTools.addAll(mcpIntegration.getBedrockToolSpecifications());
-        }
-
-        return chatWithTools(prompt, allTools);
-    }
 }

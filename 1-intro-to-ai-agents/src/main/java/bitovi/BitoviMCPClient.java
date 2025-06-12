@@ -3,13 +3,10 @@ package bitovi;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.time.Duration;
-import java.util.Map;
-
+import bitovi.providers.MCPToolIntegration;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
-import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
-import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 
 public class BitoviMCPClient {
@@ -48,20 +45,11 @@ public class BitoviMCPClient {
                 ListToolsResult tools = client.listTools();
                 System.out.println("Available tools: " + tools.tools().size());
 
-                // Find the tool called 'weather-current' and call it with a
-                // zip code as an example
-                tools.tools().stream()
-                                .filter(tool -> tool.name().equals("weather-current"))
-                                .findFirst()
-                                .ifPresentOrElse(
-                                                tool -> {
-                                                        // Call the tool with a sample zip code
-                                                        CallToolResult result = client.callTool(
-                                                                        new CallToolRequest(tool.name(),
-                                                                                        Map.of("zipCode", "14543")));
-                                                        System.out.println("Tool result: " + result.content());
-                                                },
-                                                () -> System.out.println("Tool 'weather-current' not found"));
+                // Loop over all the tools and convert them to Bedrock format
+                tools.tools().stream().forEach(tool -> {
+                        String converted = MCPToolIntegration.convertMCPSchemaToBedrockSchema(tool);
+                        System.out.println(converted);
+                });
 
                 // Close client
                 client.closeGracefully();

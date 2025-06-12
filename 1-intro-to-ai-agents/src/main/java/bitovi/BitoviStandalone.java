@@ -4,8 +4,6 @@ import java.util.ArrayList;
 
 import bitovi.providers.LLMProvider;
 import bitovi.records.MessageRecord;
-import software.amazon.awssdk.services.bedrockruntime.model.Tool;
-import bitovi.common.tools.ConsineTool.CosineToolImpl;
 import bitovi.providers.BedrockProvider;
 
 public class BitoviStandalone {
@@ -23,15 +21,8 @@ public class BitoviStandalone {
                 ArrayList<MessageRecord> chatHistory = new ArrayList<MessageRecord>();
                 chatHistory.add(new MessageRecord("user", "What is the cosine of 1.57 radians?"));
 
-                ArrayList<Tool> tools = new ArrayList<Tool>();
-                tools.add(CosineToolImpl.getBedrockToolSpecification());
-
-                MessageRecord chatResponse = bedrockProvider.chatWithTools(chatHistory, tools);
+                MessageRecord chatResponse = bedrockProvider.chatWithTools(chatHistory);
                 System.out.println("Answer: " + chatResponse.content());
-
-                // System.out.println("Creating Ollama Instance...");
-                // OllamaProvider ollamaProvider = new OllamaProvider();
-                // test(ollamaProvider);
         }
 
         public static void test(LLMProvider provider) throws Exception {

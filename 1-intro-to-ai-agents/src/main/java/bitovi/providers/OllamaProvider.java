@@ -17,8 +17,8 @@ import io.github.ollama4j.models.response.OllamaResult;
 
 public class OllamaProvider implements LLMProvider {
 
-    private final String OLLAMA_MODEL_ID;
-    private final String OLLAMA_HOST;
+    protected final String OLLAMA_MODEL_ID;
+    protected final String OLLAMA_HOST;
 
     private OllamaAPI ollamaClient;
 
