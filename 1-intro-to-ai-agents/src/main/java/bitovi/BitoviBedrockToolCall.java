@@ -48,7 +48,8 @@ public class BitoviBedrockToolCall {
         List<Message> messages = new ArrayList<Message>();
         messages.add(Message.builder()
                 .role(ConversationRole.fromValue("user"))
-                .content(ContentBlock.fromText("Could you do a search for information about Java and AI Development?"))
+                .content(ContentBlock.fromText(
+                        "Can you tell me what tool calls you have available and what they doe, what their parameters are, and what they might be used for?"))
                 .build());
 
         ToolConfiguration.Builder toolConfig = ToolConfiguration.builder();
