@@ -2,10 +2,13 @@ package bitovi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import bitovi.common.tools.CosineToolImpl;
+import bitovi.common.tools.MCPBedrockTool;
 import bitovi.common.tools.SearchToolmpl;
 import bitovi.providers.LLMProviderException;
+import bitovi.providers.MCPToolIntegration;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.document.Document;
@@ -25,6 +28,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 public class BitoviBedrockToolCall {
 
     private static BedrockRuntimeClient bedrockRuntimeClient;
+    private static MCPToolIntegration mcpToolIntegration;
 
     public static void main(String[] args) throws LLMProviderException {
         String AWS_MODEL_ARN = Config.getProperty("AWS_MODEL_ARN");
@@ -44,14 +48,19 @@ public class BitoviBedrockToolCall {
         List<Message> messages = new ArrayList<Message>();
         messages.add(Message.builder()
                 .role(ConversationRole.fromValue("user"))
-                .content(ContentBlock.fromText("Could you show me the search results for Java Programming?"))
+                .content(ContentBlock.fromText("Could you do a search for information about Java and AI Development?"))
                 .build());
 
         ToolConfiguration.Builder toolConfig = ToolConfiguration.builder();
 
         List<Tool> tools = new ArrayList<>();
+
+        mcpToolIntegration = new MCPToolIntegration();
+        mcpToolIntegration.getAvailableTools().forEach(tool -> {
+            tools.add(MCPBedrockTool.transform(tool));
+        });
+
         tools.add(CosineToolImpl.getBedrockTool());
-        tools.add(SearchToolmpl.getBedrockTool());
 
         toolConfig.tools(tools);
 
@@ -99,7 +108,21 @@ public class BitoviBedrockToolCall {
                     }
 
                     default: {
-                        throw new LLMProviderException("Unknown tool used: " + toolUseBlock.name());
+                        try {
+                            Map<String, Object> objectMap = new java.util.HashMap<>();
+                            Map<String, Document> docMap = toolUseBlock
+                                    .input().asMap();
+                            for (Map.Entry<String, Document> entry : docMap
+                                    .entrySet()) {
+                                objectMap.put(entry.getKey(), entry.getValue().toString());
+                            }
+                            result = mcpToolIntegration.executeMCPTool(
+                                    toolUseBlock.name(),
+                                    objectMap);
+                        } catch (Exception e) {
+                            throw new LLMProviderException(
+                                    "Error executing tool: " + toolUseBlock.name() + " - " + e.getMessage());
+                        }
                     }
                 }
 
