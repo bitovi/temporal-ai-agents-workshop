@@ -7,8 +7,8 @@ import java.util.Map;
 import org.json.JSONObject;
 
 import bitovi.Config;
-import bitovi.common.tools.ConsineTool.CosineToolImpl;
-import bitovi.common.tools.SearchTool.SearchToolmpl;
+import bitovi.common.tools.CosineToolImpl;
+import bitovi.common.tools.SearchToolmpl;
 import bitovi.records.MessageRecord;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -162,11 +162,11 @@ public class BedrockProvider implements LLMProvider {
 
         List<Tool> tools = new ArrayList<>();
         // Add the cosine tool to the tool configuration
-        Tool cosineTool = CosineToolImpl.getBedrockToolSpecification();
+        Tool cosineTool = CosineToolImpl.getBedrockTool();
         tools.add(cosineTool);
 
         // Add the search tool to the tool configuration
-        Tool searchTool = SearchToolmpl.getBedrockToolSpecification();
+        Tool searchTool = SearchToolmpl.getBedrockTool();
         tools.add(searchTool);
 
         // Add MCP tools if integration is available
@@ -214,8 +214,7 @@ public class BedrockProvider implements LLMProvider {
                     switch (toolUseBlock.name()) {
                         // One simple hardcoded tool for testing
                         case "calculate_cosine": {
-                            double number = toolUseBlock.input().asMap().get("number").asNumber().doubleValue();
-                            result = String.valueOf(CosineToolImpl.executeTool(number));
+                            result = String.valueOf(CosineToolImpl.execute(toolUseBlock.input()));
                             break;
                         }
 
