@@ -64,6 +64,9 @@ public class ModelContextProtocolClient {
     public List<software.amazon.awssdk.services.bedrockruntime.model.Tool> getBedrockToolSpecifications() {
         List<software.amazon.awssdk.services.bedrockruntime.model.Tool> bedrockTools = new ArrayList<>();
 
+        // Ensure we have the latest tools loaded
+        getAvailableTools();
+
         for (Tool mcpTool : availableTools) {
             try {
                 String converted = convertMCPSchemaToBedrockSchema(mcpTool);
