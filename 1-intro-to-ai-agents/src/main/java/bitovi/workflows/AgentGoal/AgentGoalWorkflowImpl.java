@@ -4,18 +4,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 
 import bitovi.Config;
-import bitovi.activities.AgentGoalActivities;
-import bitovi.providers.Transform;
-import bitovi.records.MessageRecord;
-import bitovi.records.ValidationResultRecord;
+import bitovi.DataTypes;
+import bitovi.workflows.AgentGoal.activities.AgentGoalActivities;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
 public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
-    private ArrayList<MessageRecord> conversationHistory = new ArrayList<MessageRecord>();
+    private ArrayList<DataTypes.MessageRecord> conversationHistory = new ArrayList<DataTypes.MessageRecord>();
 
-    private ArrayList<MessageRecord> promptQueue = new ArrayList<MessageRecord>();
+    private ArrayList<DataTypes.MessageRecord> promptQueue = new ArrayList<DataTypes.MessageRecord>();
 
     private String currentGoal = null;
 
@@ -27,7 +25,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     @Override
     public void prompt(String prompt) {
-        this.promptQueue.add(new MessageRecord("user", prompt));
+        this.promptQueue.add(new DataTypes.MessageRecord("user", prompt));
     }
 
     @Override
@@ -57,20 +55,20 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             // If there are prompts in the queue, process them.
             if (this.promptQueue.size() > 0) {
                 Workflow.getLogger("AgentGoalWorkflowImpl").info("Processing user prompt from queue.");
-                MessageRecord prompt = this.promptQueue.remove(0);
+                DataTypes.MessageRecord prompt = this.promptQueue.remove(0);
 
                 // Add the user prompt to the conversation history.
                 this.conversationHistory.add((prompt));
 
                 // Validate the user input.
-                ValidationResultRecord validationResult = activities.validateUserInput(prompt,
+                DataTypes.ValidationResultRecord validationResult = activities.validateUserInput(prompt,
                         this.conversationHistory, this.currentGoal);
                 if (!validationResult.isValid()) {
                     Workflow.getLogger("AgentGoalWorkflowImpl")
                             .error("User input validation failed: " + validationResult.message());
 
                     this.conversationHistory
-                            .add(new MessageRecord("assistant", validationResult.message()));
+                            .add(new DataTypes.MessageRecord("assistant", validationResult.message()));
                     continue; // Skip to the next iteration to wait for more input.
                 }
 
@@ -81,12 +79,25 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                         this.currentGoal);
 
                 // Execute the tool_planner with the instructions.
-                String conversation = Transform.LLMProviderChatMessagesToString(this.conversationHistory);
+                String conversation = LLMProviderChatMessagesToString(this.conversationHistory);
                 var toolPlannerResult = activities.toolPlanner(instructions, conversation);
 
                 System.out.println("Tool Planner Result: " + toolPlannerResult.toString());
             }
         }
+    }
 
+    private static String LLMProviderChatMessagesToString(ArrayList<DataTypes.MessageRecord> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (DataTypes.MessageRecord message : messages) {
+            String str = LLMProviderChatMessageToString(message);
+            sb.append(str);
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private static String LLMProviderChatMessageToString(DataTypes.MessageRecord message) {
+        return message.role() + ": " + message.content();
     }
 }

@@ -1,28 +1,26 @@
-package bitovi.activities;
+package bitovi.workflows.AgentGoal.activities;
 
 import java.util.ArrayList;
 
-import bitovi.activities.helpers.ToolPlannerResult;
+import bitovi.DataTypes;
 import bitovi.providers.OllamaProvider;
-import bitovi.records.MessageRecord;
-import bitovi.records.ValidationResultRecord;
 
 public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
 
     @Override
-    public ValidationResultRecord validateUserInput(MessageRecord userInput,
-            ArrayList<MessageRecord> history,
+    public DataTypes.ValidationResultRecord validateUserInput(DataTypes.MessageRecord userInput,
+            ArrayList<DataTypes.MessageRecord> history,
             String currentGoal) {
-        return new ValidationResultRecord(false, "The function is not implemented yet.");
+        return new DataTypes.ValidationResultRecord(false, "The function is not implemented yet.");
     }
 
     @Override
-    public ValidationResultRecord validatePrompt() {
-        return new ValidationResultRecord(true, "");
+    public DataTypes.ValidationResultRecord validatePrompt() {
+        return new DataTypes.ValidationResultRecord(true, "");
     }
 
     @Override
-    public String generateInstructions(MessageRecord userInput, ArrayList<MessageRecord> history,
+    public String generateInstructions(DataTypes.MessageRecord userInput, ArrayList<DataTypes.MessageRecord> history,
             String currentGoal) {
         StringBuilder instructions = new StringBuilder();
         instructions.append("You are an AI agent that helps fill required arguments for the tools described below.");
@@ -31,7 +29,7 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
         instructions.append("=== Conversation History ===\n");
         instructions.append("This is the ongoing history to determine which tool and arguments to gather:\n");
         instructions.append("*BEGIN CONVERSATION HISTORY*\n");
-        for (MessageRecord message : history) {
+        for (DataTypes.MessageRecord message : history) {
             instructions.append("\n");
             instructions.append(message.role());
             instructions.append(": ");
@@ -87,30 +85,30 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
     }
 
     @Override
-    public ToolPlannerResult toolPlanner(String instructions, String prompt) {
+    public DataTypes.ToolPlannerResult toolPlanner(String instructions, String prompt) {
 
-        ArrayList<MessageRecord> messages = new ArrayList<>();
-        messages.add(new MessageRecord("system", instructions));
+        ArrayList<DataTypes.MessageRecord> messages = new ArrayList<>();
+        messages.add(new DataTypes.MessageRecord("system", instructions));
         messages.add(
-                new MessageRecord("system", "The current date and time is " + java.time.LocalDateTime.now()));
+                new DataTypes.MessageRecord("system", "The current date and time is " + java.time.LocalDateTime.now()));
 
-        messages.add(new MessageRecord("user", prompt));
+        messages.add(new DataTypes.MessageRecord("user", prompt));
 
         try {
             OllamaProvider llm = new OllamaProvider();
-            MessageRecord response = llm.chat(messages);
+            DataTypes.MessageRecord response = llm.chat(messages);
             String cleanedResponse = clean(response.content());
-            ToolPlannerResult result = parse(cleanedResponse);
+            DataTypes.ToolPlannerResult result = parse(cleanedResponse);
 
-            if (result.nextStep == "confirm") {
+            if (result.nextStep() == "confirm") {
                 // Check if the args are valid
-                // handleMissingArgs(result.args);
+                // handleMissingArgs(result.args());
             }
 
             return result;
 
         } catch (Exception e) {
-            return new ToolPlannerResult(false, "next", null, null);
+            return new DataTypes.ToolPlannerResult(false, "next", null, null);
         }
 
     }
@@ -120,9 +118,9 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
         return cleaned;
     }
 
-    private ToolPlannerResult parse(String maybeJsonString) {
+    private DataTypes.ToolPlannerResult parse(String maybeJsonString) {
         System.out.println("Parsing JSON: " + maybeJsonString);
-        return new ToolPlannerResult(false, "next", null, null);
+        return new DataTypes.ToolPlannerResult(false, "next", null, null);
     }
 
 }

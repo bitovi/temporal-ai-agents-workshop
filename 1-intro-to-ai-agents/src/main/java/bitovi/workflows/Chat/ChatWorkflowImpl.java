@@ -3,12 +3,13 @@ package bitovi.workflows.Chat;
 import java.util.ArrayList;
 
 import bitovi.Config;
-import bitovi.activities.ChatActivities;
-import bitovi.records.MessageRecord;
+import bitovi.DataTypes;
+import bitovi.DataTypes.MessageRecord;
+import bitovi.workflows.Chat.activities.ChatActivities;
 import io.temporal.workflow.Workflow;
 
 public class ChatWorkflowImpl implements ChatWorkflow {
-    private ArrayList<MessageRecord> history = new ArrayList<MessageRecord>();
+    private ArrayList<DataTypes.MessageRecord> history = new ArrayList<DataTypes.MessageRecord>();
     private ArrayList<String> promptQueue = new ArrayList<String>();
 
     private String lastResponse = null;

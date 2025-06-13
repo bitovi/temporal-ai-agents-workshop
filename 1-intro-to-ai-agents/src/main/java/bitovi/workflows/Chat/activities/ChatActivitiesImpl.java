@@ -1,10 +1,10 @@
-package bitovi.activities;
+package bitovi.workflows.Chat.activities;
 
 import java.util.ArrayList;
 
+import bitovi.DataTypes.MessageRecord;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.OllamaProvider;
-import bitovi.records.MessageRecord;
 import io.temporal.activity.Activity;
 
 public class ChatActivitiesImpl implements ChatActivities {

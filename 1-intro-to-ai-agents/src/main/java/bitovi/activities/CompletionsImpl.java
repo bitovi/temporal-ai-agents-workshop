@@ -1,7 +1,9 @@
 package bitovi.activities;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import bitovi.DataTypes.MessageRecord;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.OllamaProvider;
 import io.qdrant.client.QdrantClient;
@@ -17,14 +19,19 @@ public class CompletionsImpl implements Completions {
 
     @Override
     public String generateGreeting(String name) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Write a friendly greeting to a user named '")
-                .append(name)
-                .append("'. You should respond with only the greeting, nothing else, assume that the user is a human being and a friend of yours.");
-
         try {
             OllamaProvider ollama = new OllamaProvider();
-            return ollama.completion(builder.toString());
+            ArrayList<MessageRecord> prompt = new ArrayList<>();
+            prompt.add(new MessageRecord("system",
+                    "You are a basic greeting generator. You will be given a name and you should generate a simple friendly greeting for that name."));
+
+            prompt.add(new MessageRecord("system",
+                    "You should respond with only the greeting, nothing else. Assume that the user is a human being and a friend of yours."));
+
+            prompt.add(new MessageRecord("user", "Name: " + name));
+
+            MessageRecord response = ollama.chat(prompt);
+            return response.content();
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
@@ -36,16 +43,6 @@ public class CompletionsImpl implements Completions {
             OllamaProvider ollama = new OllamaProvider();
             // Assuming the text is a single string, we can wrap it in a list
             return ollama.embedding(List.of(text));
-        } catch (LLMProviderException e) {
-            throw Activity.wrap(e);
-        }
-    }
-
-    @Override
-    public String generateCompletion(String prompt) {
-        try {
-            OllamaProvider ollama = new OllamaProvider();
-            return ollama.completion(prompt);
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }

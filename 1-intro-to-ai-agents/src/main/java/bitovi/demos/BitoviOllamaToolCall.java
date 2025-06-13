@@ -1,8 +1,10 @@
-package bitovi;
+package bitovi.demos;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import bitovi.Config;
 import bitovi.common.tools.transform.MCPOllamaTool;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.MCPToolIntegration;

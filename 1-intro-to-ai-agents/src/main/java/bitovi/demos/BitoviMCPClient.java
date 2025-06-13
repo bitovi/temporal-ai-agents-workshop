@@ -1,8 +1,10 @@
-package bitovi;
+package bitovi.demos;
 
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.time.Duration;
+
+import bitovi.Config;
 import bitovi.providers.MCPToolIntegration;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;

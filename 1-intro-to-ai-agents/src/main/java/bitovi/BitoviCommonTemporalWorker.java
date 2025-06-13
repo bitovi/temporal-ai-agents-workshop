@@ -1,12 +1,10 @@
 package bitovi;
 
-import bitovi.activities.AgentGoalsActivitiesImpl;
-import bitovi.activities.ChatActivitiesImpl;
 import bitovi.activities.CompletionsImpl;
-// import bitovi.activities.MCPBedrockActivitiesImpl;
 import bitovi.workflows.AgentGoal.AgentGoalWorkflowImpl;
+import bitovi.workflows.AgentGoal.activities.AgentGoalsActivitiesImpl;
 import bitovi.workflows.Chat.ChatWorkflowImpl;
-// import bitovi.workflows.MCPBedrock.MCPBedrockWorkflowImpl;
+import bitovi.workflows.Chat.activities.ChatActivitiesImpl;
 import bitovi.workflows.UserGreeting.UserGreetingWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -14,7 +12,7 @@ import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
-public class BitoviTemporalWorker {
+public class BitoviCommonTemporalWorker {
 
     public static void main(String[] args) {
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
@@ -31,7 +29,6 @@ public class BitoviTemporalWorker {
         worker.registerWorkflowImplementationTypes(UserGreetingWorkflowImpl.class);
         worker.registerWorkflowImplementationTypes(AgentGoalWorkflowImpl.class);
         worker.registerWorkflowImplementationTypes(ChatWorkflowImpl.class);
-        // worker.registerWorkflowImplementationTypes(MCPBedrockWorkflowImpl.class);
 
         // Register the activities with the worker for completions
         worker.registerActivitiesImplementations(new CompletionsImpl());
@@ -41,9 +38,6 @@ public class BitoviTemporalWorker {
 
         // Register the activities with the worker for chat
         worker.registerActivitiesImplementations(new ChatActivitiesImpl());
-
-        // Register the activities with the worker for MCP-Bedrock integration
-        // worker.registerActivitiesImplementations(new MCPBedrockActivitiesImpl());
 
         factory.start();
 

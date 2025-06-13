@@ -4,15 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
-
 import bitovi.Config;
+import bitovi.DataTypes.MessageRecord;
 import bitovi.common.tools.CosineToolImpl;
 import bitovi.common.tools.SearchToolmpl;
-import bitovi.records.MessageRecord;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
@@ -24,8 +21,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
@@ -33,7 +28,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolResultBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolResultContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
-public class BedrockProvider implements LLMProvider {
+public class BedrockProvider implements BaseModelProvider {
 
     protected String AWS_MODEL_ID;
     protected String AWS_MODEL_ARN;
@@ -107,47 +102,7 @@ public class BedrockProvider implements LLMProvider {
     }
 
     @Override
-    public String completion(String prompt) throws LLMProviderException {
-        try {
-            JSONObject jsonBody = new JSONObject()
-                    .put("prompt", prompt)
-                    .put("temperature", 0.5F);
-
-            InvokeModelResponse invokeResponse = this.bedrockRuntimeClient.invokeModel(InvokeModelRequest.builder()
-                    .modelId(AWS_MODEL_ARN)
-                    .body(SdkBytes.fromUtf8String(jsonBody.toString()))
-                    .build());
-
-            String utf8 = invokeResponse.body().asUtf8String();
-            String completion = new JSONObject(utf8)
-                    .getString("generation");
-
-            return completion;
-        } catch (SdkClientException e) {
-            System.err.printf("ERROR: Can't invoke '%s'. Reason: %s", AWS_MODEL_ID, e.getMessage());
-            throw new LLMProviderException(e.getMessage());
-        }
-    }
-
-    @Override
     public MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException {
-
-        // TODO: Implement chat functionality for BedrockProvider instead of faking it
-        // with completion.
-
-        // Convert the chat messages to a single prompt string
-        StringBuilder promptBuilder = new StringBuilder();
-        for (MessageRecord message : prompt) {
-            promptBuilder.append(message.role()).append(": ").append(message.content()).append("\n\n");
-        }
-        String completion = this.completion(promptBuilder.toString());
-
-        // Create a new chat message with the model's response
-        MessageRecord responseMessage = new MessageRecord("assistant", completion);
-        return responseMessage;
-    }
-
-    public MessageRecord chatWithTools(List<MessageRecord> prompt) throws LLMProviderException {
         List<Message> messages = new ArrayList<Message>();
 
         // Convert the chat messages to Bedrock's Message format

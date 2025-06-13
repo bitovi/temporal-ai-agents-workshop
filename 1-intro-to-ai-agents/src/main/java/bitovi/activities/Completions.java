@@ -15,8 +15,5 @@ public interface Completions {
     public List<List<Double>> generateEmbeddings(String text);
 
     @ActivityMethod
-    public String generateCompletion(String prompt);
-
-    @ActivityMethod
     public String[] searchEmbeddings(String query, Integer top);
 }

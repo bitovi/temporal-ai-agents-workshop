@@ -85,7 +85,7 @@ services:
       - temporal
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-    command: mvn compile exec:java -Dexec.mainClass="bitovi.BitoviTemporalWorker"
+    command: mvn compile exec:java -Dexec.mainClass="bitovi.BitoviCommonTemporalWorker"
     networks:
       - temporal-network
 

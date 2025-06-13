@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bitovi.Config;
-import bitovi.records.MessageRecord;
+import bitovi.DataTypes;
 import io.github.ollama4j.OllamaAPI;
 import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.github.ollama4j.models.chat.OllamaChatMessage;
@@ -13,9 +13,8 @@ import io.github.ollama4j.models.chat.OllamaChatMessageRole;
 import io.github.ollama4j.models.chat.OllamaChatResult;
 import io.github.ollama4j.models.embeddings.OllamaEmbedResponseModel;
 import io.github.ollama4j.models.response.Model;
-import io.github.ollama4j.models.response.OllamaResult;
 
-public class OllamaProvider implements LLMProvider {
+public class OllamaProvider implements BaseModelProvider {
 
     protected final String OLLAMA_MODEL_ID;
     protected final String OLLAMA_HOST;
@@ -56,18 +55,7 @@ public class OllamaProvider implements LLMProvider {
     }
 
     @Override
-    public String completion(String prompt) throws LLMProviderException {
-        try {
-            OllamaResult response = this.ollamaClient.generate(OLLAMA_MODEL_ID, prompt, null);
-            return response.getResponse();
-        } catch (Exception e) {
-            System.err.printf("ERROR: Can't invoke '%s'. Reason: %s", OLLAMA_MODEL_ID, e.getMessage());
-            throw new LLMProviderException(e.getMessage());
-        }
-    }
-
-    @Override
-    public MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException {
+    public DataTypes.MessageRecord chat(ArrayList<DataTypes.MessageRecord> prompt) throws LLMProviderException {
         try {
             OllamaChatResult response = this.ollamaClient.chat(OLLAMA_MODEL_ID, this.convertCommonToOllama(prompt));
             var lastMessage = response.getResponseModel().getMessage();
@@ -92,9 +80,9 @@ public class OllamaProvider implements LLMProvider {
         return embeddings;
     }
 
-    private List<OllamaChatMessage> convertCommonToOllama(ArrayList<MessageRecord> prompt) {
+    private List<OllamaChatMessage> convertCommonToOllama(ArrayList<DataTypes.MessageRecord> prompt) {
         ArrayList<OllamaChatMessage> ollamaMessages = new ArrayList<>();
-        for (MessageRecord message : prompt) {
+        for (DataTypes.MessageRecord message : prompt) {
             OllamaChatMessage ollamaMessage = new OllamaChatMessage();
 
             switch (message.role()) {
@@ -118,7 +106,7 @@ public class OllamaProvider implements LLMProvider {
         return ollamaMessages;
     }
 
-    private MessageRecord convertOllamaToCommon(OllamaChatMessage ollamaMessage) {
-        return new MessageRecord(ollamaMessage.getRole().toString(), ollamaMessage.getContent());
+    private DataTypes.MessageRecord convertOllamaToCommon(OllamaChatMessage ollamaMessage) {
+        return new DataTypes.MessageRecord(ollamaMessage.getRole().toString(), ollamaMessage.getContent());
     }
 }

@@ -1,9 +1,10 @@
-package bitovi;
+package bitovi.demos;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import bitovi.Config;
 import bitovi.common.tools.CosineToolImpl;
 import bitovi.common.tools.SearchToolmpl;
 import bitovi.common.tools.transform.MCPBedrockTool;
@@ -49,7 +50,7 @@ public class BitoviBedrockToolCall {
         messages.add(Message.builder()
                 .role(ConversationRole.fromValue("user"))
                 .content(ContentBlock.fromText(
-                        "Can you tell me what tool calls you have available and what they doe, what their parameters are, and what they might be used for?"))
+                        "Can you tell me what tool calls you have available and what they do, what their parameters are, and what they might be used for?"))
                 .build());
 
         ToolConfiguration.Builder toolConfig = ToolConfiguration.builder();

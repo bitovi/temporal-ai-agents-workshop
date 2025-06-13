@@ -9,9 +9,8 @@ import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import java.util.UUID;
 
 import bitovi.workflows.AgentGoal.AgentGoalWorkflow;
-import bitovi.workflows.UserGreeting.UserGreetingWorkflow;
 
-public class BitoviTemporalClient {
+public class BitoviAgentWorkflowInit {
     public static void main(String[] args) throws Exception {
 
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
@@ -22,30 +21,7 @@ public class BitoviTemporalClient {
 
         WorkflowClient client = WorkflowClient.newInstance(service);
 
-        // Run the greeting workflow with a random UUID to ensure uniqueness
-        runGreetingsWorkflow(client, "Mark");
-
         // Run the agent workflow demo
-        runAgentWorkflow(client);
-
-        service.shutdown();
-    }
-
-    private static void runGreetingsWorkflow(WorkflowClient wc, String name) throws Exception {
-        String workflowId = "greeting-workflow" + UUID.randomUUID().toString();
-
-        WorkflowOptions options = WorkflowOptions.newBuilder()
-                .setWorkflowId(workflowId)
-                .setTaskQueue("default")
-                .build();
-
-        UserGreetingWorkflow workflow = wc.newWorkflowStub(UserGreetingWorkflow.class, options);
-
-        String greeting = workflow.greetSomeone(name);
-        System.out.println(workflowId + " " + greeting);
-    }
-
-    private static void runAgentWorkflow(WorkflowClient wc) throws Exception {
         String workflowId = "agent-workflow" + UUID.randomUUID().toString();
 
         WorkflowOptions options = WorkflowOptions.newBuilder()
@@ -53,7 +29,7 @@ public class BitoviTemporalClient {
                 .setTaskQueue("default")
                 .build();
 
-        AgentGoalWorkflow workflow = wc.newWorkflowStub(AgentGoalWorkflow.class, options);
+        AgentGoalWorkflow workflow = client.newWorkflowStub(AgentGoalWorkflow.class, options);
         WorkflowStub untypedWorkflow = WorkflowStub.fromTyped(workflow);
 
         // Start the workflow
@@ -65,5 +41,6 @@ public class BitoviTemporalClient {
         String result = untypedWorkflow.getResult(String.class);
 
         System.out.println(workflowId + " " + result);
+        service.shutdown();
     }
 }

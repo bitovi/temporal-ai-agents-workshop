@@ -3,12 +3,10 @@ package bitovi.providers;
 import java.util.ArrayList;
 import java.util.List;
 
-import bitovi.records.MessageRecord;
+import bitovi.DataTypes.MessageRecord;
 
-public interface LLMProvider {
+public interface BaseModelProvider {
     ArrayList<String> getModels() throws LLMProviderException;
-
-    String completion(String prompt) throws LLMProviderException;
 
     List<List<Double>> embedding(List<String> text) throws LLMProviderException;
 

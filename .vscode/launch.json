@@ -6,39 +6,23 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Langchain Example",
+            "name": "Start Common Temporal Worker",
             "request": "launch",
-            "mainClass": "bitovi.App",
-            "projectName": "example-langchain",
-            "cwd": "${workspaceFolder}/example-langchain/"
-        },
-        {
-            "type": "java",
-            "name": "Simple MCP Example",
-            "request": "launch",
-            "mainClass": "bitovi.SimpleMCPBedrockExample",
+            "mainClass": "bitovi.BitoviCommonTemporalWorker",
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
         {
             "type": "java",
-            "name": "Bedrock Tool Call",
+            "name": "Agent Workflow Demo",
             "request": "launch",
-            "mainClass": "bitovi.BitoviBedrockToolCall",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
-        },
-                {
-            "type": "java",
-            "name": "Ollama Tool Call",
-            "request": "launch",
-            "mainClass": "bitovi.BitoviOllamaToolCall",
+            "mainClass": "bitovi.BitoviAgentWorkflowInit",
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
         {
             "type": "java",
-            "name": "Basic Chat: Initialization",
+            "name": "Basic Chat Workflow - Init",
             "request": "launch",
             "mainClass": "bitovi.BitoviChatClientInit",
             "projectName": "1-intro-to-ai-agents",
@@ -46,7 +30,7 @@
         },
         {
             "type": "java",
-            "name": "Basic Chat: Send Message",
+            "name": "Basic Chat Workflow - Send Message",
             "request": "launch",
             "mainClass": "bitovi.BitoviChatClientSend",
             "projectName": "1-intro-to-ai-agents",
@@ -54,17 +38,25 @@
         },
         {
             "type": "java",
-            "name": "Standalone Example",
+            "name": "Ollama Tool Calling Demo",
             "request": "launch",
-            "mainClass": "bitovi.BitoviStandalone",
+            "mainClass": "bitovi.demos.BitoviOllamaToolCall",
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
         {
             "type": "java",
-            "name": "Run Temporal Workflow",
+            "name": "AWS Bedrock Tool Calling Demo",
             "request": "launch",
-            "mainClass": "bitovi.BitoviTemporalClient",
+            "mainClass": "bitovi.demos.BitoviBedrockToolCall",
+            "projectName": "1-intro-to-ai-agents",
+            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+        },
+        {
+            "type": "java",
+            "name": "Model Context Protocol Demo",
+            "request": "launch",
+            "mainClass": "bitovi.demos.BitoviMCPClient",
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
