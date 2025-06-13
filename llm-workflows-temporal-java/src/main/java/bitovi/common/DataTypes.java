@@ -1,5 +1,8 @@
 package bitovi.common;
 
+import java.util.List;
+import java.util.Map;
+
 public interface DataTypes {
     record ToolPlannerResult(
             boolean forceConfirm,
@@ -31,5 +34,21 @@ public interface DataTypes {
     record ValidationResultRecord(boolean isValid, String message) {
         // Record classes, which are a special kind of class, help to model plain data
         // aggregates with less ceremony than normal classes.
+    }
+
+    record ValidationInputRecord(MessageRecord userInput, List<MessageRecord> history, String currentGoal) {
+        // This record class encapsulates the input for validation.
+        // It includes the user input message, the conversation history, and the current goal.
+    }
+
+    record ToolDataRecord(NextStep nextStep, String tool, Map<String, String> args, String response) {
+        // This record class encapsulates the data related to a tool execution.
+        // It includes the next step to take, the name of the tool, a map of arguments,
+        // and the response from the tool.
+    }
+
+    // 'confirm', 'question', 'pick-new-goal', 'done'
+    enum NextStep {
+        CONFIRM, QUESTION, PICK_NEW_GOAL, DONE, USER_CONFIRMED_TOOL_RUN
     }
 }
