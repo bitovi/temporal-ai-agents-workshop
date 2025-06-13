@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import bitovi.Config;
+import bitovi.common.Config;
+import bitovi.common.LLMProviderException;
+import bitovi.common.ModelContextProtocolClient;
 import bitovi.common.tools.CosineToolImpl;
 import bitovi.common.tools.SearchToolmpl;
 import bitovi.providers.BedrockProvider;
-import bitovi.providers.LLMProviderException;
-import bitovi.providers.MCPToolIntegration;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.document.Document;
@@ -29,7 +29,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 public class BitoviBedrockToolCall {
 
     private static BedrockRuntimeClient bedrockRuntimeClient;
-    private static MCPToolIntegration mcpToolIntegration;
+    private static ModelContextProtocolClient mcpToolIntegration;
 
     public static void main(String[] args) throws LLMProviderException {
         String AWS_MODEL_ARN = Config.getProperty("AWS_MODEL_ARN");
@@ -57,7 +57,7 @@ public class BitoviBedrockToolCall {
 
         List<Tool> tools = new ArrayList<>();
 
-        mcpToolIntegration = new MCPToolIntegration();
+        mcpToolIntegration = new ModelContextProtocolClient();
         mcpToolIntegration.getAvailableTools().forEach(tool -> {
             tools.add(BedrockProvider.transform(tool));
         });

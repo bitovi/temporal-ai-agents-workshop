@@ -4,8 +4,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.time.Duration;
 
-import bitovi.Config;
-import bitovi.providers.MCPToolIntegration;
+import bitovi.common.Config;
+import bitovi.common.ModelContextProtocolClient;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
@@ -49,7 +49,7 @@ public class BitoviMCPClient {
 
                 // Loop over all the tools and convert them to Bedrock format
                 tools.tools().stream().forEach(tool -> {
-                        String converted = MCPToolIntegration.convertMCPSchemaToBedrockSchema(tool);
+                        String converted = ModelContextProtocolClient.convertMCPSchemaToBedrockSchema(tool);
                         System.out.println(converted);
                 });
 

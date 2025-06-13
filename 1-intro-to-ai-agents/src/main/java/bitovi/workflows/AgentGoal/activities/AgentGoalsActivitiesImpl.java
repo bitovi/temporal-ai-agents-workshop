@@ -2,7 +2,7 @@ package bitovi.workflows.AgentGoal.activities;
 
 import java.util.ArrayList;
 
-import bitovi.DataTypes;
+import bitovi.common.DataTypes;
 import bitovi.providers.OllamaProvider;
 
 public class AgentGoalsActivitiesImpl implements AgentGoalActivities {

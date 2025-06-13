@@ -2,9 +2,9 @@ package bitovi.workflows.Chat;
 
 import java.util.ArrayList;
 
-import bitovi.Config;
-import bitovi.DataTypes;
-import bitovi.DataTypes.MessageRecord;
+import bitovi.common.Config;
+import bitovi.common.DataTypes;
+import bitovi.common.DataTypes.MessageRecord;
 import bitovi.workflows.Chat.activities.ChatActivities;
 import io.temporal.workflow.Workflow;
 

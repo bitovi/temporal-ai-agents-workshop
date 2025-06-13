@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import bitovi.Config;
-import bitovi.DataTypes;
+import bitovi.common.Config;
+import bitovi.common.DataTypes;
+import bitovi.common.LLMProviderException;
+import bitovi.common.ModelContextProtocolClient;
 import io.github.ollama4j.OllamaAPI;
 import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.github.ollama4j.models.chat.OllamaChatMessage;
@@ -118,7 +120,7 @@ public class OllamaProvider implements BaseModelProvider {
     }
 
     public static Tools.ToolSpecification transform(io.modelcontextprotocol.spec.McpSchema.Tool tool,
-            MCPToolIntegration mcpToolIntegration) {
+            ModelContextProtocolClient mcpToolIntegration) {
         JsonSchema js = tool.inputSchema();
 
         Map<String, Object> properties = js.properties();
@@ -163,7 +165,7 @@ public class OllamaProvider implements BaseModelProvider {
                 .build();
     }
 
-    public static ToolFunction buildToolHandler(String toolName, MCPToolIntegration mcpToolIntegration) {
+    public static ToolFunction buildToolHandler(String toolName, ModelContextProtocolClient mcpToolIntegration) {
         return (args) -> {
             try {
                 return mcpToolIntegration.executeMCPTool(

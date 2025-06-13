@@ -1,4 +1,4 @@
-package bitovi.providers;
+package bitovi.common;
 
 import java.net.http.HttpRequest;
 import java.time.Duration;
@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import bitovi.Config;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
@@ -28,17 +27,12 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
  * Integration layer that bridges MCP server tools with AWS Bedrock Runtime
  * models
  */
-public class MCPToolIntegration {
+public class ModelContextProtocolClient {
 
     private McpSyncClient mcpClient;
     private List<Tool> availableTools;
 
-    public MCPToolIntegration() {
-        initializeMCPClient();
-        refreshAvailableTools();
-    }
-
-    private void initializeMCPClient() {
+    public ModelContextProtocolClient() {
         String LIFEFORCE_MCP_TOKEN = Config.getProperty("LIFEFORCE_MCP_TOKEN");
 
         // Create a transport for the MCP API with authorization header
@@ -62,17 +56,6 @@ public class MCPToolIntegration {
 
         // Initialize connection
         this.mcpClient.initialize();
-    }
-
-    private void refreshAvailableTools() {
-        try {
-            ListToolsResult tools = mcpClient.listTools();
-            this.availableTools = tools.tools();
-            System.out.println("Loaded " + availableTools.size() + " MCP tools");
-        } catch (Exception e) {
-            System.err.println("Failed to load MCP tools: " + e.getMessage());
-            this.availableTools = new ArrayList<Tool>();
-        }
     }
 
     /**
@@ -154,7 +137,14 @@ public class MCPToolIntegration {
 
     public List<Tool> getAvailableTools() {
         if (availableTools == null || availableTools.isEmpty()) {
-            refreshAvailableTools();
+            try {
+                ListToolsResult tools = mcpClient.listTools();
+                this.availableTools = tools.tools();
+                System.out.println("Loaded " + availableTools.size() + " MCP tools");
+            } catch (Exception e) {
+                System.err.println("Failed to load MCP tools: " + e.getMessage());
+                this.availableTools = new ArrayList<Tool>();
+            }
         }
         return availableTools;
     }

@@ -5,8 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import bitovi.Config;
-import bitovi.DataTypes.MessageRecord;
+import bitovi.common.Config;
+import bitovi.common.LLMProviderException;
+import bitovi.common.ModelContextProtocolClient;
+import bitovi.common.DataTypes.MessageRecord;
 import bitovi.common.tools.CosineToolImpl;
 import bitovi.common.tools.SearchToolmpl;
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
@@ -42,7 +44,7 @@ public class BedrockProvider implements BaseModelProvider {
     private final Region region = Region.US_EAST_2; // Default region, can be changed as needed
 
     // MCP Tool Integration
-    private MCPToolIntegration mcpIntegration;
+    private ModelContextProtocolClient mcpIntegration;
 
     public BedrockProvider() {
         this.AWS_MODEL_ID = Config.getProperty("AWS_MODEL_ID");
@@ -73,7 +75,7 @@ public class BedrockProvider implements BaseModelProvider {
 
         // Initialize MCP tool integration
         try {
-            this.mcpIntegration = new MCPToolIntegration();
+            this.mcpIntegration = new ModelContextProtocolClient();
         } catch (Exception e) {
             System.err.println("Failed to initialize MCP integration: " + e.getMessage());
             this.mcpIntegration = null;

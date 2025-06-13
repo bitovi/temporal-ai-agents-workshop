@@ -2,7 +2,7 @@ package bitovi.workflows.Chat.activities;
 
 import java.util.ArrayList;
 
-import bitovi.DataTypes;
+import bitovi.common.DataTypes;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

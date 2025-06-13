@@ -1,4 +1,4 @@
-package bitovi;
+package bitovi.common;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

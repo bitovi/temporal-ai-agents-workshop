@@ -2,8 +2,8 @@ package bitovi.workflows.Chat.activities;
 
 import java.util.ArrayList;
 
-import bitovi.DataTypes.MessageRecord;
-import bitovi.providers.LLMProviderException;
+import bitovi.common.LLMProviderException;
+import bitovi.common.DataTypes.MessageRecord;
 import bitovi.providers.OllamaProvider;
 import io.temporal.activity.Activity;
 

@@ -1,4 +1,4 @@
-package bitovi;
+package bitovi.common;
 
 public interface DataTypes {
     record ToolPlannerResult(

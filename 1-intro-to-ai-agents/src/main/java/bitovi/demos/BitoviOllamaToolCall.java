@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import bitovi.Config;
-import bitovi.providers.LLMProviderException;
-import bitovi.providers.MCPToolIntegration;
+import bitovi.common.Config;
+import bitovi.common.LLMProviderException;
+import bitovi.common.ModelContextProtocolClient;
 import bitovi.providers.OllamaProvider;
 import io.github.ollama4j.OllamaAPI;
 import io.github.ollama4j.exceptions.OllamaBaseException;
@@ -17,7 +17,7 @@ import io.github.ollama4j.models.chat.OllamaChatResult;
 
 public class BitoviOllamaToolCall {
 
-    private static MCPToolIntegration mcpToolIntegration;
+    private static ModelContextProtocolClient mcpToolIntegration;
     private static OllamaAPI ollamaClient;
     private static String OLLAMA_MODEL_ID;
     private static String OLLAMA_HOST;
@@ -43,7 +43,7 @@ public class BitoviOllamaToolCall {
 
         messages.add(ollamaMessage);
 
-        mcpToolIntegration = new MCPToolIntegration();
+        mcpToolIntegration = new ModelContextProtocolClient();
         mcpToolIntegration.getAvailableTools().forEach(tool -> {
             ollamaClient.registerTool(OllamaProvider.transform(tool, mcpToolIntegration));
         });

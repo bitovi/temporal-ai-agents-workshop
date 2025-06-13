@@ -3,8 +3,8 @@ package bitovi.workflows.AgentGoal;
 import java.time.Duration;
 import java.util.ArrayList;
 
-import bitovi.Config;
-import bitovi.DataTypes;
+import bitovi.common.Config;
+import bitovi.common.DataTypes;
 import bitovi.workflows.AgentGoal.activities.AgentGoalActivities;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;

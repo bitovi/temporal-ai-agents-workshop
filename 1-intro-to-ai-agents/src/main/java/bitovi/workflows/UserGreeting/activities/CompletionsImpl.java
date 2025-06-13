@@ -3,8 +3,8 @@ package bitovi.workflows.UserGreeting.activities;
 import java.util.ArrayList;
 import java.util.List;
 
-import bitovi.DataTypes.MessageRecord;
-import bitovi.providers.LLMProviderException;
+import bitovi.common.LLMProviderException;
+import bitovi.common.DataTypes.MessageRecord;
 import bitovi.providers.OllamaProvider;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;

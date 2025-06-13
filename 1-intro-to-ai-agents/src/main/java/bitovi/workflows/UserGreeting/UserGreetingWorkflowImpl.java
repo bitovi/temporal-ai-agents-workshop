@@ -2,7 +2,7 @@ package bitovi.workflows.UserGreeting;
 
 import java.io.IOException;
 
-import bitovi.Config;
+import bitovi.common.Config;
 import bitovi.workflows.UserGreeting.activities.Completions;
 import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.temporal.workflow.Workflow;
