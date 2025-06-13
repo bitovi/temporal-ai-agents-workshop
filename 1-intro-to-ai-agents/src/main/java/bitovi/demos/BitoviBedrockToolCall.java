@@ -7,7 +7,7 @@ import java.util.Map;
 import bitovi.Config;
 import bitovi.common.tools.CosineToolImpl;
 import bitovi.common.tools.SearchToolmpl;
-import bitovi.common.tools.transform.MCPBedrockTool;
+import bitovi.providers.BedrockProvider;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.MCPToolIntegration;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
@@ -59,7 +59,7 @@ public class BitoviBedrockToolCall {
 
         mcpToolIntegration = new MCPToolIntegration();
         mcpToolIntegration.getAvailableTools().forEach(tool -> {
-            tools.add(MCPBedrockTool.transform(tool));
+            tools.add(BedrockProvider.transform(tool));
         });
 
         tools.add(CosineToolImpl.getBedrockTool());

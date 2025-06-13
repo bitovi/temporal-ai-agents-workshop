@@ -1,11 +1,11 @@
 package bitovi;
 
-import bitovi.activities.CompletionsImpl;
 import bitovi.workflows.AgentGoal.AgentGoalWorkflowImpl;
 import bitovi.workflows.AgentGoal.activities.AgentGoalsActivitiesImpl;
 import bitovi.workflows.Chat.ChatWorkflowImpl;
 import bitovi.workflows.Chat.activities.ChatActivitiesImpl;
 import bitovi.workflows.UserGreeting.UserGreetingWorkflowImpl;
+import bitovi.workflows.UserGreeting.activities.CompletionsImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;

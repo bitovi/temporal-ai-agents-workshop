@@ -1,4 +1,4 @@
-package bitovi.activities;
+package bitovi.workflows.UserGreeting.activities;
 
 import java.util.List;
 

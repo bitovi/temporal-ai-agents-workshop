@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bitovi.Config;
-import bitovi.common.tools.transform.MCPOllamaTool;
 import bitovi.providers.LLMProviderException;
 import bitovi.providers.MCPToolIntegration;
+import bitovi.providers.OllamaProvider;
 import io.github.ollama4j.OllamaAPI;
 import io.github.ollama4j.exceptions.OllamaBaseException;
 import io.github.ollama4j.exceptions.ToolInvocationException;
@@ -45,7 +45,7 @@ public class BitoviOllamaToolCall {
 
         mcpToolIntegration = new MCPToolIntegration();
         mcpToolIntegration.getAvailableTools().forEach(tool -> {
-            ollamaClient.registerTool(MCPOllamaTool.transform(tool, mcpToolIntegration));
+            ollamaClient.registerTool(OllamaProvider.transform(tool, mcpToolIntegration));
         });
 
         // ollamaClient.registerTool(CosineToolImpl.getOllamaTool());

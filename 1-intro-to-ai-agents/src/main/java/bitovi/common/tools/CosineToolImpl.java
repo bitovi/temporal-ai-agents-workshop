@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.github.ollama4j.tools.Tools;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
@@ -56,8 +57,7 @@ public class CosineToolImpl {
                 .build();
     }
 
-    public static io.github.ollama4j.tools.Tools.ToolSpecification getOllamaTool() {
-        // TODO Auto-generated method stub
+    public static Tools.ToolSpecification getOllamaTool() {
         throw new UnsupportedOperationException("Unimplemented method 'getOllamaTool'");
     }
 }
