@@ -4,14 +4,15 @@ import java.util.ArrayList;
 
 import bitovi.common.LLMProviderException;
 import bitovi.common.DataTypes.MessageRecord;
-import bitovi.providers.OllamaProvider;
+import bitovi.providers.BaseModelProvider;
+import bitovi.providers.BedrockProvider;
 import io.temporal.activity.Activity;
 
 public class ChatActivitiesImpl implements ChatActivities {
 
     @Override
     public String chat(ArrayList<MessageRecord> history) {
-        OllamaProvider ollama = new OllamaProvider();
+        BaseModelProvider model = new BedrockProvider();
 
         // Add the system prompt to the beginning of the chat history
         if (history == null || history.isEmpty()) {
@@ -37,7 +38,7 @@ public class ChatActivitiesImpl implements ChatActivities {
                 chatHistory.add(message);
             }
 
-            result = ollama.chat(chatHistory);
+            result = model.chat(chatHistory);
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }

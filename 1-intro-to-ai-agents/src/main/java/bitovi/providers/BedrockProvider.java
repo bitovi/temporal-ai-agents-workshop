@@ -160,7 +160,7 @@ public class BedrockProvider implements BaseModelProvider {
 
     private ConverseResponse converseWithToolsRecursive(List<Message> messages, ConverseRequest request, Integer depth)
             throws LLMProviderException {
-        if (depth > 4) {
+        if (depth > 10) {
             throw new LLMProviderException("Exceeded maximum recursion depth for tool invocation.");
         }
 
