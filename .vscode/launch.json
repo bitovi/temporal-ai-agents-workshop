@@ -9,64 +9,64 @@
             "name": "Start Common Temporal Worker",
             "request": "launch",
             "mainClass": "bitovi.BitoviCommonTemporalWorker",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "Agent Workflow Demo",
             "request": "launch",
             "mainClass": "bitovi.BitoviAgentWorkflowInit",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "Basic Chat Workflow - Init",
             "request": "launch",
             "mainClass": "bitovi.BitoviChatClientInit",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "Basic Chat Workflow - Send Message",
             "request": "launch",
             "mainClass": "bitovi.BitoviChatClientSend",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
                 {
             "type": "java",
             "name": "Basic Greeting Workflow",
             "request": "launch",
             "mainClass": "bitovi.BitoviGreetingWorkflowInit",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "Ollama Tool Calling Demo",
             "request": "launch",
             "mainClass": "bitovi.demos.BitoviOllamaToolCall",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "AWS Bedrock Tool Calling Demo",
             "request": "launch",
             "mainClass": "bitovi.demos.BitoviBedrockToolCall",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
         {
             "type": "java",
             "name": "Model Context Protocol Demo",
             "request": "launch",
             "mainClass": "bitovi.demos.BitoviMCPClient",
-            "projectName": "1-intro-to-ai-agents",
-            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
     ]
 }

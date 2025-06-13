@@ -152,7 +152,7 @@ public class BedrockProvider implements BaseModelProvider {
 
         // Convert the Bedrock response back to MessageRecord format
         MessageRecord responseMessage = new MessageRecord(
-                response.output().message().role().toString(),
+                response.output().message().role().toString() != null ? response.output().message().role().toString() : "assistant",
                 response.output().message().content().get(0).text());
 
         return responseMessage;

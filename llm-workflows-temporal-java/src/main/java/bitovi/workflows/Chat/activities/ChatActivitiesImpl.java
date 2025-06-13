@@ -5,14 +5,14 @@ import java.util.ArrayList;
 import bitovi.common.LLMProviderException;
 import bitovi.common.DataTypes.MessageRecord;
 import bitovi.providers.BaseModelProvider;
-import bitovi.providers.BedrockProvider;
+import bitovi.providers.OllamaProvider;
 import io.temporal.activity.Activity;
 
 public class ChatActivitiesImpl implements ChatActivities {
 
     @Override
     public String chat(ArrayList<MessageRecord> history) {
-        BaseModelProvider model = new BedrockProvider();
+        BaseModelProvider model = new OllamaProvider();
 
         // Add the system prompt to the beginning of the chat history
         if (history == null || history.isEmpty()) {
@@ -25,16 +25,11 @@ public class ChatActivitiesImpl implements ChatActivities {
 
         MessageRecord result;
         try {
-            // As an example, we can make this activity fail randomly to simulate an error
-            // to see the auto-retry behavior.
-            if (Math.random() < 0.5) {
-                throw new LLMProviderException("Random Example Failure");
-            }
-
             // Convert MessageRecord to MessageRecord
             ArrayList<MessageRecord> chatHistory = new ArrayList<MessageRecord>();
             for (MessageRecord record : history) {
-                MessageRecord message = new MessageRecord(record.role(), record.content());
+                MessageRecord message = new MessageRecord(record.role() != null ? record.role() : "user",
+                        record.content());
                 chatHistory.add(message);
             }
 

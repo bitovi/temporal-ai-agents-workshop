@@ -109,7 +109,7 @@ User Query: "Calculate cosine of π/2 and tell me the weather in NYC"
 ### Quick Test (No Temporal Required)
 
 ```bash
-cd 1-intro-to-ai-agents
+cd llm-workflows-temporal-java
 ./quick-start.sh
 ./run-simple-mcp-bedrock.sh
 ```

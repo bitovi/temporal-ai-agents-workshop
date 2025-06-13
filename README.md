@@ -15,10 +15,10 @@ You can add the Temporal SDK to your Java projects by adding the following depen
 ## Create a new Maven Project
 
 ```shell
-mvn -B archetype:generate -DgroupId=bitovi -DartifactId=1-intro-to-ai-agents -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
+mvn -B archetype:generate -DgroupId=bitovi -DartifactId=llm-workflows-temporal-java -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4
 ```
 
-This results in a new `1-intro-to-ai-agents` directory with a pom.xml and src directory, App.java and AppTest.java files.
+This results in a new `llm-workflows-temporal-java` directory with a pom.xml and src directory, App.java and AppTest.java files.
 
 Default pom.xml was wrong and needed to be updated to Java 8+
 
