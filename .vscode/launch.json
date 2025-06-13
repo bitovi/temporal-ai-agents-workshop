@@ -36,6 +36,14 @@
             "projectName": "1-intro-to-ai-agents",
             "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
         },
+                {
+            "type": "java",
+            "name": "Basic Greeting Workflow",
+            "request": "launch",
+            "mainClass": "bitovi.BitoviGreetingWorkflowInit",
+            "projectName": "1-intro-to-ai-agents",
+            "cwd": "${workspaceFolder}/1-intro-to-ai-agents/"
+        },
         {
             "type": "java",
             "name": "Ollama Tool Calling Demo",
