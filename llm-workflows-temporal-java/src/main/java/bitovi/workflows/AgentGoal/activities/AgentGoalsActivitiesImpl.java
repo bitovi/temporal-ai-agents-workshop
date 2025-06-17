@@ -1,25 +1,27 @@
 package bitovi.workflows.AgentGoal.activities;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import bitovi.common.Agent;
 import bitovi.common.DataTypes;
-import bitovi.providers.OllamaProvider;
+import bitovi.common.DataTypes.EnvLookupInputRecord;
+import bitovi.common.DataTypes.EnvLookupOutputRecord;
+import bitovi.common.DataTypes.ListModelContextProtocolToolsResult;
+import bitovi.common.DataTypes.MCPServerDefinitionRecord;
+import bitovi.common.DataTypes.MessageRecord;
+import bitovi.common.DataTypes.ToolDataRecord;
+import bitovi.common.DataTypes.ToolPlannerResult;
+import bitovi.common.DataTypes.ValidationInputRecord;
+import bitovi.common.DataTypes.ValidationResultRecord;
 
 public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
-
-    @Override
-    public DataTypes.ValidationResultRecord validateUserInput(DataTypes.MessageRecord userInput,
-            ArrayList<DataTypes.MessageRecord> history,
-            String currentGoal) {
-        return new DataTypes.ValidationResultRecord(false, "The function is not implemented yet.");
-    }
 
     @Override
     public DataTypes.ValidationResultRecord validatePrompt() {
         return new DataTypes.ValidationResultRecord(true, "");
     }
 
-    @Override
     public String generateInstructions(DataTypes.MessageRecord userInput, ArrayList<DataTypes.MessageRecord> history,
             String currentGoal) {
         StringBuilder instructions = new StringBuilder();
@@ -85,42 +87,48 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
     }
 
     @Override
-    public DataTypes.ToolPlannerResult toolPlanner(String instructions, String prompt) {
-
-        ArrayList<DataTypes.MessageRecord> messages = new ArrayList<>();
-        messages.add(new DataTypes.MessageRecord("system", instructions));
-        messages.add(
-                new DataTypes.MessageRecord("system", "The current date and time is " + java.time.LocalDateTime.now()));
-
-        messages.add(new DataTypes.MessageRecord("user", prompt));
-
-        try {
-            OllamaProvider llm = new OllamaProvider();
-            DataTypes.MessageRecord response = llm.chat(messages);
-            String cleanedResponse = clean(response.content());
-            DataTypes.ToolPlannerResult result = parse(cleanedResponse);
-
-            if (result.nextStep() == "confirm") {
-                // Check if the args are valid
-                // handleMissingArgs(result.args());
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            return new DataTypes.ToolPlannerResult(false, "next", null, null);
-        }
-
+    public ValidationResultRecord validateUserInput(ValidationInputRecord input) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'validateUserInput'");
     }
 
-    private String clean(String input) {
-        String cleaned = input.replace("```json", "").replace("```", "").strip();
-        return cleaned;
+    @Override
+    public EnvLookupOutputRecord getWorkflowEnvSettings(EnvLookupInputRecord input) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getWorkflowEnvSettings'");
     }
 
-    private DataTypes.ToolPlannerResult parse(String maybeJsonString) {
-        System.out.println("Parsing JSON: " + maybeJsonString);
-        return new DataTypes.ToolPlannerResult(false, "next", null, null);
+    @Override
+    public ListModelContextProtocolToolsResult listModelContextProtocolTools(
+            MCPServerDefinitionRecord mcpServerDefinition, List<String> includeTools) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'listModelContextProtocolTools'");
+    }
+
+    @Override
+    public String generateGenAIPrompt(MessageRecord userInput, ArrayList<MessageRecord> history,
+            Agent currentGoal) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'generateGenAIPrompt'");
+    }
+
+    @Override
+    public ToolPlannerResult toolPlanner(String instructions, List<MessageRecord> history) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'toolPlanner'");
+    }
+
+    @Override
+    public AgentToolPlannerResult agentToolPlanner(String prompt, String contextInstructions) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'agentToolPlanner'");
+    }
+
+    @Override
+    public Object handleMissingArgs(String currentTool, String args, ToolDataRecord toolData,
+            ArrayList<MessageRecord> promptQueue) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'handleMissingArgs'");
     }
 
 }

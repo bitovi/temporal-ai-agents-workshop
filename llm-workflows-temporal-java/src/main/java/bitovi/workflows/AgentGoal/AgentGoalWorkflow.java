@@ -3,6 +3,7 @@ package bitovi.workflows.AgentGoal;
 import java.util.ArrayList;
 import java.util.List;
 
+import bitovi.common.Agent;
 import bitovi.common.DataTypes;
 import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.SignalMethod;
@@ -13,7 +14,7 @@ import io.temporal.workflow.WorkflowMethod;
 public interface AgentGoalWorkflow {
 
     @WorkflowMethod
-    List<DataTypes.MessageRecord> run();
+    List<DataTypes.MessageRecord> run(DataTypes.CombinedWorkflowInput combinedInput);
 
     @SignalMethod
     void prompt(String prompt);
@@ -28,7 +29,7 @@ public interface AgentGoalWorkflow {
     ArrayList<DataTypes.MessageRecord> getConversationHistory();
 
     @QueryMethod
-    String getAgentGoal();
+    Agent getAgentGoal();
 
     @QueryMethod
     String getConversationSummary();

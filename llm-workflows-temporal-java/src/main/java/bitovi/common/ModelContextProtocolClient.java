@@ -120,9 +120,9 @@ public class ModelContextProtocolClient {
 
         ObjectNode bedrockTool = objectMapper.createObjectNode();
         bedrockTool.put("type", "object");
-        bedrockTool.put("properties", objectMapper.valueToTree(inputSchema.properties()));
-        bedrockTool.put("required", objectMapper.valueToTree(inputSchema.required()));
-        bedrockTool.put("additionalProperties", inputSchema.additionalProperties() != null
+        bedrockTool.set("properties", objectMapper.valueToTree(inputSchema.properties()));
+        bedrockTool.set("required", objectMapper.valueToTree(inputSchema.required()));
+        bedrockTool.set("additionalProperties", inputSchema.additionalProperties() != null
                 ? objectMapper.valueToTree(inputSchema.additionalProperties())
                 : BooleanNode.FALSE);
 

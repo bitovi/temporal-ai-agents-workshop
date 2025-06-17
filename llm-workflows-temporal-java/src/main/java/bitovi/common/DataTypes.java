@@ -3,7 +3,10 @@ package bitovi.common;
 import java.util.List;
 import java.util.Map;
 
+import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
+
 public interface DataTypes {
+
     record ToolPlannerResult(
             boolean forceConfirm,
             String toolName,
@@ -36,19 +39,69 @@ public interface DataTypes {
         // aggregates with less ceremony than normal classes.
     }
 
-    record ValidationInputRecord(MessageRecord userInput, List<MessageRecord> history, String currentGoal) {
+    record ValidationInputRecord(MessageRecord userInput, List<MessageRecord> history, Agent currentGoal) {
         // This record class encapsulates the input for validation.
-        // It includes the user input message, the conversation history, and the current goal.
+        // It includes the user input message, the conversation history, and the current
+        // goal.
     }
 
-    record ToolDataRecord(NextStep nextStep, String tool, Map<String, String> args, String response) {
+    record ToolDataRecord(String nextStep, String tool, Map<String, String> args, String response,
+            boolean forceConfirm) {
         // This record class encapsulates the data related to a tool execution.
         // It includes the next step to take, the name of the tool, a map of arguments,
         // and the response from the tool.
     }
 
-    // 'confirm', 'question', 'pick-new-goal', 'done'
-    enum NextStep {
-        CONFIRM, QUESTION, PICK_NEW_GOAL, DONE, USER_CONFIRMED_TOOL_RUN
+    record AnyRecord(String type, Object data) {
+        // Because I come from TypeScript, I would like to have a dumb generic for any
+        // type of data while prototyping
+    }
+
+    enum ConnectionType {
+        STDIO, REMOTE_SSE
+    }
+
+    record CombinedWorkflowInput(AgentGoalWorkflowParams toolParams, Agent agentGoal) {
+
+    }
+
+    record AgentGoalWorkflowParams(String conversationSummary, List<MessageRecord> promptQueue) {
+
+    }
+
+    record AgentGoalRecord(String id, String categoryTag, String agentName, String agentFriendlyDescription,
+            List<software.amazon.awssdk.services.bedrockruntime.model.Tool> tools, String description,
+            String starterPrompt, String exampleConversationHistory,
+            MCPServerDefinitionRecord mcpServerDefinition) {
+
+    }
+
+    record MCPServerDefinitionRecord(String name, String command, List<String> args, Map<String, String> envVars,
+            ConnectionType connectionType, List<String> includedTools) {
+        // This record class encapsulates the definition of an MCP server.
+        // It includes the name, command, arguments, and environment variables for the
+        // server.
+    }
+
+    record EnvLookupInputRecord(String show_confirm_env_var_name, boolean show_confirm_default) {
+
+    }
+
+    record EnvLookupOutputRecord(boolean showConfirm, boolean multiGoalMode) {
+
+    }
+
+    record MCPToolDefinition(String name, String description, List<String> args) {
+        // This record class encapsulates the definition of an MCP tool.
+        // It includes the name, description, and arguments for the tool.
+    }
+
+    record ListModelContextProtocolToolsResult(boolean success, String error, List<AgentToolDefinition> tools) {
+
+    }
+
+    record PromptSummaryRecord(String contextInstructions, List<MessageRecord> actualPrompt) {
+        // This record class encapsulates the summary of a prompt.
+        // It includes the context instructions and the actual prompt text.
     }
 }
