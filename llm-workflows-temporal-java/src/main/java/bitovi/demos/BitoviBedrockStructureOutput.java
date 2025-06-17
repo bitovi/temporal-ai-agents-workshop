@@ -15,9 +15,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
-import software.amazon.awssdk.services.bedrockruntime.model.SpecificToolChoice;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
-import software.amazon.awssdk.services.bedrockruntime.model.ToolChoice;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
