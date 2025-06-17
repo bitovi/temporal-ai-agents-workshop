@@ -52,6 +52,14 @@
             "projectName": "llm-workflows-temporal-java",
             "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
+                {
+            "type": "java",
+            "name": "Bedrock Structure Output Demo",
+            "request": "launch",
+            "mainClass": "bitovi.demos.BitoviBedrockStructureOutput",
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
+        },
         {
             "type": "java",
             "name": "AWS Bedrock Tool Calling Demo",
