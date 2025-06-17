@@ -279,7 +279,6 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     private boolean executeTool(String tool) {
         this.confirmed = false; // Reset confirmation status for the next tool execution.
-        boolean waitingForConfirm = false;
 
         var confirmedToolData = new ToolDataRecord("user-confirmed-tool-run", this.toolData.tool(),
                 this.toolData.args(), this.toolData.response(), this.toolData.forceConfirm());
