@@ -10,12 +10,14 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.AnyToolChoice;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
+import software.amazon.awssdk.services.bedrockruntime.model.ToolChoice;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
@@ -65,10 +67,8 @@ public class BitoviBedrockStructureOutput {
                 tools.add(SummarizeEmailImpl.getBedrockTool());
 
                 toolConfig.tools(tools);
-                // Mistral apparently doesnt support this option. WHY.
-                // toolConfig.toolChoice(
-                // ToolChoice.builder().tool(
-                // SpecificToolChoice.builder().name("summarize_email").build()).build());
+                toolConfig.toolChoice(
+                                ToolChoice.builder().any(AnyToolChoice.builder().build()).build());
 
                 ToolConfiguration tc = toolConfig.build();
                 ConverseRequest request = ConverseRequest.builder()

@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
@@ -139,10 +140,13 @@ public class BedrockProvider implements BaseModelProvider {
         System.out.println("Adding " + tools.size() + " tools to Bedrock tool configuration.");
         toolConfig.tools(tools);
 
+        String systemPrompt = "You are a helpful assistant named 'Mark' that can perform various tasks including calculations and searching the web. Use these tools to best answer questions from the user.";
+
         ConverseRequest request = ConverseRequest.builder()
                 .modelId(AWS_MODEL_ARN)
                 .messages(messages)
                 .toolConfig(toolConfig.build())
+                .system(SystemContentBlock.fromText(systemPrompt))
                 .build();
 
         ConverseResponse response = converseWithToolsRecursive(messages, request, 0);
@@ -152,7 +156,8 @@ public class BedrockProvider implements BaseModelProvider {
 
         // Convert the Bedrock response back to MessageRecord format
         MessageRecord responseMessage = new MessageRecord(
-                response.output().message().role().toString() != null ? response.output().message().role().toString() : "assistant",
+                response.output().message().role().toString() != null ? response.output().message().role().toString()
+                        : "assistant",
                 response.output().message().content().get(0).text());
 
         return responseMessage;
@@ -238,6 +243,12 @@ public class BedrockProvider implements BaseModelProvider {
         return response;
     }
 
+    /*
+     * Amazon Titan Embeddings G1 - Text Floating-point 1536
+     * Amazon Titan Text Embeddings V2 Floating-point, binary 256, 512, 1024
+     * Cohere Embed (English) Floating-point, binary 1024
+     * Cohere Embed (Multilingual) Floating-point, binary 1024
+     */
     @Override
     public List<List<Double>> embedding(List<String> inputs) throws LLMProviderException {
         // TODO Auto-generated method stub
