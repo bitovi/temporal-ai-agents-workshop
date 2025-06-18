@@ -76,17 +76,16 @@ public class OllamaProvider implements BaseModelProvider {
     }
 
     @Override
-    public List<List<Double>> embedding(List<String> inputs) throws LLMProviderException {
+    public List<Float> embedding(String input) throws LLMProviderException {
         OllamaEmbedResponseModel result;
         try {
-            // Generate a greeting using the Ollama API
-            result = this.ollamaClient.embed(OLLAMA_MODEL_ID, inputs);
+            result = this.ollamaClient.embed(OLLAMA_MODEL_ID, List.of(input));
         } catch (OllamaBaseException | IOException | InterruptedException e) {
             throw new LLMProviderException(e.getMessage());
         }
 
         List<List<Double>> embeddings = result.getEmbeddings();
-        return embeddings;
+        return embeddings.isEmpty() ? List.of() : embeddings.get(0).stream().map(Double::floatValue).toList();
     }
 
     private List<OllamaChatMessage> convertCommonToOllama(ArrayList<DataTypes.MessageRecord> prompt) {

@@ -1,9 +1,12 @@
 package bitovi.providers;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.json.JSONObject;
 
 import bitovi.common.Config;
 import bitovi.common.LLMProviderException;
@@ -14,6 +17,7 @@ import bitovi.common.tools.SearchToolmpl;
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
@@ -25,6 +29,8 @@ import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
@@ -243,16 +249,45 @@ public class BedrockProvider implements BaseModelProvider {
         return response;
     }
 
-    /*
-     * Amazon Titan Embeddings G1 - Text Floating-point 1536
-     * Amazon Titan Text Embeddings V2 Floating-point, binary 256, 512, 1024
-     * Cohere Embed (English) Floating-point, binary 1024
-     * Cohere Embed (Multilingual) Floating-point, binary 1024
-     */
     @Override
-    public List<List<Double>> embedding(List<String> inputs) throws LLMProviderException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'embedding'");
+    public List<Float> embedding(String input) throws LLMProviderException {
+        ArrayList<String> stringList = new ArrayList<>();
+
+        stringList.add(input);
+        JSONObject jsonBody = new JSONObject()
+                .put("inputText", input);
+
+        SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
+
+        String modelId = Config.getProperty("AWS_EMBEDDING_MODEL_ID");
+        // Prepare model invocation request
+        InvokeModelRequest request = InvokeModelRequest.builder()
+                .modelId(modelId)
+                .contentType("application/json")
+                .accept("*/*")
+                .body(body)
+                .build();
+
+        InvokeModelResponse response = bedrockRuntimeClient.invokeModel(request);
+
+        // Extract and process the response when it is available
+        JSONObject responseJson = new JSONObject(
+                response.body().asString(StandardCharsets.UTF_8));
+
+        List<Double> embedding = responseJson.getJSONArray("embedding").toList().stream()
+                .map(obj -> ((Number) obj).doubleValue())
+                .toList();
+
+        if (embedding.isEmpty()) {
+            System.out.println("No embedding found for input: " + input);
+            return List.of();
+        }
+
+        System.out.println("Embedding for input '" + input + "': " + embedding);
+        // Convert List<Double> to List<Float>
+        return embedding.stream()
+                .map(Double::floatValue)
+                .toList();
     }
 
     public static Tool transform(io.modelcontextprotocol.spec.McpSchema.Tool tool) {

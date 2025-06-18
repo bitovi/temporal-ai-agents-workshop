@@ -36,7 +36,7 @@
             "projectName": "llm-workflows-temporal-java",
             "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
-                {
+        {
             "type": "java",
             "name": "Basic Greeting Workflow",
             "request": "launch",
@@ -52,7 +52,15 @@
             "projectName": "llm-workflows-temporal-java",
             "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
         },
-                {
+        {
+            "type": "java",
+            "name": "Bedrock Embedding Demo",
+            "request": "launch",
+            "mainClass": "bitovi.demos.BitoviQdrantReadWrite",
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
+        },
+        {
             "type": "java",
             "name": "Bedrock Structure Output Demo",
             "request": "launch",

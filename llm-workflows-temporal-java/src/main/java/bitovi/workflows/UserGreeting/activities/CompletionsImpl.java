@@ -42,7 +42,9 @@ public class CompletionsImpl implements Completions {
         try {
             OllamaProvider ollama = new OllamaProvider();
             // Assuming the text is a single string, we can wrap it in a list
-            return ollama.embedding(List.of(text));
+            return List.of(ollama.embedding(text)).stream()
+                    .map(embedding -> embedding.stream().map(Double::valueOf).toList())
+                    .toList();
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }
