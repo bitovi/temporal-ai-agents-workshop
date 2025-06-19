@@ -3,7 +3,7 @@ package bitovi.common;
 import java.util.List;
 import java.util.Map;
 
-import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
+import bitovi.workflows.AgentGoal.AgentGoalTypes.AgentGoalConversationHistory;
 
 public interface DataTypes {
 
@@ -39,7 +39,7 @@ public interface DataTypes {
         // aggregates with less ceremony than normal classes.
     }
 
-    record ValidationInputRecord(MessageRecord userInput, List<MessageRecord> history, Agent currentGoal) {
+    record ValidationInputRecord(String userInput, AgentGoalConversationHistory history, Agent currentGoal) {
         // This record class encapsulates the input for validation.
         // It includes the user input message, the conversation history, and the current
         // goal.
@@ -59,14 +59,6 @@ public interface DataTypes {
 
     enum ConnectionType {
         STDIO, REMOTE_SSE
-    }
-
-    record CombinedWorkflowInput(AgentGoalWorkflowParams toolParams, Agent agentGoal) {
-
-    }
-
-    record AgentGoalWorkflowParams(String conversationSummary, List<MessageRecord> promptQueue) {
-
     }
 
     record AgentGoalRecord(String id, String categoryTag, String agentName, String agentFriendlyDescription,
@@ -94,10 +86,6 @@ public interface DataTypes {
     record MCPToolDefinition(String name, String description, List<String> args) {
         // This record class encapsulates the definition of an MCP tool.
         // It includes the name, description, and arguments for the tool.
-    }
-
-    record ListModelContextProtocolToolsResult(boolean success, String error, List<AgentToolDefinition> tools) {
-
     }
 
     record PromptSummaryRecord(String contextInstructions, List<MessageRecord> actualPrompt) {

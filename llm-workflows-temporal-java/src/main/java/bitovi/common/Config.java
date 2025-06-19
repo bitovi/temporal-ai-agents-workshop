@@ -13,6 +13,8 @@ import io.temporal.activity.ActivityOptions;
 public class Config {
     private static Properties properties = null;
 
+    public static final int MAX_TURNS_BEFORE_CONTINUE = 250; // Maximum turns before continuing the workflow.
+
     public static ActivityOptions getDefaultActivityOptions() {
         ActivityOptions defaulActivityOptions = ActivityOptions.newBuilder()
                 .setStartToCloseTimeout(Duration.ofSeconds(120))

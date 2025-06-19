@@ -2,21 +2,24 @@ package bitovi.workflows.AgentGoal;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import bitovi.common.Agent;
 import bitovi.common.Config;
 import bitovi.common.DataTypes;
-import bitovi.common.Unknown;
-import bitovi.common.DataTypes.AgentGoalWorkflowParams;
-import bitovi.common.DataTypes.MessageRecord;
 import bitovi.common.DataTypes.PromptSummaryRecord;
-import bitovi.common.DataTypes.ToolDataRecord;
+import bitovi.workflows.AgentGoal.AgentGoalTypes.AgentGoalConversationEntry;
+import bitovi.workflows.AgentGoal.AgentGoalTypes.AgentGoalConversationHistory;
 import bitovi.workflows.AgentGoal.activities.AgentGoalActivities;
-import bitovi.workflows.AgentGoal.activities.AgentGoalActivities.AgentToolPlannerResult;
+import bitovi.workflows.AgentGoal.activities.AgentGoalActivities.AgentToolPlannerInput;
+import bitovi.workflows.AgentGoal.activities.AgentGoalActivities.ListModelContextProtocolToolsResult;
 import bitovi.workflows.AgentGoal.helpers.AgentGoalHelpers;
 import bitovi.workflows.AgentGoal.helpers.AgentSelectionHelper;
+import bitovi.workflows.AgentGoal.helpers.AgentToolArgument;
 import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
+import bitovi.workflows.AgentGoal.helpers.AgentToolPlannerResult;
 import io.temporal.workflow.Workflow;
 
 /**
@@ -25,37 +28,28 @@ import io.temporal.workflow.Workflow;
  */
 public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
-    private static final int MAX_TURNS_BEFORE_CONTINUE = 250; // Maximum turns before continuing the workflow.
-
-    private ArrayList<DataTypes.MessageRecord> conversationHistory = new ArrayList<DataTypes.MessageRecord>();
-    private ArrayList<DataTypes.MessageRecord> promptQueue = new ArrayList<DataTypes.MessageRecord>();
-    // private ArrayList<String> goalList = new ArrayList<String>();
-
+    private AgentGoalConversationHistory conversationHistory = new AgentGoalConversationHistory(
+            new ArrayList<AgentGoalConversationEntry>());
+    private ArrayList<String> promptQueue = new ArrayList<String>();
     private String conversationSummary = null;
-    private boolean disconnected = false;
+    private boolean chatEnded = false;
+    private AgentToolPlannerResult toolData = null;
+    private boolean confirmed = false; // indicates that we have confirmation to proceed to run tool
+    private ArrayList<JSONObject> toolResults = new ArrayList<JSONObject>();
     private Agent goal = null;
-    private String currentTool = null; // This will hold the name of the tool to be executed.
-    private boolean waitingForConfirm = false;
-    private boolean showToolArgsConfirmation = true;
-    private boolean multiGoalMode = false;
-    private ToolDataRecord toolData = null;
-    private List<Unknown> toolResults = new ArrayList<Unknown>();
-    private DataTypes.AgentGoalWorkflowParams params = null;
-    private List<AgentToolDefinition> toolsInfo = null;
-    private DataTypes.ListModelContextProtocolToolsResult mcpToolsInfo = null;
+    private boolean showToolArgsConfirmation = true; // set from env file in activity lookup_wf_env_settings
+    private boolean multiGoalMode = false; // set from env file in activity lookup_wf_env_settings
+    private ListModelContextProtocolToolsResult mcpToolsInfo = null; // stores complete MCP tools result
 
     private Logger logger = Workflow.getLogger("AgentGoalWorkflowImpl");
-
-    // This is a flag to indicate whether the user has confirmed the tool execution.
-    private boolean confirmed = false;
 
     // This is the activity stub of the INTERFACE, not the implementation.
     private final AgentGoalActivities agentGoalActivites = Workflow.newActivityStub(AgentGoalActivities.class,
             Config.getDefaultActivityOptions());
 
     @Override
-    public ArrayList<DataTypes.MessageRecord> run(DataTypes.CombinedWorkflowInput combinedInput) {
-        this.params = combinedInput.toolParams();
+    public AgentGoalConversationHistory run(CombinedWorkflowInput combinedInput) {
+        AgentGoalWorkflowParams params = combinedInput.toolParams();
         this.goal = combinedInput.agentGoal();
 
         lookupWorkflowEnvSettings(combinedInput);
@@ -64,90 +58,89 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             loadModelContextProtocolTools();
         }
 
-        if (this.params != null && this.params.conversationSummary() != null) {
+        if (params != null && params.conversationSummary() != null) {
             // self.add_message("conversation_summary", params.conversation_summary)
             // self.conversation_summary = params.conversation_summary
-            addMessage("conversation_summary", this.params.conversationSummary());
-            this.conversationSummary = this.params.conversationSummary();
+            addMessage("conversation_summary", params.conversationSummary());
+            this.conversationSummary = params.conversationSummary();
         }
 
-        if (this.params != null && this.params.promptQueue() != null) {
+        if (params != null && params.promptQueue() != null) {
             // self.prompt_queue.extend(params.prompt_queue)
-            this.promptQueue.addAll(this.params.promptQueue());
+            this.promptQueue.addAll(params.promptQueue());
         }
 
         logger.info("Starting AgentGoalWorkflowImpl with initial goal: " + this.goal);
 
-        // boolean waitingForConfirm = false;
+        boolean waitingForConfirm = false;
         String currentTool = null;
 
         while (true) {
             // Check if the user has disconnected or if there are prompts in the queue.
-            Workflow.await(() -> this.disconnected || this.promptQueue.size() > 0 || this.confirmed);
+            Workflow.await(() -> this.chatEnded || this.promptQueue.size() > 0 || this.confirmed);
 
             if (this.chatShouldEnd()) {
                 logger.info("Ending chat due to user disconnection.");
                 return this.conversationHistory; // Return the conversation history when the chat ends.
             }
 
-            if (this.readyForToolExecution(this.waitingForConfirm, this.currentTool)) {
-                this.waitingForConfirm = executeTool(this.currentTool);
+            if (this.readyForToolExecution(waitingForConfirm, currentTool)) {
+                waitingForConfirm = executeTool(currentTool);
                 continue;
             }
 
             // If there are prompts in the queue, process them.
             if (this.promptQueue.size() > 0) {
-                Workflow.getLogger("AgentGoalWorkflowImpl").info("Processing user prompt from queue.");
-                DataTypes.MessageRecord prompt = this.promptQueue.remove(0);
+                String prompt = this.promptQueue.remove(0);
+                Workflow.getLogger("AgentGoalWorkflowImpl")
+                        .info("Processing user prompt from queue. Prompt: " + prompt);
 
-                // Add the user prompt to the conversation history.
-                this.addMessage("user", prompt.content());
+                if (this.isUserPrompt(prompt)) {
+                    // Add the user prompt to the conversation history.
+                    this.addMessage("user", prompt);
+                    DataTypes.ValidationInputRecord validationInput = new DataTypes.ValidationInputRecord(prompt,
+                            this.conversationHistory, this.goal);
 
-                DataTypes.ValidationInputRecord validationInput = new DataTypes.ValidationInputRecord(prompt,
-                        this.conversationHistory, this.goal);
+                    DataTypes.ValidationResultRecord validationResult = agentGoalActivites
+                            .validateUserInput(validationInput);
 
-                DataTypes.ValidationResultRecord validationResult = agentGoalActivites
-                        .validateUserInput(validationInput);
-
-                if (!validationResult.isValid()) {
-                    Workflow.getLogger("AgentGoalWorkflowImpl")
-                            .error("User input validation failed: " + validationResult.message());
-
-                    this.addMessage("assistant", validationResult.message());
-                    continue; // Skip to the next iteration to wait for more input.
+                    if (!validationResult.isValid()) {
+                        logger.error("Prompt validation failed:" + validationResult.message());
+                        this.addMessage("agent", validationResult.message());
+                        continue; // Skip to the next iteration to wait for more input.
+                    }
                 }
 
-                /// --------
-                Workflow.getLogger("AgentGoalWorkflowImpl").info("User input validated successfully.");
+                // If valid, proceed with generating the context and prompt
+                logger.info("User input validated successfully.");
 
-                // Process the user input and determine the next steps.
-                String contextInstructions = agentGoalActivites.generateGenAIPrompt(prompt, this.conversationHistory,
-                        this.goal);
+                String contextInstructions = generateGenAIPrompt(this.goal, this.conversationHistory,
+                        this.multiGoalMode, this.toolData, this.mcpToolsInfo);
 
                 // Execute the tool_planner with the instructions.
-                AgentToolPlannerResult toolPlannerResult = agentGoalActivites
-                        .agentToolPlanner(prompt.content(), contextInstructions);
+                AgentToolPlannerResult toolData = agentGoalActivites
+                        .agentToolPlanner(new AgentToolPlannerInput(prompt, contextInstructions));
 
-                System.out.println("Tool Planner Result: " + toolPlannerResult.toString());
+                toolData.forceConfirm = this.showToolArgsConfirmation;
+                this.toolData = toolData;
 
-                toolPlannerResult.structuredOutput().put("force_confirm",
-                        this.showToolArgsConfirmation ? "true" : "false");
+                String nextStep = toolData.nextStep;
+                currentTool = toolData.tool;
 
-                String nextStep = toolPlannerResult.structuredOutput().get("next");
-                currentTool = toolPlannerResult.structuredOutput().get("tool");
+                logger.info("nextStep: " + nextStep + ", currentTool: " + currentTool);
 
-                System.out.println("Next Step: " + nextStep + ", Current Tool: " + currentTool);
                 if (nextStep.equals("confirm")) {
-                    String args = toolPlannerResult.structuredOutput().get("args");
-                    var missingArgs = agentGoalActivites.handleMissingArgs(currentTool, args, toolData,
+                    Object args = toolData.args;
+                    Object missingArgs = agentGoalActivites.handleMissingArgs(currentTool, args, toolData,
                             promptQueue);
+
                     if (missingArgs != null) {
                         // If there are missing arguments, we need to prompt the user for them.
                         System.out.println("Missing arguments for tool execution: " + missingArgs);
                         continue;
                     }
 
-                    this.waitingForConfirm = true;
+                    waitingForConfirm = true;
 
                     if (this.showToolArgsConfirmation) {
                         this.confirmed = false; // Reset confirmation status for the next tool execution.
@@ -159,16 +152,16 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                     logger.info("All steps completed. Need to pick a new goal.");
                     this.changeGoal("goal_choose_agent_type");
                 } else if (nextStep.equals("done")) {
-                    this.addMessage("agent", this.toolData);
+                    this.addMessage("agent", this.toolData.toString());
                     return this.conversationHistory; // Return the conversation history when done.
                 } else {
-                    this.addMessage("agent", this.toolData);
+                    this.addMessage("agent", this.toolData.toString());
 
                     // AgentGoalHelpers.continueAsNewIfNeeded(this.conversationHistory,
                     // this.promptQueue, this.goal,
                     // MAX_TURNS_BEFORE_CONTINUE, this::addMessage);
 
-                    if (conversationHistory.size() >= MAX_TURNS_BEFORE_CONTINUE) {
+                    if (conversationHistory.messages().size() >= Config.MAX_TURNS_BEFORE_CONTINUE) {
                         PromptSummaryRecord promptSummary = AgentGoalHelpers
                                 .promptSummaryWithHistory(conversationHistory);
 
@@ -179,13 +172,13 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                         // Add the summary to the conversation history.
                         addMessage("conversation_summary", result.toString());
 
-                        AgentGoalWorkflowParams newParams = new DataTypes.AgentGoalWorkflowParams(
+                        AgentGoalWorkflowParams newParams = new AgentGoalWorkflowParams(
                                 result.toString(),
                                 this.promptQueue);
 
                         // Continue as new summarizing the conversation history, keeping the same goal,
                         // and copying the prompt queue over.
-                        Workflow.continueAsNew(new DataTypes.CombinedWorkflowInput(newParams, this.goal));
+                        Workflow.continueAsNew(new CombinedWorkflowInput(newParams, this.goal));
                     }
                 }
             }
@@ -194,17 +187,17 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     @Override
     public void prompt(String prompt) {
-        if (this.disconnected) {
+        if (this.chatEnded) {
             logger.info("Message dropped due to chat closed: " + prompt);
             return; // Ignore prompts if the chat has ended.
         }
-        this.promptQueue.add(new DataTypes.MessageRecord("user", prompt));
+        this.promptQueue.add(prompt);
     }
 
     @Override
     public void disconnect() {
         logger.info("Received user signal: disconnect");
-        this.disconnected = true;
+        this.chatEnded = true;
     }
 
     @Override
@@ -214,7 +207,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     }
 
     @Override
-    public ArrayList<MessageRecord> getConversationHistory() {
+    public AgentGoalConversationHistory getConversationHistory() {
         return this.conversationHistory;
     }
 
@@ -229,20 +222,21 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     }
 
     @Override
-    public ToolDataRecord getLatestToolData() {
+    public AgentToolPlannerResult getLatestToolData() {
         return this.toolData;
     }
 
     public void addMessage(String actor, String content) {
         // This method adds a message to the conversation history.
-        DataTypes.MessageRecord message = new DataTypes.MessageRecord(actor, content);
-        this.conversationHistory.add(message);
-        logger.info("Added message to conversation history: " + message);
+        this.conversationHistory.messages().add(new AgentGoalConversationEntry(actor, content));
     }
 
-    public void addMessage(String actor, DataTypes.ToolDataRecord toolData) {
-        throw new UnsupportedOperationException(
-                "This method is not implemented yet. Please implement the logic to handle ToolDataRecord.");
+    private boolean isUserPrompt(String prompt) {
+        if (prompt.startsWith("###")) {
+            return false;
+        }
+
+        return true;
     }
 
     private void changeGoal(String newGoal) {
@@ -262,7 +256,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     }
 
     private boolean chatShouldEnd() {
-        if (this.disconnected) {
+        if (this.chatEnded) {
             logger.info("Chat should end due to user disconnection.");
             return true; // End the chat if the user has disconnected.
         }
@@ -279,19 +273,68 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
     private boolean executeTool(String tool) {
         this.confirmed = false; // Reset confirmation status for the next tool execution.
+        boolean waitingForConfirm = false; // Set to true to wait for user confirmation before executing the tool.
 
-        var confirmedToolData = new ToolDataRecord("user-confirmed-tool-run", this.toolData.tool(),
-                this.toolData.args(), this.toolData.response(), this.toolData.forceConfirm());
+        AgentToolPlannerResult confirmedToolData = AgentToolPlannerResult.copy(this.toolData);
+        confirmedToolData.nextStep = "user_confirmed_tool_run";
 
-        addMessage("user_confirmed_tool_run", confirmedToolData);
+        addMessage("user_confirmed_tool_run", confirmedToolData.toString());
 
-        this.toolResults = AgentGoalHelpers.handleToolExecution(tool, this.toolData, this.promptQueue,
+        AgentGoalHelpers.handleToolExecution(tool, this.toolData, this.toolResults, this.promptQueue,
                 this.goal);
 
-        return false;
+        // set new goal if we should
+        if (this.toolResults != null && this.toolResults.size() > 0) {
+            JSONObject lastToolResult = this.toolResults.get(this.toolResults.size() - 1);
+
+            // Check if "ChangeGoal" is in the values AND "new_goal" is in the keys
+            // if (
+            // "ChangeGoal" in self.tool_results[-1].values()
+            // and "new_goal" in self.tool_results[-1].keys()
+            // ):
+            // new_goal = self.tool_results[-1].get("new_goal")
+            // self.change_goal(new_goal)
+            boolean hasChangeGoalInValues = false;
+            for (String key : lastToolResult.keySet()) {
+                Object value = lastToolResult.get(key);
+                if (value != null && value.toString().contains("ChangeGoal")) {
+                    hasChangeGoalInValues = true;
+                    break;
+                }
+            }
+
+            if (hasChangeGoalInValues && lastToolResult.has("new_goal")) {
+                String newGoal = lastToolResult.getString("new_goal");
+                this.changeGoal(newGoal);
+                return false; // No need to wait for confirmation, goal changed.
+            }
+            // Check if "ListAgents" is in the values AND current goal is not
+            // "goal_choose_agent_type"
+            // elif (
+            // "ListAgents" in self.tool_results[-1].values()
+            // and self.goal.id != "goal_choose_agent_type"
+            // ):
+            // self.change_goal("goal_choose_agent_type")
+            else {
+                boolean hasListAgentsInValues = false;
+                for (String key : lastToolResult.keySet()) {
+                    Object value = lastToolResult.get(key);
+                    if (value != null && value.toString().contains("ListAgents")) {
+                        hasListAgentsInValues = true;
+                        break;
+                    }
+                }
+
+                if (hasListAgentsInValues && !this.goal.id.equals("goal_choose_agent_type")) {
+                    this.changeGoal("goal_choose_agent_type");
+                }
+            }
+        }
+
+        return waitingForConfirm; // Return the waitingForConfirm status to continue or not.
     }
 
-    private void lookupWorkflowEnvSettings(DataTypes.CombinedWorkflowInput combinedInput) {
+    private void lookupWorkflowEnvSettings(CombinedWorkflowInput combinedInput) {
         // Set the defaults for the workflow environment.
         DataTypes.EnvLookupInputRecord env_lookup_input = new DataTypes.EnvLookupInputRecord("SHOW_CONFIRM", true);
 
@@ -312,16 +355,15 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
         List<String> includeTools = this.goal.mcpServerDefinition().includedTools();
 
-        DataTypes.ListModelContextProtocolToolsResult mcpToolsResult = agentGoalActivites
+        ListModelContextProtocolToolsResult mcpToolsResult = agentGoalActivites
                 .listModelContextProtocolTools(this.goal.mcpServerDefinition(), includeTools);
         if (mcpToolsResult.success()) {
-            this.toolsInfo = mcpToolsResult.tools();
-            logger.info("Successfully loaded model context protocol tools: " + this.toolsInfo);
+            ArrayList<AgentToolDefinition> toolsInfo = mcpToolsResult.tools();
+            logger.info("Successfully loaded model context protocol tools: " + toolsInfo);
 
-            // Store the mcp tools for user in prompt generation.
             this.mcpToolsInfo = mcpToolsResult;
 
-            for (AgentToolDefinition tool : this.toolsInfo) {
+            for (AgentToolDefinition tool : toolsInfo) {
                 logger.info("Registered MCP Tool: " + tool.getToolName() + " - " + tool.getToolDescription());
                 this.goal.registerTool(tool);
             }
@@ -331,5 +373,112 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             logger.error("Failed to load model context protocol tools: " + errorMessage);
             // continue without MCP tools loaded.
         }
+    }
+
+    private String generateGenAIPrompt(Agent agentGoal, AgentGoalConversationHistory conversationHistory,
+            boolean multiGoalMode, AgentToolPlannerResult toolData, ListModelContextProtocolToolsResult mcpToolsInfo) {
+        StringBuilder instructions = new StringBuilder();
+
+        instructions.append("You are an AI agent that helps fill required arguments for the tools described below.");
+        instructions.append(
+                "You must respond with valid JSON ONLY, using the schema provided in the instructions.");
+        instructions.append("\n");
+        instructions.append("=== Conversation History ===\n");
+        instructions.append("This is the ongoing history to determine which tool and arguments to gather:\n");
+        instructions.append("*BEGIN CONVERSATION HISTORY*\n");
+        for (AgentGoalConversationEntry message : conversationHistory.messages()) {
+            instructions.append("\n");
+            instructions.append(message.actor());
+            instructions.append(": ");
+            instructions.append(message.response());
+        }
+        instructions.append("*END CONVERSATION HISTORY*\n");
+
+        instructions.append("REMINDER: You should use the conversation history to infer arguments for the tools.\n");
+        instructions.append("=== Tools Definitions ===");
+
+        instructions.append("There are " + agentGoal.tools.size() + " available tools:\n");
+
+        for (AgentToolDefinition tool : agentGoal.tools) {
+            instructions.append(tool.getToolName() + "\n");
+        }
+        instructions.append("\n");
+
+        instructions.append("Goal:");
+        instructions.append(agentGoal.agentDescription);
+        instructions.append("\n");
+        instructions.append("Gather the necessary information for each tool in the sequence described above.");
+        instructions.append("Only ask for arguments listed below. Do not add extra arguments.");
+
+        for (AgentToolDefinition tool : agentGoal.tools) {
+            instructions
+                    .append("Tool Name: " + tool.getToolName() + "\n");
+            instructions.append("   Description: " + tool.getToolDescription() + "\n");
+            instructions.append("   Arguments:\n");
+            for (AgentToolArgument arg : tool.getToolArguments()) {
+                instructions
+                        .append("       " + arg.getName() + "(" + arg.getType() + ") : " + arg.getDescription() + "\n");
+            }
+
+            instructions.append("   Required Arguments: ");
+            for (AgentToolArgument arg : tool.getToolArguments()) {
+                if (arg.isRequired()) {
+                    instructions.append(arg.getName() + ", ");
+                }
+            }
+            instructions.append("\n");
+        }
+        instructions.append("\n");
+
+        instructions.append("When all required args for a tool are known, you can propose next='confirm' to run it.\n");
+
+        // JSON Format Instructions
+        instructions.append("=== Instructions for JSON Generation ===\n");
+        instructions.append("Your JSON format must be:\n");
+
+        instructions.append(responseFormat());
+
+        instructions.append("1) If any required argument is missing, set next='question' and ask the user.\n");
+        instructions.append(
+                "2) If all required arguments are known, set next='confirm' and specify the tool. The user will confirm before the tool is run.\n");
+        instructions.append(
+                "3) If no more tools are needed (user_confirmed_tool_run has been run for all), set next='done' and tool=''.\n");
+        instructions.append("4) response should be short and user-friendly.\n\n");
+
+        instructions.append("Guardrails (always remember!)\n");
+        instructions.append("1) If any required argument is missing, set next='question' and ask the user.\n");
+        instructions.append("1) ALWAYS ask a question in your response if next='question'.\n");
+        instructions.append("2) ALWAYS set next='confirm' if you have arguments\n ");
+        instructions.append("And respond with \"let\'s proceed with <tool> (and any other useful info)\" \n ");
+        instructions.append("DON'T set next='confirm' if you have a question to ask.\n");
+        instructions.append("EXAMPLE: If you have a question to ask, set next='question' and ask the user.\n");
+        instructions.append("3) You can carry over arguments from one tool to another.\n ");
+        instructions.append(
+                "EXAMPLE: If you asked for an account ID, then use the conversation history to infer that argument ");
+        instructions.append("going forward.");
+        instructions.append("4) If ListAgents in the conversation history is force_confirm='False', you MUST check ");
+        instructions.append(
+                "if the current tool contains userConfirmation. If it does, please ask the user to confirm details ");
+        instructions.append("with the user. userConfirmation overrides force_confirm='False'.\n");
+        instructions.append(
+                "EXAMPLE: (force_confirm='False' AND userConfirmation exists on tool) Would you like me to <run tool> ");
+        instructions.append("with the following details: <details>?\n");
+
+        return instructions.toString();
+    }
+
+    private String responseFormat() {
+        return """
+                {
+                    "response": "<plain text>",
+                    "next": "<question|confirm|pick-new-goal|done>",
+                    "tool": "tool_name or null",
+                    "args": {
+                        "<arg1>": "<value1 or null>",
+                        "<arg2>": "<value2 or null>",
+                        ...
+                    }
+                }
+                """;
     }
 }

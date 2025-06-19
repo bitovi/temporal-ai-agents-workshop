@@ -2,12 +2,11 @@ package bitovi.workflows.AgentGoal.activities;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import bitovi.common.Agent;
 import bitovi.common.DataTypes;
 import bitovi.common.DataTypes.MessageRecord;
-import bitovi.common.DataTypes.ToolDataRecord;
+import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
+import bitovi.workflows.AgentGoal.helpers.AgentToolPlannerResult;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
@@ -21,27 +20,27 @@ public interface AgentGoalActivities {
         public DataTypes.ValidationResultRecord validatePrompt();
 
         @ActivityMethod
-        public String generateGenAIPrompt(DataTypes.MessageRecord userInput,
-                        ArrayList<DataTypes.MessageRecord> history,
-                        Agent currentGoal);
-
-        @ActivityMethod
         public DataTypes.ToolPlannerResult toolPlanner(String instructions, List<MessageRecord> history);
 
         @ActivityMethod
-        public AgentToolPlannerResult agentToolPlanner(String prompt, String contextInstructions);
-
-        public record AgentToolPlannerResult(Map<String, String> structuredOutput) {
-
-        }
+        public AgentToolPlannerResult agentToolPlanner(AgentToolPlannerInput input);
 
         @ActivityMethod
         public DataTypes.EnvLookupOutputRecord getWorkflowEnvSettings(DataTypes.EnvLookupInputRecord input);
 
         @ActivityMethod
-        public DataTypes.ListModelContextProtocolToolsResult listModelContextProtocolTools(
+        public ListModelContextProtocolToolsResult listModelContextProtocolTools(
                         DataTypes.MCPServerDefinitionRecord mcpServerDefinition, List<String> includeTools);
 
-        public Object handleMissingArgs(String currentTool, String args, ToolDataRecord toolData,
-                        ArrayList<MessageRecord> promptQueue);
+        @ActivityMethod
+        public Object handleMissingArgs(String currentTool, Object args, Object toolData,
+                        ArrayList<String> promptQueue);
+
+        public record AgentToolPlannerInput(String prompt, String contextInstructions) {
+
+        }
+
+        public record ListModelContextProtocolToolsResult(boolean success, String error,
+                        ArrayList<AgentToolDefinition> tools) {
+        }
 }

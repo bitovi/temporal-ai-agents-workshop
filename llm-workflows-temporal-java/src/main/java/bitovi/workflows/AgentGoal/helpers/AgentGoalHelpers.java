@@ -1,22 +1,23 @@
 package bitovi.workflows.AgentGoal.helpers;
 
 import java.util.ArrayList;
-import java.util.List;
+
+import org.json.JSONObject;
 
 import bitovi.common.Agent;
 import bitovi.common.DataTypes;
-import bitovi.common.DataTypes.MessageRecord;
-import bitovi.common.DataTypes.ToolDataRecord;
-import bitovi.common.Unknown;
+import bitovi.workflows.AgentGoal.AgentGoalTypes.AgentGoalConversationEntry;
+import bitovi.workflows.AgentGoal.AgentGoalTypes.AgentGoalConversationHistory;
 
 public class AgentGoalHelpers {
-    public static List<Unknown> handleToolExecution(String currentTool, ToolDataRecord toolData,
-            ArrayList<MessageRecord> promptQueue, Agent goal) {
+    public static void handleToolExecution(String currentTool, AgentToolPlannerResult toolData,
+            ArrayList<JSONObject> toolResults,
+            ArrayList<String> promptQueue, Agent goal) {
         throw new UnsupportedOperationException("Tool execution handling is not implemented yet.");
     }
 
     public static DataTypes.PromptSummaryRecord promptSummaryWithHistory(
-            ArrayList<DataTypes.MessageRecord> conversationHistory) {
+            AgentGoalConversationHistory conversationHistory) {
         String historyString = formatHistory(conversationHistory);
 
         String contextInstructions = "Here is the conversation history between a user and a chatbot: " + historyString;
@@ -31,10 +32,13 @@ public class AgentGoalHelpers {
         return new DataTypes.PromptSummaryRecord(contextInstructions, actualPrompt);
     }
 
-    public static String formatHistory(ArrayList<DataTypes.MessageRecord> conversationHistory) {
+    public static String formatHistory(AgentGoalConversationHistory conversationHistory) {
         StringBuilder historyBuilder = new StringBuilder();
-        for (DataTypes.MessageRecord message : conversationHistory) {
-            historyBuilder.append(message.role()).append(": ").append(message.content()).append("\n");
+        for (AgentGoalConversationEntry message : conversationHistory.messages()) {
+            historyBuilder.append(message.actor())
+                    .append(": ")
+                    .append(message.response())
+                    .append("\n");
         }
         return historyBuilder.toString();
     }
