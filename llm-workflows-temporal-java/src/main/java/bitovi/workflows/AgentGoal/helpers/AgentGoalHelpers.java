@@ -20,16 +20,15 @@ public class AgentGoalHelpers {
             AgentGoalConversationHistory conversationHistory) {
         String historyString = formatHistory(conversationHistory);
 
-        String contextInstructions = "Here is the conversation history between a user and a chatbot: " + historyString;
+        String contextInstructions = "Here is the conversation history between a user and a chatbot: \n"
+                + historyString;
 
-        ArrayList<DataTypes.MessageRecord> actualPrompt = new ArrayList<>();
+        StringBuilder actualPrompt = new StringBuilder();
 
-        actualPrompt.add(
-                new DataTypes.MessageRecord("system", "Please produce a two sentence summary of this conversation."));
-        actualPrompt.add(new DataTypes.MessageRecord("system",
-                "Put the summary in the format { \"summary\": \"<plain text>\" }"));
+        actualPrompt.append("Please produce a two sentence summary of this conversation.");
+        actualPrompt.append("Put the summary in the format { \"summary\": \"<plain text>\" }\"");
 
-        return new DataTypes.PromptSummaryRecord(contextInstructions, actualPrompt);
+        return new DataTypes.PromptSummaryRecord(contextInstructions, actualPrompt.toString());
     }
 
     public static String formatHistory(AgentGoalConversationHistory conversationHistory) {

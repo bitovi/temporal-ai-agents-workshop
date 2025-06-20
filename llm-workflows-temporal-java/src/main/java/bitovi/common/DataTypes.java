@@ -88,7 +88,7 @@ public interface DataTypes {
         // It includes the name, description, and arguments for the tool.
     }
 
-    record PromptSummaryRecord(String contextInstructions, List<MessageRecord> actualPrompt) {
+    record PromptSummaryRecord(String contextInstructions, String actualPrompt) {
         // This record class encapsulates the summary of a prompt.
         // It includes the context instructions and the actual prompt text.
     }

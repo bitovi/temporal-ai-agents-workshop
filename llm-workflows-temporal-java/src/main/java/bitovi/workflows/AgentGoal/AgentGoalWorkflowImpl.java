@@ -54,7 +54,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
 
         lookupWorkflowEnvSettings(combinedInput);
 
-        if (this.goal.mcpServerDefinition() != null) {
+        if (this.goal != null && this.goal.mcpServerDefinition() != null) {
             loadModelContextProtocolTools();
         }
 
@@ -165,9 +165,8 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                         PromptSummaryRecord promptSummary = AgentGoalHelpers
                                 .promptSummaryWithHistory(conversationHistory);
 
-                        DataTypes.ToolPlannerResult result = agentGoalActivites.toolPlanner(
-                                promptSummary.contextInstructions(),
-                                promptSummary.actualPrompt());
+                        AgentToolPlannerResult result = agentGoalActivites.agentToolPlanner(new AgentToolPlannerInput(
+                                promptSummary.actualPrompt(), promptSummary.contextInstructions()));
 
                         // Add the summary to the conversation history.
                         addMessage("conversation_summary", result.toString());
@@ -344,6 +343,11 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     }
 
     private void loadModelContextProtocolTools() {
+        if (this.goal == null) {
+            logger.info("No goal found. Skipping loading of model context protocol tools.");
+            return; // No goal, nothing to load.
+        }
+
         if (this.goal.mcpServerDefinition() == null) {
             logger.info(
                     "No MCP server definition found in the goal. Skipping loading of model context protocol tools.");
@@ -384,53 +388,61 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                 "You must respond with valid JSON ONLY, using the schema provided in the instructions.");
         instructions.append("\n");
         instructions.append("=== Conversation History ===\n");
-        instructions.append("This is the ongoing history to determine which tool and arguments to gather:\n");
-        instructions.append("*BEGIN CONVERSATION HISTORY*\n");
+        instructions.append("This is the ongoing history to determine which tool and arguments to gather:\n\n");
+        instructions.append("*BEGIN CONVERSATION HISTORY*");
         for (AgentGoalConversationEntry message : conversationHistory.messages()) {
             instructions.append("\n");
             instructions.append(message.actor());
             instructions.append(": ");
             instructions.append(message.response());
         }
+        instructions.append("\n");
         instructions.append("*END CONVERSATION HISTORY*\n");
 
         instructions.append("REMINDER: You should use the conversation history to infer arguments for the tools.\n");
-        instructions.append("=== Tools Definitions ===");
 
-        instructions.append("There are " + agentGoal.tools.size() + " available tools:\n");
+        instructions.append("=== Tools Definitions ===\n");
+        if (agentGoal != null) {
+            instructions.append("There are " + agentGoal.tools.size() + " available tools:\n");
 
-        for (AgentToolDefinition tool : agentGoal.tools) {
-            instructions.append(tool.getToolName() + "\n");
-        }
-        instructions.append("\n");
-
-        instructions.append("Goal:");
-        instructions.append(agentGoal.agentDescription);
-        instructions.append("\n");
-        instructions.append("Gather the necessary information for each tool in the sequence described above.");
-        instructions.append("Only ask for arguments listed below. Do not add extra arguments.");
-
-        for (AgentToolDefinition tool : agentGoal.tools) {
-            instructions
-                    .append("Tool Name: " + tool.getToolName() + "\n");
-            instructions.append("   Description: " + tool.getToolDescription() + "\n");
-            instructions.append("   Arguments:\n");
-            for (AgentToolArgument arg : tool.getToolArguments()) {
-                instructions
-                        .append("       " + arg.getName() + "(" + arg.getType() + ") : " + arg.getDescription() + "\n");
-            }
-
-            instructions.append("   Required Arguments: ");
-            for (AgentToolArgument arg : tool.getToolArguments()) {
-                if (arg.isRequired()) {
-                    instructions.append(arg.getName() + ", ");
-                }
+            for (AgentToolDefinition tool : agentGoal.tools) {
+                instructions.append(tool.getToolName() + "\n");
             }
             instructions.append("\n");
-        }
-        instructions.append("\n");
 
-        instructions.append("When all required args for a tool are known, you can propose next='confirm' to run it.\n");
+            instructions.append("Goal:");
+            instructions.append(agentGoal.agentDescription);
+            instructions.append("\n");
+            instructions.append("Gather the necessary information for each tool in the sequence described above.");
+            instructions.append("Only ask for arguments listed below. Do not add extra arguments.");
+
+            for (AgentToolDefinition tool : agentGoal.tools) {
+                instructions
+                        .append("Tool Name: " + tool.getToolName() + "\n");
+                instructions.append("   Description: " + tool.getToolDescription() + "\n");
+                instructions.append("   Arguments:\n");
+                for (AgentToolArgument arg : tool.getToolArguments()) {
+                    instructions
+                            .append("       " + arg.getName() + "(" + arg.getType() + ") : " + arg.getDescription()
+                                    + "\n");
+                }
+
+                instructions.append("   Required Arguments: ");
+                for (AgentToolArgument arg : tool.getToolArguments()) {
+                    if (arg.isRequired()) {
+                        instructions.append(arg.getName() + ", ");
+                    }
+                }
+                instructions.append("\n");
+            }
+            instructions.append("\n");
+
+            instructions
+                    .append("When all required args for a tool are known, you can propose next='confirm' to run it.\n");
+
+        } else {
+            instructions.append("There is no goal set yet, so no tools have been loaded.\n");
+        }
 
         // JSON Format Instructions
         instructions.append("=== Instructions for JSON Generation ===\n");

@@ -4,19 +4,32 @@ import org.json.JSONObject;
 
 public class AgentToolPlannerResult {
 
+    public String response;
     public boolean forceConfirm;
     public String tool;
     public String nextStep;
     public JSONObject args;
 
     public static AgentToolPlannerResult from(JSONObject structuredOutput) {
+        System.out.println("AgentToolPlannerResult.from: " + structuredOutput.toString(2));
+
         AgentToolPlannerResult result = new AgentToolPlannerResult();
+        result.response = structuredOutput.optString("response", "");
         result.forceConfirm = Boolean.parseBoolean(structuredOutput.optString("forceConfirm", "false"));
-        result.tool = structuredOutput.optString("tool", "");
         result.nextStep = structuredOutput.optString("nextStep", "");
-        result.args = structuredOutput.optJSONObject("args");
-        if (result.args == null) {
-            result.args = new JSONObject(); // Default to an empty object if args is not provided
+
+        String toolName = structuredOutput.optString("toolName");
+        if (toolName == null || toolName.isEmpty()) {
+            result.tool = "";
+            result.args = null;
+        } else {
+            result.tool = toolName;
+            JSONObject argsObject = structuredOutput.optJSONObject("args");
+            if (argsObject != null) {
+                result.args = argsObject;
+            } else {
+                result.args = null;
+            }
         }
 
         return result;
@@ -26,6 +39,7 @@ public class AgentToolPlannerResult {
         AgentToolPlannerResult result = new AgentToolPlannerResult();
         result.forceConfirm = other.forceConfirm;
         result.tool = other.tool;
+        result.response = other.response;
         result.nextStep = other.nextStep;
         result.args = other.args;
         return result;

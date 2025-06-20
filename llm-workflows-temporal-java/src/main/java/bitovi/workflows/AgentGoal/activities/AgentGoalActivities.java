@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bitovi.common.DataTypes;
-import bitovi.common.DataTypes.MessageRecord;
 import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
 import bitovi.workflows.AgentGoal.helpers.AgentToolPlannerResult;
 import io.temporal.activity.ActivityInterface;
@@ -15,12 +14,6 @@ public interface AgentGoalActivities {
 
         @ActivityMethod
         public DataTypes.ValidationResultRecord validateUserInput(DataTypes.ValidationInputRecord input);
-
-        @ActivityMethod
-        public DataTypes.ValidationResultRecord validatePrompt();
-
-        @ActivityMethod
-        public DataTypes.ToolPlannerResult toolPlanner(String instructions, List<MessageRecord> history);
 
         @ActivityMethod
         public AgentToolPlannerResult agentToolPlanner(AgentToolPlannerInput input);

@@ -115,7 +115,7 @@ public class BedrockProvider implements BaseModelProvider {
     }
 
     @Override
-    public MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException {
+    public MessageRecord chat(ArrayList<MessageRecord> prompt, String systemPrompt) throws LLMProviderException {
         List<Message> messages = new ArrayList<Message>();
 
         // Convert the chat messages to Bedrock's Message format
@@ -146,7 +146,12 @@ public class BedrockProvider implements BaseModelProvider {
         System.out.println("Adding " + tools.size() + " tools to Bedrock tool configuration.");
         toolConfig.tools(tools);
 
-        String systemPrompt = "You are a helpful assistant named 'Mark' that can perform various tasks including calculations and searching the web. Use these tools to best answer questions from the user.";
+        if (systemPrompt == null || systemPrompt.isEmpty()) {
+            System.out.println("No system prompt provided, using default.");
+            systemPrompt = "You are a helpful assistant named 'Mark' that can perform various tasks including calculations and searching the web. Use these tools to best answer questions from the user.";
+        } else {
+            System.out.println("Using provided system prompt: " + systemPrompt);
+        }
 
         ConverseRequest request = ConverseRequest.builder()
                 .modelId(AWS_MODEL_ARN)

@@ -22,15 +22,10 @@ public class CompletionsImpl implements Completions {
         try {
             OllamaProvider ollama = new OllamaProvider();
             ArrayList<MessageRecord> prompt = new ArrayList<>();
-            prompt.add(new MessageRecord("system",
-                    "You are a basic greeting generator. You will be given a name and you should generate a simple friendly greeting for that name."));
-
-            prompt.add(new MessageRecord("system",
-                    "You should respond with only the greeting, nothing else. Assume that the user is a human being and a friend of yours."));
-
             prompt.add(new MessageRecord("user", "Name: " + name));
 
-            MessageRecord response = ollama.chat(prompt);
+            String systemPrompt = "You are a basic greeting generator. You will be given a name and you should generate a simple friendly greeting for that name. You should respond with only the greeting, nothing else. Assume that the user is a human being and a friend of yours.";
+            MessageRecord response = ollama.chat(prompt, systemPrompt);
             return response.content();
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);

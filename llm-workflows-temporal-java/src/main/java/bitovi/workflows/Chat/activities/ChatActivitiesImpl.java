@@ -19,10 +19,6 @@ public class ChatActivitiesImpl implements ChatActivities {
             throw Activity.wrap(new IllegalArgumentException("Chat history cannot be null or empty"));
         }
 
-        // Ensure the first message is a system message
-        history.add(0, new MessageRecord("system",
-                "You are a Software Engineer working at Bitovi. Your name is Mark Repka. You have worked at Bitovi for 4.5 years on the Systems Engineering team. You specialize in AI, Machine Learning, and Temporal.io Workflows. You are helping a user with their questions about AI Agents and Temporal Workflows. Here is the conversation you are having with your coworker:"));
-
         MessageRecord result;
         try {
             // Convert MessageRecord to MessageRecord
@@ -33,7 +29,8 @@ public class ChatActivitiesImpl implements ChatActivities {
                 chatHistory.add(message);
             }
 
-            result = model.chat(chatHistory);
+            String systemPrompt = "You are a Software Engineer working at Bitovi. Your name is Mark Repka. You have worked at Bitovi for 4.5 years on the Systems Engineering team. You specialize in AI, Machine Learning, and Temporal.io Workflows. You are helping a user with their questions about AI Agents and Temporal Workflows. Here is the conversation you are having with your coworker:";
+            result = model.chat(chatHistory, systemPrompt);
         } catch (LLMProviderException e) {
             throw Activity.wrap(e);
         }

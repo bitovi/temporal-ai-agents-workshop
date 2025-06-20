@@ -11,5 +11,5 @@ public interface BaseModelProvider {
 
     List<Float> embedding(String text) throws LLMProviderException;
 
-    MessageRecord chat(ArrayList<MessageRecord> prompt) throws LLMProviderException;
+    MessageRecord chat(ArrayList<MessageRecord> prompt, String systemPrompt) throws LLMProviderException;
 }

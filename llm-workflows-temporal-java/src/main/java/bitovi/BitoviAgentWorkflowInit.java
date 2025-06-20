@@ -2,7 +2,6 @@ package bitovi;
 
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 
@@ -30,17 +29,15 @@ public class BitoviAgentWorkflowInit {
                 .build();
 
         AgentGoalWorkflow workflow = client.newWorkflowStub(AgentGoalWorkflow.class, options);
-        WorkflowStub untypedWorkflow = WorkflowStub.fromTyped(workflow);
 
         // Start the workflow
-        untypedWorkflow.start();
+        WorkflowClient.start(workflow::run,
+                new AgentGoalWorkflow.CombinedWorkflowInput(
+                        null,
+                        null));
 
         // Signal the workflow with a goal
         workflow.prompt("Hello, I need help with my project.");
-
-        String result = untypedWorkflow.getResult(String.class);
-
-        System.out.println(workflowId + " " + result);
         service.shutdown();
     }
 }

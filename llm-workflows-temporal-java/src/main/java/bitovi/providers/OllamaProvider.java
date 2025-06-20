@@ -64,7 +64,14 @@ public class OllamaProvider implements BaseModelProvider {
     }
 
     @Override
-    public DataTypes.MessageRecord chat(ArrayList<DataTypes.MessageRecord> prompt) throws LLMProviderException {
+    public DataTypes.MessageRecord chat(ArrayList<DataTypes.MessageRecord> prompt, String systemPrompt)
+            throws LLMProviderException {
+        if (systemPrompt == null || systemPrompt.isEmpty()) {
+            System.out.println("No system prompt provided, using default.");
+            systemPrompt = "You are a helpful assistant named 'Mark' that can perform various tasks including calculations and searching the web. Use these tools to best answer questions from the user.";
+        } else {
+            System.out.println("Using provided system prompt: " + systemPrompt);
+        }
         try {
             OllamaChatResult response = this.ollamaClient.chat(OLLAMA_MODEL_ID, this.convertCommonToOllama(prompt));
             var lastMessage = response.getResponseModel().getMessage();
