@@ -250,15 +250,17 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     private void changeGoal(String newGoal) {
         if (this.goal != null) {
             logger.info("Changing goal from '" + this.goal.toString() + "' to '" + newGoal + "'");
+        } else {
+            logger.info("Setting new goal to '" + newGoal + "'");
+        }
 
-            // Loop over the goal list, if the 'id' matches the incoming new goal, set the
-            // listed goal as the current goal.
-            for (Agent possibleGoal : AgentSelectionHelper.getGoalList()) {
-                if (possibleGoal.id.equals(newGoal)) {
-                    this.goal = possibleGoal;
-                    logger.info("Goal set to '" + newGoal + "'");
-                    break;
-                }
+        // Loop over the goal list, if the 'id' matches the incoming new goal, set the
+        // listed goal as the current goal.
+        for (Agent possibleGoal : AgentSelectionHelper.getGoalList()) {
+            if (possibleGoal.id.equals(newGoal)) {
+                this.goal = possibleGoal;
+                logger.info("Goal set to '" + newGoal + "'");
+                break;
             }
         }
     }

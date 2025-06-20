@@ -11,8 +11,6 @@ public class AgentToolPlannerResult {
     public JSONObject args;
 
     public static AgentToolPlannerResult from(JSONObject structuredOutput) {
-        System.out.println("AgentToolPlannerResult.from: " + structuredOutput.toString(2));
-
         AgentToolPlannerResult result = new AgentToolPlannerResult();
         result.response = structuredOutput.optString("response", "");
         result.forceConfirm = Boolean.parseBoolean(structuredOutput.optString("forceConfirm", "false"));

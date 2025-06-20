@@ -16,9 +16,22 @@ public class AgentToolDefinition {
     private List<AgentToolArgument> toolArguments;
 
     public AgentToolDefinition(String toolName, String toolDescription, List<AgentToolArgument> toolArguments) {
+        if (toolName == null || toolName.isEmpty()) {
+            throw new IllegalArgumentException("Tool name cannot be null or empty");
+        }
         this.toolName = toolName;
+
+        if (toolDescription == null || toolDescription.isEmpty()) {
+            throw new IllegalArgumentException("Tool description cannot be null or empty");
+        }
         this.toolDescription = toolDescription;
-        this.toolArguments = toolArguments;
+
+        // Arguments CAN be null or empty, but we ensure it's always a valid list.
+        if (toolArguments == null || toolArguments.isEmpty()) {
+            this.toolArguments = new ArrayList<>();
+        } else {
+            this.toolArguments = new ArrayList<>(toolArguments);
+        }
     }
 
     public String getToolName() {

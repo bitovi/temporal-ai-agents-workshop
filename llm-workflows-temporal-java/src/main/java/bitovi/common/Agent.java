@@ -2,6 +2,8 @@ package bitovi.common;
 
 import java.util.ArrayList;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import bitovi.common.DataTypes.MCPServerDefinitionRecord;
 import bitovi.workflows.AgentGoal.helpers.AgentToolDefinition;
 
@@ -17,9 +19,14 @@ public class Agent {
 
     public MCPServerDefinitionRecord _mcpServerDefinition;
 
-    public Agent(String id, String categoryTag, String agentName, String agentDescription, String starterPrompt,
-            String exampleConversation,
-            ArrayList<AgentToolDefinition> tools) {
+    public Agent(
+            @JsonProperty("id") String id,
+            @JsonProperty("categoryTag") String categoryTag,
+            @JsonProperty("agentName") String agentName,
+            @JsonProperty("agentDescription") String agentDescription,
+            @JsonProperty("starterPrompt") String starterPrompt,
+            @JsonProperty("exampleConversation") String exampleConversation,
+            @JsonProperty("tools") ArrayList<AgentToolDefinition> tools) {
         this.id = id;
         this.categoryTag = categoryTag;
         this.agentName = agentName;

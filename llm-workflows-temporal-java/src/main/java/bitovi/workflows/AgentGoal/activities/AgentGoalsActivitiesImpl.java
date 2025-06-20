@@ -65,8 +65,6 @@ public class AgentGoalsActivitiesImpl implements AgentGoalActivities {
             }
 
             String responseText = response.output().message().content().get(0).text();
-
-            System.out.println("Response from Bedrock: " + responseText);
             if (responseText == null || responseText.isEmpty()) {
                 throw new LLMProviderException("Received empty response from Bedrock.");
             }
