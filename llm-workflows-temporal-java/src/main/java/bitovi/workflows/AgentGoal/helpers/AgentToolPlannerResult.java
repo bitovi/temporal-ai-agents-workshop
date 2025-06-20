@@ -48,4 +48,16 @@ public class AgentToolPlannerResult {
     private AgentToolPlannerResult() {
         // Default constructor for deserialization or other internal use
     }
+
+    // implement toString method for better logging
+    @Override
+    public String toString() {
+        return "" +
+                "response='" + response + '\'' +
+                ", forceConfirm=" + forceConfirm +
+                ", tool='" + tool + '\'' +
+                ", nextStep='" + nextStep + '\'' +
+                ", args=" + (args != null ? args.toString() : "null") +
+                "";
+    }
 }

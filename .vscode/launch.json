@@ -22,6 +22,14 @@
         },
         {
             "type": "java",
+            "name": "Agent Workflow Demo Interface",
+            "request": "launch",
+            "mainClass": "bitovi.BitoviAgentWorkflowUI",
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
+        },
+        {
+            "type": "java",
             "name": "Basic Chat Workflow - Init",
             "request": "launch",
             "mainClass": "bitovi.BitoviChatClientInit",

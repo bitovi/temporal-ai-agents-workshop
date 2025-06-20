@@ -26,9 +26,21 @@ public interface AgentGoalTypes {
     record AgentGoalConversationHistory(ArrayList<AgentGoalConversationEntry> messages) {
         // This record class encapsulates the conversation history for the
         // AgentGoalWorkflow.
+        @Override
+        public final String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (AgentGoalConversationEntry entry : messages) {
+                sb.append(entry.toString()).append("\n");
+            }
+            return sb.toString();
+        }
     }
 
     record AgentGoalConversationEntry(String actor, String response) {
         // This record class encapsulates a single entry in the conversation history.
+        @Override
+        public final String toString() {
+            return actor + ": " + response;
+        }
     }
 }

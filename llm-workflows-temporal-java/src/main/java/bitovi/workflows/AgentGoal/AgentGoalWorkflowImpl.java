@@ -70,6 +70,12 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
             this.promptQueue.addAll(params.promptQueue());
         }
 
+        // If the goal is not set, we need to change it to the default goal.
+        if (this.goal == null) {
+            logger.info("No goal set. Changing to default goal: goal_choose_agent_type");
+            this.changeGoal("goal_choose_agent_type");
+        }
+
         logger.info("Starting AgentGoalWorkflowImpl with initial goal: " + this.goal);
 
         boolean waitingForConfirm = false;
@@ -118,14 +124,14 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                         this.multiGoalMode, this.toolData, this.mcpToolsInfo);
 
                 // Execute the tool_planner with the instructions.
-                AgentToolPlannerResult toolData = agentGoalActivites
+                AgentToolPlannerResult agentToolPlannerResult = agentGoalActivites
                         .agentToolPlanner(new AgentToolPlannerInput(prompt, contextInstructions));
 
-                toolData.forceConfirm = this.showToolArgsConfirmation;
-                this.toolData = toolData;
+                agentToolPlannerResult.forceConfirm = this.showToolArgsConfirmation;
+                this.toolData = agentToolPlannerResult;
 
-                String nextStep = toolData.nextStep;
-                currentTool = toolData.tool;
+                String nextStep = agentToolPlannerResult.nextStep;
+                currentTool = agentToolPlannerResult.tool;
 
                 logger.info("nextStep: " + nextStep + ", currentTool: " + currentTool);
 
@@ -152,10 +158,12 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                     logger.info("All steps completed. Need to pick a new goal.");
                     this.changeGoal("goal_choose_agent_type");
                 } else if (nextStep.equals("done")) {
-                    this.addMessage("agent", this.toolData.toString());
+                    this.addMessage("agent", this.toolData.response);
                     return this.conversationHistory; // Return the conversation history when done.
                 } else {
-                    this.addMessage("agent", this.toolData.toString());
+                    String responseText = agentToolPlannerResult.response;
+                    logger.info("Agent response: " + responseText);
+                    this.addMessage("agent", responseText);
 
                     // AgentGoalHelpers.continueAsNewIfNeeded(this.conversationHistory,
                     // this.promptQueue, this.goal,
@@ -169,10 +177,10 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
                                 promptSummary.actualPrompt(), promptSummary.contextInstructions()));
 
                         // Add the summary to the conversation history.
-                        addMessage("conversation_summary", result.toString());
+                        addMessage("conversation_summary", result.response);
 
                         AgentGoalWorkflowParams newParams = new AgentGoalWorkflowParams(
-                                result.toString(),
+                                result.response,
                                 this.promptQueue);
 
                         // Continue as new summarizing the conversation history, keeping the same goal,
@@ -226,6 +234,7 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
     }
 
     public void addMessage(String actor, String content) {
+        logger.info("Adding message to conversation history: " + actor + ": " + content);
         // This method adds a message to the conversation history.
         this.conversationHistory.messages().add(new AgentGoalConversationEntry(actor, content));
     }
