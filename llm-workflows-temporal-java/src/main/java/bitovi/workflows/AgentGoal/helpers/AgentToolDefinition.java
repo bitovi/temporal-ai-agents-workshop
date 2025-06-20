@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
@@ -15,7 +18,10 @@ public class AgentToolDefinition {
     private String toolDescription;
     private List<AgentToolArgument> toolArguments;
 
-    public AgentToolDefinition(String toolName, String toolDescription, List<AgentToolArgument> toolArguments) {
+    public AgentToolDefinition(
+            @JsonProperty("toolName") String toolName,
+            @JsonProperty("toolDescription") String toolDescription,
+            @JsonProperty("toolArguments") List<AgentToolArgument> toolArguments) {
         if (toolName == null || toolName.isEmpty()) {
             throw new IllegalArgumentException("Tool name cannot be null or empty");
         }
@@ -46,6 +52,7 @@ public class AgentToolDefinition {
         return toolArguments;
     }
 
+    @JsonIgnore
     public Tool getBedrockTool() {
         Map<String, Document> propertiesMap = new HashMap<>();
         List<Document> requiredList = new ArrayList<>();

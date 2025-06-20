@@ -2,6 +2,8 @@ package bitovi.workflows.AgentGoal.helpers;
 
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class AgentToolPlannerResult {
 
     public String response;
@@ -44,7 +46,22 @@ public class AgentToolPlannerResult {
     }
 
     private AgentToolPlannerResult() {
+        // Private constructor for internal use, to ensure all fields are set through
+        // the static methods
+    }
+
+    public AgentToolPlannerResult(
+            @JsonProperty("response") String response,
+            @JsonProperty("forceConfirm") boolean forceConfirm,
+            @JsonProperty("tool") String tool,
+            @JsonProperty("nextStep") String nextStep,
+            @JsonProperty("args") JSONObject args) {
         // Default constructor for deserialization or other internal use
+        this.response = response;
+        this.forceConfirm = forceConfirm;
+        this.tool = tool;
+        this.nextStep = nextStep;
+        this.args = args;
     }
 
     // implement toString method for better logging

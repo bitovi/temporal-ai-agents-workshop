@@ -3,6 +3,9 @@ package bitovi.workflows.AgentGoal.helpers;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import software.amazon.awssdk.core.document.Document;
 
 public class AgentToolArgument {
@@ -11,7 +14,11 @@ public class AgentToolArgument {
     private boolean required;
     private AgentToolArgumentType type;
 
-    public AgentToolArgument(String name, String description, AgentToolArgumentType type, boolean required) {
+    public AgentToolArgument(
+            @JsonProperty("name") String name,
+            @JsonProperty("description") String description,
+            @JsonProperty("type") AgentToolArgumentType type,
+            @JsonProperty("required") boolean required) {
         this.name = name;
         this.description = description;
         this.type = type;
@@ -34,6 +41,7 @@ public class AgentToolArgument {
         return required;
     }
 
+    @JsonIgnore
     public Map<String, Document> getArgument() {
         Map<String, Document> propertyMap = new HashMap<>();
         propertyMap.put("type", Document.fromString(type.name().toLowerCase()));
