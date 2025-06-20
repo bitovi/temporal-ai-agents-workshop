@@ -24,7 +24,7 @@ public class AgentToolPlannerResult {
             result.args = null;
         } else {
             result.tool = toolName;
-            JSONObject argsObject = structuredOutput.optJSONObject("args");
+            JSONObject argsObject = structuredOutput.optJSONObject("toolArgs");
             if (argsObject != null) {
                 result.args = argsObject;
             } else {

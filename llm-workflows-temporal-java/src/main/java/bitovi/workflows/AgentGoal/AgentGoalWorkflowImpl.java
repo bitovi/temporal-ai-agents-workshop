@@ -492,9 +492,10 @@ public class AgentGoalWorkflowImpl implements AgentGoalWorkflow {
         return """
                 {
                     "response": "<plain text>",
-                    "next": "<question|confirm|pick-new-goal|done>",
-                    "tool": "tool_name or null",
-                    "args": {
+                    "nextStep": "<question|confirm|pick-new-goal|done>",
+                    "forceConfirm": <true|false>,
+                    "toolName": "tool_name or null",
+                    "toolArgs": {
                         "<arg1>": "<value1 or null>",
                         "<arg2>": "<value2 or null>",
                         ...
