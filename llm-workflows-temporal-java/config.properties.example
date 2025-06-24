@@ -2,13 +2,29 @@ OPENAI_MODEL_ID=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=secret-api-key-value
 
+# These need to be refreshed often. Use the Bitovi AWS Access Portal
 AWS_ACCESS_KEY_ID=aws-access-key-id
 AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 AWS_SESSION_TOKEN=aws-session-token
+
 AWS_MODEL_ARN=arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0
 AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
 
+AWS_EMBEDDING_MODEL_ARN=amazon.titan-embed-text-v2:0
+AWS_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
+
 OLLAMA_HOST=http://localhost:11434/
 OLLAMA_MODEL_ID=mistral:latest
+
+LIFEFORCE_MCP_TOKEN=lifeforce-mcp-token-value
+
+LANGFUSE_SECRET_KEY=secret-langfuse-key-value
+LANGFUSE_PUBLIC_KEY=public-langfuse-key-value
+LANGFUSE_HOST="http://localhost:3000"
+
+QDRANT_VECTOR_SIZE=1024
+QDRANT_HOST=localhost
+QDRANT_PORT=6334
+QDRANT_SERVICE_API_KEY=temporal-qdrant-api-key
 
 CONFIG_EXISTS=true
