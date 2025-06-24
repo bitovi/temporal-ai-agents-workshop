@@ -31,6 +31,7 @@ public class BitoviAgentWorkflowUI {
     private static JTextArea messageHistoryArea;
     private static JTextField messageInputField;
     private static JButton sendButton;
+    private static JButton confirmButton;
 
     // Polling configuration
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 5; // Default 5 seconds
@@ -108,9 +109,14 @@ public class BitoviAgentWorkflowUI {
         sendButton.setPreferredSize(new Dimension(80, 30));
         sendButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
 
+        confirmButton = new JButton("Confirm");
+        confirmButton.setPreferredSize(new Dimension(80, 30));
+        confirmButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+
         // Add components to input panel
         inputPanel.add(messageInputField, BorderLayout.CENTER);
         inputPanel.add(sendButton, BorderLayout.EAST);
+        inputPanel.add(confirmButton, BorderLayout.WEST);
 
         // Add components to main frame
         frame.add(scrollPane, BorderLayout.CENTER);
@@ -185,6 +191,14 @@ public class BitoviAgentWorkflowUI {
             }
         });
 
+        // Confirm button click handler
+        confirmButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                confirmToolCall();
+            }
+        });
+
         // Enter key handler for message input field
         messageInputField.addKeyListener(new KeyListener() {
             @Override
@@ -233,6 +247,14 @@ public class BitoviAgentWorkflowUI {
         }
     }
 
+    public static void confirmToolCall() {
+        if (BitoviAgentWorkflowUI.workflow != null) {
+            BitoviAgentWorkflowUI.workflow.confirm();
+        } else {
+            System.out.println("Workflow is not initialized.");
+        }
+    }
+
     public static void pollConversationHistory() {
         if (BitoviAgentWorkflowUI.workflow != null) {
             try {
@@ -262,13 +284,22 @@ public class BitoviAgentWorkflowUI {
     }
 
     public static void exit() {
-        // Stop polling before exit
-        stopPolling();
+        try {
+            // Stop polling before exit
+            stopPolling();
 
-        if (BitoviAgentWorkflowUI.workflow != null) {
-            BitoviAgentWorkflowUI.workflow.disconnect();
+            if (BitoviAgentWorkflowUI.workflow != null) {
+                BitoviAgentWorkflowUI.workflow.disconnect();
+            }
+            BitoviAgentWorkflowUI.service.shutdown();
+        } catch (Exception e) {
+            System.err.println("Error during exit: " + e.getMessage());
+        } finally {
+            if (frame != null) {
+                frame.dispose();
+            }
         }
-        BitoviAgentWorkflowUI.service.shutdown();
+        System.out.println("Exiting application...");
         System.exit(0);
     }
 }
