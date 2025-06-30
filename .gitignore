@@ -9,3 +9,6 @@ llm-workflows-temporal-java/config.properties
 
 example-langchain/target/
 example-langchain/config.properties
+
+mcp-server-java/target/
+mcp-server-java/config.properties
