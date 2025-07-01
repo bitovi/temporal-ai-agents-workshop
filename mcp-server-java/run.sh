@@ -1,2 +1,2 @@
-mvn compile
-mvn exec:java  -Dexec.mainClass="bitovi.MCPServerDemoJava"
+#!/bin/bash
+./mvnw spring-boot:run
