@@ -32,8 +32,10 @@ public class QdrantWrapper {
      * Amazon Titan Text Embeddings V2 Floating-point, binary 256, 512, 1024
      * Cohere Embed (English) Floating-point, binary 1024
      * Cohere Embed (Multilingual) Floating-point, binary 1024
+     * 
+     * Ollama 4096
      */
-    private static final Integer VECTOR_SIZE = 1024;
+    private static final Integer VECTOR_SIZE = 4096;
 
     public QdrantWrapper() throws InterruptedException, ExecutionException {
         String host = Config.getProperty("QDRANT_HOST", "localhost");
@@ -109,7 +111,7 @@ public class QdrantWrapper {
                 .setVectors(vectors(vectorData))
                 .putAllPayload(
                         Map.of(
-                                "payload", value(payload)))
+                                "payload", value(payload), "source", value("document")))
                 .build();
 
         UpdateResult updateResult = client.upsertAsync(COLLECTION_NAME, List.of(ps)).get();

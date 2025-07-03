@@ -14,6 +14,14 @@
         },
         {
             "type": "java",
+            "name": "Document Ingest Workflow",
+            "request": "launch",
+            "mainClass": "bitovi.BitoviDocumentIngestWorkflow",
+            "projectName": "llm-workflows-temporal-java",
+            "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
+        },
+        {
+            "type": "java",
             "name": "Model Context Protocol Server",
             "request": "launch",
             "mainClass": "bitovi.MCPServerDemoJava",

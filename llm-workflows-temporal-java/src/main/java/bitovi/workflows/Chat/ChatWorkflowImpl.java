@@ -1,11 +1,15 @@
 package bitovi.workflows.Chat;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
 
 import bitovi.common.Config;
 import bitovi.common.DataTypes;
 import bitovi.common.DataTypes.MessageRecord;
 import bitovi.workflows.Chat.activities.ChatActivities;
+import io.qdrant.client.grpc.Points.ScoredPoint;
 import io.temporal.workflow.Workflow;
 
 public class ChatWorkflowImpl implements ChatWorkflow {
@@ -16,6 +20,8 @@ public class ChatWorkflowImpl implements ChatWorkflow {
 
     private final ChatActivities activities = Workflow.newActivityStub(ChatActivities.class,
             Config.getDefaultActivityOptions());
+
+    private Logger logger = Workflow.getLogger("ChatWorkflowImpl");
 
     @Override
     public void run() {
@@ -38,7 +44,15 @@ public class ChatWorkflowImpl implements ChatWorkflow {
 
                 history.add(new MessageRecord("user", prompt));
 
-                String response = activities.chat(history);
+                // Do some RAG stuff to fetch context
+                List<Float> embeddedPrompt = activities.embedding(prompt);
+                ScoredPoint results = activities.search(embeddedPrompt);
+                StringBuilder context = new StringBuilder();
+                if (results != null && results.getPayloadCount() > 0) {
+                    logger.info("Search results: " + results.toString());
+                }
+
+                String response = activities.chat(history, context.toString());
                 if (response == null || response.isEmpty()) {
                     continue; // Skip to the next iteration if the response is empty
                 }

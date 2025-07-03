@@ -1,9 +1,13 @@
 package bitovi;
 
+import java.util.concurrent.ExecutionException;
+
 import bitovi.workflows.AgentGoal.AgentGoalWorkflowImpl;
 import bitovi.workflows.AgentGoal.activities.AgentGoalsActivitiesImpl;
 import bitovi.workflows.Chat.ChatWorkflowImpl;
 import bitovi.workflows.Chat.activities.ChatActivitiesImpl;
+import bitovi.workflows.DocumentIngest.DocumentIngestImpl;
+import bitovi.workflows.DocumentIngest.activities.DocumentIngestActivitiesImpl;
 import bitovi.workflows.UserGreeting.UserGreetingWorkflowImpl;
 import bitovi.workflows.UserGreeting.activities.CompletionsImpl;
 import io.temporal.client.WorkflowClient;
@@ -14,7 +18,7 @@ import io.temporal.worker.WorkerFactory;
 
 public class BitoviCommonTemporalWorker {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
                 .setTarget("temporal:7233")
                 .build();
@@ -29,6 +33,7 @@ public class BitoviCommonTemporalWorker {
         worker.registerWorkflowImplementationTypes(UserGreetingWorkflowImpl.class);
         worker.registerWorkflowImplementationTypes(AgentGoalWorkflowImpl.class);
         worker.registerWorkflowImplementationTypes(ChatWorkflowImpl.class);
+        worker.registerWorkflowImplementationTypes(DocumentIngestImpl.class);
 
         // Register the activities with the worker for completions
         worker.registerActivitiesImplementations(new CompletionsImpl());
@@ -38,6 +43,9 @@ public class BitoviCommonTemporalWorker {
 
         // Register the activities with the worker for chat
         worker.registerActivitiesImplementations(new ChatActivitiesImpl());
+
+        // Register the activities with the worker for document ingest
+        worker.registerActivitiesImplementations(new DocumentIngestActivitiesImpl());
 
         factory.start();
 
