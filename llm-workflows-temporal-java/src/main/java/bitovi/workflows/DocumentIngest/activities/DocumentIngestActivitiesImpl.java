@@ -32,16 +32,16 @@ public class DocumentIngestActivitiesImpl implements DocumentIngestActivities {
         }
 
         // Split the document content into chunks
-        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(1000, 250);
+        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(500, 100);
         String[] chunks = splitter.split(content);
 
         for (String chunk : chunks) {
             if (chunk.length() > 0) {
                 List<Float> embedding;
                 try {
-                    embedding = this.model.embedding(content);
+                    embedding = this.model.embedding(chunk);
                     UUID id = UUID.randomUUID(); // Generate a random UUID for the point ID
-                    qdrant.insertEmbedding(id, embedding, content);
+                    qdrant.insertEmbedding(id, embedding, chunk);
                 } catch (LLMProviderException | InterruptedException | ExecutionException e) {
                     e.printStackTrace();
                 }
