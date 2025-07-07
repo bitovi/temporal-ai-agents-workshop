@@ -7,7 +7,6 @@ import java.util.concurrent.ExecutionException;
 import bitovi.common.LLMProviderException;
 import bitovi.common.database.QdrantWrapper;
 import bitovi.providers.BedrockProvider;
-import io.qdrant.client.grpc.Points.ScoredPoint;
 
 public class BitoviQdrantReadWrite {
     public static void main(String[] args) throws InterruptedException, ExecutionException, LLMProviderException {
@@ -31,7 +30,7 @@ public class BitoviQdrantReadWrite {
         String searchQuery = "Qdrant is";
         List<Float> queryEmbedding = bedrock.embedding(searchQuery);
 
-        ScoredPoint results = qdrant.search(queryEmbedding);
-        System.out.println("Search results for query '" + searchQuery + "': " + results.toString());
+        String[] results = qdrant.search(queryEmbedding);
+        System.out.println("Search results for query '" + searchQuery + "': " + String.join(", ", results));
     }
 }

@@ -9,7 +9,6 @@ import bitovi.common.database.QdrantWrapper;
 import bitovi.common.DataTypes.MessageRecord;
 import bitovi.providers.BaseModelProvider;
 import bitovi.providers.OllamaProvider;
-import io.qdrant.client.grpc.Points.ScoredPoint;
 import io.temporal.activity.Activity;
 
 public class ChatActivitiesImpl implements ChatActivities {
@@ -25,10 +24,25 @@ public class ChatActivitiesImpl implements ChatActivities {
     }
 
     @Override
-    public String chat(ArrayList<MessageRecord> history, String context) {
+    public String chat(ArrayList<MessageRecord> history, String[] uuids) {
         // Add the system prompt to the beginning of the chat history
         if (history == null || history.isEmpty()) {
             throw Activity.wrap(new IllegalArgumentException("Chat history cannot be null or empty"));
+        }
+
+        // Fetch context from Qdrant using the provided UUIDs
+        StringBuilder context = new StringBuilder();
+        if (uuids != null && uuids.length > 0) {
+            for (String uuid : uuids) {
+                try {
+                    String payload = this.qdrant.getPayloadById(uuid);
+                    if (payload != null) {
+                        context.append(payload).append(" ");
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw Activity.wrap(e);
+                }
+            }
         }
 
         MessageRecord result;
@@ -50,6 +64,10 @@ public class ChatActivitiesImpl implements ChatActivities {
             if (context != null && !context.isEmpty()) {
                 systemBuilder.append("Here is some additional context fetched from a knowledgebase: ").append(context)
                         .append(" ");
+                System.out.println("Context found in knowledgebase: " + context);
+            } else {
+                systemBuilder.append(
+                        "No additional context was found in the knowledgebase. Just answer the user's question to the best of your ability. ");
             }
             systemBuilder.append("Here is the conversation you are having with your coworker:");
 
@@ -61,7 +79,7 @@ public class ChatActivitiesImpl implements ChatActivities {
     }
 
     @Override
-    public ScoredPoint search(List<Float> search) {
+    public String[] search(List<Float> search) {
         if (this.qdrant == null) {
             throw Activity.wrap(new IllegalStateException("QdrantWrapper is not initialized"));
         }

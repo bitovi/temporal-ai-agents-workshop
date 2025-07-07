@@ -9,7 +9,6 @@ import bitovi.common.Config;
 import bitovi.common.DataTypes;
 import bitovi.common.DataTypes.MessageRecord;
 import bitovi.workflows.Chat.activities.ChatActivities;
-import io.qdrant.client.grpc.Points.ScoredPoint;
 import io.temporal.workflow.Workflow;
 
 public class ChatWorkflowImpl implements ChatWorkflow {
@@ -46,13 +45,11 @@ public class ChatWorkflowImpl implements ChatWorkflow {
 
                 // Do some RAG stuff to fetch context
                 List<Float> embeddedPrompt = activities.embedding(prompt);
-                ScoredPoint results = activities.search(embeddedPrompt);
-                StringBuilder context = new StringBuilder();
-                if (results != null && results.getPayloadCount() > 0) {
-                    logger.info("Search results: " + results.toString());
-                }
+                String[] results = activities.search(embeddedPrompt);
 
-                String response = activities.chat(history, context.toString());
+                logger.info("Search results: " + String.join(", ", results));
+
+                String response = activities.chat(history, results);
                 if (response == null || response.isEmpty()) {
                     continue; // Skip to the next iteration if the response is empty
                 }

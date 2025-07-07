@@ -1,5 +1,6 @@
 package bitovi.common.database;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import io.qdrant.client.grpc.Collections.VectorParams;
 import io.qdrant.client.grpc.Points;
 import io.qdrant.client.grpc.Points.PointId;
 import io.qdrant.client.grpc.Points.PointStruct;
+import io.qdrant.client.grpc.Points.RetrievedPoint;
 import io.qdrant.client.grpc.Points.SearchPoints;
 import io.qdrant.client.grpc.Points.UpdateResult;
 import io.qdrant.client.grpc.Points.UpdateStatus;
@@ -80,16 +82,27 @@ public class QdrantWrapper {
         }
     }
 
-    public Points.ScoredPoint search(List<Float> queryVector) throws InterruptedException, ExecutionException {
+    public String[] search(List<Float> queryVector) throws InterruptedException, ExecutionException {
         List<Points.ScoredPoint> points = this.client
                 .searchAsync(
                         SearchPoints.newBuilder()
                                 .setCollectionName(COLLECTION_NAME)
                                 .addAllVector(queryVector)
-                                .setLimit(1)
+                                .setLimit(5)
                                 .build())
                 .get();
-        return points.isEmpty() ? null : points.get(0);
+
+        if (points == null || points.isEmpty()) {
+            System.out.println("No points found for the given query vector.");
+            return null;
+        }
+
+        String[] uuids = new String[points.size()];
+        for (int i = 0; i < points.size(); i++) {
+            var payload = points.get(i);
+            uuids[i] = payload.getId().getUuid();
+        }
+        return uuids;
     }
 
     /**
@@ -122,4 +135,24 @@ public class QdrantWrapper {
                     .println("Failed to insert vector with ID: " + pointId + ", Status: " + updateResult.getStatus());
         }
     }
+
+    public String getPayloadById(String uuid) throws InterruptedException, ExecutionException {
+        PointId pointId = id(UUID.fromString(uuid));
+        List<RetrievedPoint> points = this.client.retrieveAsync(COLLECTION_NAME, pointId, null).get();
+        RetrievedPoint point = points.get(0);
+
+        return point.getPayloadMap().get("payload").getStringValue();
+    }
+
+    public ArrayList<String> getPayloadsByIds(String[] uuids) throws InterruptedException, ExecutionException {
+        ArrayList<String> payloads = new ArrayList<>();
+        for (String uuid : uuids) {
+            PointId pointId = id(UUID.fromString(uuid));
+            List<RetrievedPoint> points = this.client.retrieveAsync(COLLECTION_NAME, pointId, null).get();
+            RetrievedPoint point = points.get(0);
+            payloads.add(point.getPayloadMap().get("payload").getStringValue());
+        }
+        return payloads;
+    }
+
 }
