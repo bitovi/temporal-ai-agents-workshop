@@ -32,7 +32,7 @@ public class DocumentIngestActivitiesImpl implements DocumentIngestActivities {
         }
 
         // Split the document content into chunks
-        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(500, 100);
+        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(2500, 500);
         String[] chunks = splitter.split(content);
 
         for (String chunk : chunks) {

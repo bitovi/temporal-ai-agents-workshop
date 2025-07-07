@@ -124,7 +124,7 @@ public class QdrantWrapper {
                 .setVectors(vectors(vectorData))
                 .putAllPayload(
                         Map.of(
-                                "payload", value(payload), "source", value("document")))
+                                "payload", value(payload), "source", value("document"), "uuid", value(uuid.toString())))
                 .build();
 
         UpdateResult updateResult = client.upsertAsync(COLLECTION_NAME, List.of(ps)).get();
