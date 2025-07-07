@@ -1,5 +1,6 @@
 package bitovi.workflows.DocumentIngest.activities;
 
+import java.io.File;
 import java.io.FileReader;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,12 @@ public class DocumentIngestActivitiesImpl implements DocumentIngestActivities {
 
     @Override
     public void ingest(String documentPath) {
+        File docFile = new File(documentPath);
+        if (!docFile.exists() || !docFile.isFile()) {
+            System.out.println("Document " + documentPath + " does not exist or is not a file");
+            return;
+        }
+
         String content = readFile(documentPath);
         if (content.length() == 0) {
             System.out.println("Document " + documentPath + " is empty or could not be read");
@@ -60,5 +67,16 @@ public class DocumentIngestActivitiesImpl implements DocumentIngestActivities {
             System.out.println("Error reading file: " + e.getMessage());
         }
         return content.toString();
+    }
+
+    @Override
+    public String[] listTextFiles(String directoryPath) {
+        File dir = new File(directoryPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            System.out.println("Directory " + directoryPath + " does not exist or is not a directory");
+            return new String[0];
+        }
+
+        return dir.list((d, name) -> name.endsWith(".txt"));
     }
 }

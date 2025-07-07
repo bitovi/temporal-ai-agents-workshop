@@ -7,5 +7,5 @@ import io.temporal.workflow.WorkflowMethod;
 public interface DocumentIngest {
 
     @WorkflowMethod
-    void ingest(String documentPath);
+    void ingest(String documentsDirectory);
 }

@@ -5,13 +5,23 @@ import io.temporal.client.WorkflowOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.Scanner;
 
 import bitovi.workflows.DocumentIngest.DocumentIngest;
 
 public class BitoviDocumentIngestWorkflow {
         public static void main(String[] args) throws Exception {
+
+                // Prompt the user for a chat message from stdin
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Documents Directory:");
+                String documentsDirectory = scanner.nextLine();
+                if (documentsDirectory == null || documentsDirectory.trim().isEmpty()) {
+                        System.out.println("No Documents Directory provided. Using default Docker path.");
+                        documentsDirectory = "/usr/src/app/src/main/resources/documents/";
+                }
+                scanner.close();
+
                 WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
                                 .setTarget("localhost:7233")
                                 .build();
@@ -20,26 +30,17 @@ public class BitoviDocumentIngestWorkflow {
 
                 WorkflowClient client = WorkflowClient.newInstance(service);
 
-                // These files are in one level above the root of the project
-                List<String> documentPaths = List.of("Account-Deactivation-and-Deletion.txt", "Account-Transfer.txt",
-                                "Changing-Your-Riot-ID.txt", "Protecting-Your-Account.txt",
-                                "Requesting-Your-Account-Data.txt");
+                String workflowId = "document-ingest" + documentsDirectory.replaceAll("[^a-zA-Z0-9]", "-");
+                WorkflowOptions options = WorkflowOptions.newBuilder()
+                                .setWorkflowId(workflowId)
+                                .setTaskQueue("default")
+                                .build();
 
-                for (String documentPath : documentPaths) {
-                        String workflowId = "agent-workflow" + UUID.randomUUID().toString();
-                        WorkflowOptions options = WorkflowOptions.newBuilder()
-                                        .setWorkflowId(workflowId)
-                                        .setTaskQueue("default")
-                                        .build();
+                DocumentIngest workflow = client.newWorkflowStub(DocumentIngest.class, options);
 
-                        DocumentIngest workflow = client.newWorkflowStub(DocumentIngest.class, options);
-
-                        String completePath = "src/main/resources/documents/" + documentPath;
-                        System.out.println("Starting workflow for document: " + completePath);
-                        // Start the workflow
-                        WorkflowClient.start(workflow::ingest, completePath);
-
-                }
+                System.out.println("Starting workflow for document: " + documentsDirectory);
+                // Start the workflow
+                WorkflowClient.start(workflow::ingest, documentsDirectory);
 
                 service.shutdown();
         }

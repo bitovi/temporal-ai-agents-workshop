@@ -7,4 +7,7 @@ import io.temporal.activity.ActivityMethod;
 public interface DocumentIngestActivities {
     @ActivityMethod
     public void ingest(String documentPath);
+
+    @ActivityMethod
+    public String[] listTextFiles(String directoryPath);
 }

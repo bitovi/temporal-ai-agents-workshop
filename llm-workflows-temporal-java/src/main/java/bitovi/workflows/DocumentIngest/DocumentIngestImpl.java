@@ -26,15 +26,24 @@ public class DocumentIngestImpl implements DocumentIngest {
     private final DocumentIngestActivities activities = Workflow.newActivityStub(DocumentIngestActivities.class,
             Config.getDefaultActivityOptions());
 
-    private Logger logger = Workflow.getLogger("ChatWorkflowImpl");
+    private Logger logger = Workflow.getLogger("DocumentIngestImpl");
 
     @Override
-    public void ingest(String documentPath) {
-        if (documentPath == null || documentPath.isEmpty()) {
-            throw new IllegalArgumentException("Document path cannot be null or empty");
+    public void ingest(String documentsDirectory) {
+
+        String[] files = activities.listTextFiles(documentsDirectory);
+
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("Document list cannot be null or empty");
         }
 
-        logger.info("Ingesting document from path: " + documentPath);
-        activities.ingest(documentPath);
+        for (String path : files) {
+            if (path == null || path.isEmpty()) {
+                throw new IllegalArgumentException("Document path cannot be null or empty");
+            }
+
+            logger.info("Ingesting document from path: " + path);
+            activities.ingest(documentsDirectory + "/" + path);
+        }
     }
 }
