@@ -6,7 +6,7 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Example 0 - Worker",
+            "name": "Exercise 0 - Worker",
             "request": "launch",
             "mainClass": "bitovi.EnvironmentSetupWorker",
             "projectName": "environment-setup",
@@ -14,7 +14,7 @@
         },
         {
             "type": "java",
-            "name": "Example 0 - Client",
+            "name": "Exercise 0 - Client",
             "request": "launch",
             "mainClass": "bitovi.EnvironmentSetupClient",
             "projectName": "environment-setup",

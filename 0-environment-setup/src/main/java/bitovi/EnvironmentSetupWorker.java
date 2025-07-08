@@ -1,54 +1,40 @@
 package bitovi;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import bitovi.common.TemporalClient;
+import bitovi.activities.BedrockImpl;
+import bitovi.activities.ZendeskImpl;
+import bitovi.activities.PostgresImpl;
+import bitovi.activities.QdrantImpl;
+import bitovi.common.Config;
 
 import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowClientOptions;
-import io.temporal.serviceclient.WorkflowServiceStubs;
-import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
 public class EnvironmentSetupWorker {
-	private static Properties properties;
-
 	public static void main(String[] args) {
-		properties = new Properties();
-		try (InputStream input = new FileInputStream("config.properties")) {
-			properties.load(input);
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
 
 		try {
-			String temporalHostAndPort = properties.getProperty("TEMPORAL_HOST");
-			String temporalNamespace = properties.getProperty("TEMPORAL_NAMESPACE");
-			String apiKey = properties.getProperty("TEMPORAL_API_KEY");
+			Config config = new Config();
+			String taskQueue = config.getProperty("TEMPORAL_TASK_QUEUE");
 
-			WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions
-					.newBuilder()
-					.setTarget(temporalHostAndPort)
-					.setEnableHttps(true)
-					.addApiKey(() -> apiKey)
-					.build();
+			WorkflowClient temporalClient = TemporalClient.getTemporalClient();
 
-			WorkflowServiceStubs service = WorkflowServiceStubs.newServiceStubs(serviceOptions);
-			WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder()
-					.setNamespace(temporalNamespace)
-					.build();
+			WorkerFactory factory = WorkerFactory.newInstance(temporalClient);
+			Worker worker = factory.newWorker(taskQueue);
 
-			WorkflowClient client = WorkflowClient.newInstance(service, clientOptions);
-
-			WorkerFactory factory = WorkerFactory.newInstance(client);
-
-			Worker worker = factory.newWorker("bitovi-ai-agents-workshop");
+			worker.registerWorkflowImplementationTypes(EnvironmentSetupWorkflowImpl.class);
+			worker.registerActivitiesImplementations(new ZendeskImpl());
+			worker.registerActivitiesImplementations(new BedrockImpl());
+			worker.registerActivitiesImplementations(new PostgresImpl());
+			worker.registerActivitiesImplementations(new QdrantImpl());
 
 			factory.start();
 
-			System.out.println("Temporal Worker started successfully!");
+			System.out.println("Temporal Worker started. Press Ctrl+C to exit.");
+
+			// Keep the worker running
+			Thread.currentThread().join();
 		} catch (Exception ex) {
 			System.err.println("Failed to start Temporal Worker: " + ex.getMessage());
 			ex.printStackTrace();
