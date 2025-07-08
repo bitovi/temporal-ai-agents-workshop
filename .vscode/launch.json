@@ -24,8 +24,8 @@
             "type": "java",
             "name": "Model Context Protocol Server",
             "request": "launch",
-            "mainClass": "bitovi.MCPServerDemoJava",
-            "projectName": "mcp-server-java",
+            "mainClass": "bitovi.McpServerApplication",
+            "projectName": "mcp-server-demo",
             "cwd": "${workspaceFolder}/mcp-server-java/"
         },
         {
@@ -107,6 +107,6 @@
             "mainClass": "bitovi.demos.BitoviMCPClient",
             "projectName": "llm-workflows-temporal-java",
             "cwd": "${workspaceFolder}/llm-workflows-temporal-java/"
-        },
+        }
     ]
 }

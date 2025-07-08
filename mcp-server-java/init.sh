@@ -4,7 +4,7 @@ curl https://start.spring.io/starter.zip \
   -d javaVersion=17 \
   -d bootVersion=3.5.3 \
   -d groupId=com.bitovi.mcp \
-  -d artifactId=mcp-server-demo \
+  -d artifactId=mcp-server-java \
   -o mcp-server.zip
 
 unzip mcp-server.zip
