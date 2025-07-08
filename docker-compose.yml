@@ -59,6 +59,15 @@ services:
       timeout: 5s
       retries: 5
 
+  mock-zendesk:
+    build:
+      context: ./mock-zendesk
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    networks:
+      - docker-network
+
 networks:
   docker-network:
     driver: bridge
