@@ -1,0 +1,68 @@
+services:
+
+  qdrant:
+    container_name: qdrant
+    image: qdrant/qdrant:latest
+    ports:
+      - 6333:6333
+      - 6334:6334
+    restart: always
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - docker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  temporal-dev-server:
+    container_name: temporal-dev-server
+    image: debian:buster
+    command: >
+      bash -c '\
+        apt update && \
+        apt install -y curl && \
+        curl -sSf https://temporal.download/cli.sh | sh && \
+        PATH="\$PATH:/root/.temporalio/bin" >> ~/.bashrc && \
+        source ~/.bashrc && \
+        temporal server start-dev --namespace default --ip 0.0.0.0
+      '
+    ports:
+      - 7233:7233
+      - 8233:8233
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8233/ || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  postgres:
+    container_name: postgres-db
+    image: postgres:14-bookworm
+    command: postgres -c 'max_connections=200'
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+       - POSTGRES_HOST_AUTH_METHOD=trust
+       - POSTGRES_PASSWORD=dbpassword
+       - POSTGRES_USER=dbuser
+       - POSTGRES_DB=workshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbuser -d workshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  docker-network:
+    driver: bridge
+
+volumes:
+  qdrant_data:
+    driver: local
