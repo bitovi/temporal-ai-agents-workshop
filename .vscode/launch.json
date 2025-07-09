@@ -83,6 +83,22 @@
             "mainClass": "bitovi.McpClient",
             "projectName": "mcp",
             "cwd": "${workspaceFolder}/4-mcp/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 5 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentWorker",
+            "projectName": "agent",
+            "cwd": "${workspaceFolder}/5-agent/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 5 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentClient",
+            "projectName": "agent",
+            "cwd": "${workspaceFolder}/5-agent/"
         }
     ]
 }
