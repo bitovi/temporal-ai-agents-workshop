@@ -35,6 +35,22 @@
             "mainClass": "bitovi.PromptEngineeringClient",
             "projectName": "prompt-engineering",
             "cwd": "${workspaceFolder}/1-prompt-engineering/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 2 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.RagWorker",
+            "projectName": "rag",
+            "cwd": "${workspaceFolder}/2-rag/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 2 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.RagClient",
+            "projectName": "rag",
+            "cwd": "${workspaceFolder}/2-rag/"
         }
     ]
 }
