@@ -51,6 +51,22 @@
             "mainClass": "bitovi.RagClient",
             "projectName": "rag",
             "cwd": "${workspaceFolder}/2-rag/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 3 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.ToolCallingWorker",
+            "projectName": "tool-calling",
+            "cwd": "${workspaceFolder}/3-tool-calling/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 3 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.ToolCallingClient",
+            "projectName": "tool-calling",
+            "cwd": "${workspaceFolder}/3-tool-calling/"
         }
     ]
 }
