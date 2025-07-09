@@ -19,6 +19,22 @@
             "mainClass": "bitovi.EnvironmentSetupClient",
             "projectName": "environment-setup",
             "cwd": "${workspaceFolder}/0-environment-setup/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 1 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.PromptEngineeringWorker",
+            "projectName": "prompt-engineering",
+            "cwd": "${workspaceFolder}/1-prompt-engineering/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 1 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.PromptEngineeringClient",
+            "projectName": "prompt-engineering",
+            "cwd": "${workspaceFolder}/1-prompt-engineering/"
         }
     ]
 }

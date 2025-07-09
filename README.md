@@ -6,4 +6,3 @@
 ## Agenda
 
 ## Exercises
-
