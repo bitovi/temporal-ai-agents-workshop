@@ -1,25 +1,5 @@
 services:
 
-  qdrant:
-    container_name: qdrant
-    image: qdrant/qdrant:latest
-    ports:
-      - 6333:6333
-      - 6334:6334
-    restart: always
-    environment:
-      - QDRANT__SERVICE__HTTP_PORT=6333
-      - QDRANT__SERVICE__GRPC_PORT=6334
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - docker-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
   temporal-dev-server:
     container_name: temporal-dev-server
     image: debian:buster
@@ -40,6 +20,26 @@ services:
       interval: 10s
       timeout: 30s
       retries: 3
+
+  qdrant:
+    container_name: qdrant
+    image: qdrant/qdrant:latest
+    ports:
+      - 6333:6333
+      - 6334:6334
+    restart: always
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - docker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   postgres:
     container_name: postgres-db
