@@ -7,6 +7,14 @@ The goal of this exercise is to ensure your local development envrionment is suc
 
 ## What you need to know
 
+## Prerequisites
+
+1. Docker
+1. Java
+1. Maven
+1. VSCode (you can use another IDE, but we have launch configurations set up for VSCode)
+1. AWS Access Keys (see below)
+
 ## External Systems
 
 The only _external_ system being used in this workshop is *AWS Bedrock*, which will host the AI models being used throughout the exercises.
@@ -26,4 +34,17 @@ To start these, run the `up.sh` script in the root of the repo. There is also a 
 
 ## VSCode Launch Configurations
 
+Each Exercise has two launch configurations configured:
+
+1. The first to start the Temporal Worker
+1. The second to use a Temporal Client to start a Workflow
+
+![image](https://github.com/user-attachments/assets/95e269c7-18fc-4b25-aee5-9bac5b78288e)
+
+After making code changes, be sure to restart the worker:
+
+![image](https://github.com/user-attachments/assets/3d4a47a2-f65b-403a-ab0c-9bb4d8a02bbc)
+
 ## Solution
+
+![image](https://github.com/user-attachments/assets/4d497e90-f245-4108-8f72-03ca1c9602e7)
