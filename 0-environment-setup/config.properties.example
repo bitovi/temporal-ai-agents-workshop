@@ -7,6 +7,7 @@ TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 AWS_ACCESS_KEY_ID=aws-access-key-id
 AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 AWS_SESSION_TOKEN=aws-session-token
+AWS_REGION=us-east-1
 
 AWS_MODEL_ARN=arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0
 AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
