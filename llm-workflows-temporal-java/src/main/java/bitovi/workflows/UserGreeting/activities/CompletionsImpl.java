@@ -3,6 +3,7 @@ package bitovi.workflows.UserGreeting.activities;
 import java.util.ArrayList;
 import java.util.List;
 
+import bitovi.common.Config;
 import bitovi.common.LLMProviderException;
 import bitovi.common.DataTypes.MessageRecord;
 import bitovi.providers.OllamaProvider;
@@ -15,7 +16,9 @@ import io.temporal.activity.Activity;
 
 public class CompletionsImpl implements Completions {
 
-    QdrantClient qdrantClient = new QdrantClient(QdrantGrpcClient.newBuilder("temporal-qdrant", 6334, false).build());
+    String QDRANT_HOST = Config.getProperty("QDRANT_HOST");
+    Integer QDRANT_PORT = Integer.parseInt(Config.getProperty("QDRANT_PORT", "6334"));
+    QdrantClient qdrantClient = new QdrantClient(QdrantGrpcClient.newBuilder(QDRANT_HOST, QDRANT_PORT, false).build());
 
     @Override
     public String generateGreeting(String name) {

@@ -20,7 +20,7 @@ public class BitoviCommonTemporalWorker {
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         WorkflowServiceStubsOptions serviceOptions = WorkflowServiceStubsOptions.newBuilder()
-                .setTarget("temporal:7233")
+                .setTarget("localhost:7233")
                 .build();
 
         WorkflowServiceStubs service = WorkflowServiceStubs.newServiceStubs(serviceOptions);
