@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -40,23 +41,30 @@ public class AWS {
                         AWS_SESSION_TOKEN));
     }
 
+    public static AwsCredentialsProvider getAwsLocalstackCredentialsProvider() {
+        String AWS_S3_ACCESS_KEY_ID = config.getProperty("AWS_S3_ACCESS_KEY_ID");
+        String AWS_S3_SECRET_ACCESS_KEY = config.getProperty("AWS_S3_SECRET_ACCESS_KEY");
+
+        return StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(
+                        AWS_S3_ACCESS_KEY_ID,
+                        AWS_S3_SECRET_ACCESS_KEY));
+    }
+
     public static Region getAwsRegion() {
         return Region.of(config.getProperty("AWS_REGION"));
     }
 
     public static S3AsyncClient getAsyncClient() {
-        AwsCredentialsProvider credentialsProvider = AWS.getAwsCredentialsProvider();
+        AwsCredentialsProvider credentialsProvider = AWS.getAwsLocalstackCredentialsProvider();
         Region region = AWS.getAwsRegion();
 
         String endpointOverride = config.getProperty("AWS_S3_ENDPOINT_URL");
 
         S3AsyncClientBuilder s3AsyncClient = S3AsyncClient.builder()
                 .credentialsProvider(credentialsProvider)
+                .endpointOverride(URI.create(endpointOverride))
                 .region(region);
-
-        if (endpointOverride != null) {
-            s3AsyncClient.endpointOverride(URI.create(endpointOverride));
-        }
 
         return s3AsyncClient.build();
     }

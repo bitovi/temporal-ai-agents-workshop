@@ -42,6 +42,11 @@ public class RagClient {
 	}
 
 	public static String[] uploadDocuments(String pathToDocuments) {
+		// If the path ends with a slash, remove it
+		if (pathToDocuments.endsWith(File.separator)) {
+			pathToDocuments = pathToDocuments.substring(0, pathToDocuments.length() - 1);
+		}
+
 		// Get a list of all the .txt files in `pathToDocuments`
 		File dir = new File(pathToDocuments);
 		if (!dir.exists() || !dir.isDirectory()) {
