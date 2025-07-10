@@ -5,7 +5,6 @@ import bitovi.activities.BedrockImpl;
 import bitovi.activities.PostgresImpl;
 import bitovi.activities.QdrantImpl;
 import bitovi.activities.S3Impl;
-import bitovi.activities.ZendeskImpl;
 import bitovi.common.Config;
 
 import io.temporal.client.WorkflowClient;
@@ -29,7 +28,6 @@ public class EnvironmentSetupWorker {
 			worker.registerActivitiesImplementations(new PostgresImpl());
 			worker.registerActivitiesImplementations(new QdrantImpl());
 			worker.registerActivitiesImplementations(new S3Impl());
-			worker.registerActivitiesImplementations(new ZendeskImpl());
 
 			factory.start();
 

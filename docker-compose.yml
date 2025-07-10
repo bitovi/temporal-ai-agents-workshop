@@ -59,16 +59,6 @@ services:
       timeout: 5s
       retries: 5
 
-  mock-zendesk:
-    container_name: mock-zendesk
-    build:
-      context: ./mock-zendesk
-      dockerfile: Dockerfile
-    ports:
-      - 3000:3000
-    networks:
-      - docker-network
-
   localstack:
     container_name: localstack
     image: localstack/localstack:s3-latest

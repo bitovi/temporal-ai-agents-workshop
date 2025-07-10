@@ -14,6 +14,7 @@
         <maven.compiler.target>24</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws.java.sdk.version>2.31.56</aws.java.sdk.version>
+        <postgresql.driver.version>42.7.7</postgresql.driver.version>
     </properties>
 
     <dependencyManagement>
@@ -42,6 +43,11 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>bedrock</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.driver.version}</version>
         </dependency>
     </dependencies>
 
