@@ -17,10 +17,8 @@ AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
 AWS_EMBEDDING_MODEL_ARN=arn:aws:bedrock:us-east-2::foundation-model/amazon.titan-embed-text-v2:0
 AWS_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
 
-QDRANT_VECTOR_SIZE=1024
 QDRANT_HOST=localhost
 QDRANT_PORT=6334
-QDRANT_SERVICE_API_KEY=temporal-qdrant-api-key
 
 POSTGRES_JDBC_CONNECTION_STRING=jdbc:postgresql://postgres:5432/workshop?user=dbuser&password=dbpassword
 

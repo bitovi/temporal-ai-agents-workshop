@@ -15,6 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws.java.sdk.version>2.31.56</aws.java.sdk.version>
         <postgresql.driver.version>42.7.7</postgresql.driver.version>
+        <qdrant.client.version>1.14.1</qdrant.client.version>
     </properties>
 
     <dependencyManagement>
@@ -45,9 +46,23 @@
             <artifactId>bedrock</artifactId>
         </dependency>
         <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.driver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.qdrant</groupId>
+            <artifactId>client</artifactId>
+            <version>${qdrant.client.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>1.73.0</version>
         </dependency>
     </dependencies>
 
