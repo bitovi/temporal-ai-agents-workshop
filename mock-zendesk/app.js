@@ -14,10 +14,6 @@ const openApiPath = path.join(__dirname, 'oas.yaml');
 const openApiSpec = fs.readFileSync(openApiPath, 'utf8');
 const openApiDoc = yaml.load(openApiSpec);	
 
-app.get('/health', (req, res) => {
-	res.json({ status: 'ok' });
-});
-
 app.get('/api/v2/tickets', (req, res) => {
 	const tickets = mockData['/api/v2/tickets'].get.tickets;
 	res.json(tickets);

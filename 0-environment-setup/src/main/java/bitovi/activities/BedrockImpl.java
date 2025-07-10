@@ -22,6 +22,11 @@ public class BedrockImpl implements Bedrock {
 		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 		String AWS_REGION = config.getProperty("AWS_REGION");
 
+		String AWS_MODEL_ARN = config.getProperty("AWS_MODEL_ARN");
+		String AWS_MODEL_ID = config.getProperty("AWS_MODEL_ID");
+		String AWS_EMBEDDING_MODEL_ARN = config.getProperty("AWS_EMBEDDING_MODEL_ARN");
+		String AWS_EMBEDDING_MODEL_ID = config.getProperty("AWS_EMBEDDING_MODEL_ID");
+
 		try {
 			BedrockClient bedrockClient = BedrockClient.builder()
 					.credentialsProvider(
@@ -40,6 +45,27 @@ public class BedrockImpl implements Bedrock {
 			if (models.isEmpty()) {
 				throw ApplicationFailure.newNonRetryableFailure(
 						"No foundation models found. Please check your AWS credentials and region.",
+						"BedrockError");
+			}
+
+			boolean modelFound = models.stream()
+					.anyMatch(model -> model.modelArn().equals(AWS_MODEL_ARN)
+							&& model.modelId().equals(AWS_MODEL_ID)
+							&& model.modelLifecycle().status().toString().equals("ACTIVE"));
+			if (!modelFound) {
+				throw ApplicationFailure.newNonRetryableFailure(
+						"Model not found or not active: " + AWS_MODEL_ARN + " with ID: " + AWS_MODEL_ID,
+						"BedrockError");
+			}
+
+			boolean embeddingModelFound = models.stream()
+					.anyMatch(model -> model.modelArn().equals(AWS_EMBEDDING_MODEL_ARN)
+							&& model.modelId().equals(AWS_EMBEDDING_MODEL_ID)
+							&& model.modelLifecycle().status().toString().equals("ACTIVE"));
+			if (!embeddingModelFound) {
+				throw ApplicationFailure.newNonRetryableFailure(
+						"Embedding model not found or not active: " + AWS_EMBEDDING_MODEL_ARN +
+								" with ID: " + AWS_EMBEDDING_MODEL_ID,
 						"BedrockError");
 			}
 		} catch (Exception e) {

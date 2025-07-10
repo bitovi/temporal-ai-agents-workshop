@@ -60,6 +60,7 @@ services:
       retries: 5
 
   mock-zendesk:
+    container_name: mock-zendesk
     build:
       context: ./mock-zendesk
       dockerfile: Dockerfile
@@ -67,6 +68,20 @@ services:
       - 3000:3000
     networks:
       - docker-network
+
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:s3-latest
+    ports:
+      - 4566:4566
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
 
 networks:
   docker-network:
