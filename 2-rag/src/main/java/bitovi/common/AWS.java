@@ -1,8 +1,9 @@
 package bitovi.common;
 
-import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -13,18 +14,17 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
-import software.amazon.awssdk.transfer.s3.S3TransferManager;
-import software.amazon.awssdk.transfer.s3.model.DownloadFileRequest;
-import software.amazon.awssdk.transfer.s3.model.FileDownload;
-import software.amazon.awssdk.transfer.s3.model.FileUpload;
-import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 public class AWS {
     private static Config config = new Config();
@@ -55,77 +55,79 @@ public class AWS {
         return Region.of(config.getProperty("AWS_REGION"));
     }
 
-    public static S3AsyncClient getAsyncClient() {
+    public static S3Client getS3Client() {
         AwsCredentialsProvider credentialsProvider = AWS.getAwsLocalstackCredentialsProvider();
         Region region = AWS.getAwsRegion();
 
         String endpointOverride = config.getProperty("AWS_S3_ENDPOINT_URL");
 
-        S3AsyncClientBuilder s3AsyncClient = S3AsyncClient.builder()
+        S3Client s3Client = S3Client.builder()
                 .credentialsProvider(credentialsProvider)
                 .endpointOverride(URI.create(endpointOverride))
-                .region(region);
+                .region(region).build();
 
-        return s3AsyncClient.build();
+        return s3Client;
     }
 
-    public static S3TransferManager getTransferManager() {
-        S3AsyncClient s3AsyncClient = AWS.getAsyncClient();
-
-        S3TransferManager transferManager = S3TransferManager.builder()
-                .s3Client(s3AsyncClient)
+    public static GetObjectRequest createGetObjectRequest(String bucketName, String key) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
                 .build();
 
-        return transferManager;
+        return getObjectRequest;
     }
 
-    public static DownloadFileRequest createDownloadFileRequest(String bucketName, String key, String outputFile) {
-        DownloadFileRequest downloadFileRequest = DownloadFileRequest.builder()
-                .getObjectRequest(b -> b.bucket(bucketName).key(key))
-                .destination(Paths.get(outputFile))
+    public static PutObjectRequest createPutObjectRequest(String bucketName, String storageKey) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(storageKey)
                 .build();
 
-        return downloadFileRequest;
-    }
-
-    public static UploadFileRequest createUploadFileRequest(String bucketName, String storageKey, String inputFile) {
-        UploadFileRequest uploadFileRequest = UploadFileRequest.builder()
-                .putObjectRequest(b -> b.bucket(bucketName).key(storageKey))
-                .source(Paths.get(inputFile))
-                .build();
-
-        return uploadFileRequest;
+        return putObjectRequest;
     }
 
     public static String uploadFile(String bucketName, String storageKey, String inputFile) {
-        // Create an S3TransferManager
-        S3TransferManager transferManager = AWS.getTransferManager();
+        // Create an S3Client
+        S3Client s3Client = AWS.getS3Client();
 
-        // Create an UploadFileRequest
-        UploadFileRequest uploadFileRequest = AWS.createUploadFileRequest(bucketName, storageKey, inputFile);
+        // Create a PutObjectRequest
+        PutObjectRequest uploadFileRequest = AWS.createPutObjectRequest(bucketName, storageKey);
 
         // Upload the file
-        FileUpload fileUpload = transferManager.uploadFile(uploadFileRequest);
-        fileUpload.completionFuture().join();
+        s3Client.putObject(uploadFileRequest, RequestBody.fromFile(Paths.get(inputFile)));
 
-        transferManager.close();
         return storageKey;
     }
 
     public static Path downloadFile(String bucketName, String storageKey, String outputPath) {
 
-        // Create an S3TransferManager
-        S3TransferManager transferManager = AWS.getTransferManager();
+        // Create an S3Client
+        S3Client s3Client = AWS.getS3Client();
 
-        // Create a DownloadFileRequest
-        DownloadFileRequest downloadFileRequest = AWS.createDownloadFileRequest(bucketName, storageKey, outputPath);
+        // Create a GetObjectRequest
+        GetObjectRequest getObjectRequest = AWS.createGetObjectRequest(bucketName, storageKey);
 
         // Download the file
-        FileDownload downloadFile = transferManager.downloadFile(downloadFileRequest);
-        downloadFile.completionFuture().join();
+        ResponseInputStream<GetObjectResponse> response = s3Client.getObject(getObjectRequest);
 
-        transferManager.close();
-        return new File(outputPath).toPath();
+        Path p = Paths.get(outputPath);
+        // Save the file to the specified output path
+
+        try {
+            Files.copy(response, p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Close the response stream
+        try {
+            response.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return p;
     }
 
     public static BedrockRuntimeClient getBedrockRuntimeClient() {
