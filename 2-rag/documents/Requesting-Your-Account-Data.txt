@@ -1,0 +1,25 @@
+Info
+When you request your League of Legends Account data, you will also receive all data associated with your VALORANT and Legends of Runeterra accounts if applicable.
+
+You can make a data request by submitting a ticket. After a short process to confirm you as the original creator of the account, you'll receive the following personal information related to your account:
+
+Your Riot ID, username, and server
+The phone number attached to your account
+Your registered date of birth
+Aggregate report history, including reports made and received from the last 3 months (or the past 100 games, if you’ve played more than that in the last 3 months)
+In-game chat logs for the last 3 months (or the past 100 games, if you’ve played more than that in the last 3 months)
+In-game voice comms transcripts and audio recordings where available (Note: These are generally only preserved when they're checked for violations of our Terms of Service, so transcripts/recordings for most games will be blank, incomplete, or absent. Audio recordings available only for requests created on or after April 22, 2025.)
+Login history for the last 3 months
+Player Support ticket history
+Account modifications for the last 3 months
+All store transactions (skins, champions, etc.)
+All monetary (RP) purchases
+Once you make a request, you’ll receive your data within 30 days or as otherwise required by your local government. You can cancel your request at any time by clicking the cancel link in your ticket. Changing your email or resetting your password will also cancel your request automatically.
+
+Your data will be sent to you in a zipped file linked from an email. You can download this zipped file from the supplied URL for up to 30 days from the email's delivery date, after which the download link expires and the data report is deleted.
+
+You'll need to be on the latest Windows or Mac OS to view these files in your native text editor. If you don't have the latest version, use an RTF text editor like Notepad++.
+
+If you'd like to delete your account as well as retrieve your account's data, make sure you've received the data before submitting a request for account deletion.
+
+Riot Games takes data security and privacy very seriously. For more information on how we handle and process your data, please refer to the Riot Games Privacy Policy. You can access our Terms of Use and other relevant policies from there.

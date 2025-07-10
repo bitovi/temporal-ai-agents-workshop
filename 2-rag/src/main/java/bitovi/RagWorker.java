@@ -21,6 +21,7 @@ public class RagWorker {
 			Worker worker = factory.newWorker(taskQueue);
 
 			worker.registerWorkflowImplementationTypes(RagWorkflowImpl.class);
+			worker.registerWorkflowImplementationTypes(EmbedWorkflowImpl.class);
 			worker.registerActivitiesImplementations(new ActivitiesImpl());
 
 			factory.start();

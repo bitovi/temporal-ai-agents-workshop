@@ -15,7 +15,7 @@ public class RagWorkflowImpl implements RagWorkflow {
 	private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
 
 	@Override
-	public String execute() {
-		return activities.hello();
+	public String execute(String searchTerm) {
+		return activities.search(searchTerm);
 	}
 }

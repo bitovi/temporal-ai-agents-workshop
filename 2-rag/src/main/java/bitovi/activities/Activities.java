@@ -7,5 +7,8 @@ import io.temporal.failure.ApplicationFailure;
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	String hello() throws ApplicationFailure;
+	void embed(String url) throws ApplicationFailure;
+
+	@ActivityMethod
+	String search(String searchTerm) throws ApplicationFailure;
 }
