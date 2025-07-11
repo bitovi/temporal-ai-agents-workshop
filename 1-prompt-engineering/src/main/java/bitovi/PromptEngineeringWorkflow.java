@@ -7,5 +7,5 @@ import io.temporal.workflow.WorkflowMethod;
 public interface PromptEngineeringWorkflow {
 
 	@WorkflowMethod
-	String execute();
+	String execute(String userQuestion, String agentResponse);
 }

@@ -7,5 +7,5 @@ import io.temporal.failure.ApplicationFailure;
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	String hello() throws ApplicationFailure;
+	String promptLLM(String userQuestion, String agentResponse) throws ApplicationFailure;
 }

@@ -15,7 +15,7 @@ public class PromptEngineeringWorkflowImpl implements PromptEngineeringWorkflow 
 	private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
 
 	@Override
-	public String execute() {
-		return activities.hello();
+	public String execute(String userQuestion, String agentResponse) {
+		return activities.promptLLM(userQuestion, agentResponse);
 	}
 }
