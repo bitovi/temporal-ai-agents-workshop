@@ -6,7 +6,6 @@ import bitovi.common.AWS;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
-import software.amazon.awssdk.core.document.Document;
 
 @ActivityInterface
 public interface Activities {
@@ -15,5 +14,5 @@ public interface Activities {
 	AWS.ModelResponse prompt(List<AWS.ChatMessage> history) throws ApplicationFailure;
 
 	@ActivityMethod
-	String executeTool(String toolName, Document toolInputs) throws ApplicationFailure;
+	String executeTool(String toolName, String toolInputs) throws ApplicationFailure;
 }

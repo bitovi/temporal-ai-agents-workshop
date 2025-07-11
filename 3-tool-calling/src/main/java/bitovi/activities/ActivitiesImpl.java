@@ -15,11 +15,12 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String executeTool(String toolName, Document toolInputs) throws ApplicationFailure {
+	public String executeTool(String toolName, String toolInputs) throws ApplicationFailure {
 		switch (toolName) {
 			case "get_weather": {
 				// Call the WeatherTool's execute method with the toolInputs
-				return WeatherTool.execute(toolInputs);
+				Document toolInputsDoc = Document.fromString(toolInputs);
+				return WeatherTool.execute(toolInputsDoc);
 			}
 
 			default: {

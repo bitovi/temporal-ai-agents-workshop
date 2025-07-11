@@ -23,6 +23,9 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 		List<ChatMessage> history = new ArrayList<>();
 
 		history.add(new ChatMessage("user", "What is the weather in San Francisco?"));
+		history.add(new ChatMessage("assistant",
+				"I'd be happy to check the weather in San Francisco for you, but I need a zip code to look up the weather information. San Francisco has multiple zip codes.\nCould you please provide a specific zip code for San Francisco that you'd like the weather for?"));
+		history.add(new ChatMessage("user", "94102 please!"));
 
 		while (true) {
 			AWS.ModelResponse modelResponse = activities.prompt(history);
@@ -39,9 +42,10 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 			}
 
 			// The model responded with a tool call, so we need to execute it.
-			String toolResponse = activities.executeTool(modelResponse.toolName(), modelResponse.toolInputs());
+			String toolResponse = activities.executeTool(modelResponse.toolName(),
+					modelResponse.toolInputs());
 			history.add(new ChatMessage("assistant",
-					"Tool: " + modelResponse.toolName() + ", Inputs: " + modelResponse.toolInputs().toString()
+					"Tool: " + modelResponse.toolName() + ", Inputs: " + modelResponse.toolInputs()
 							+ ", Result: " + toolResponse));
 		}
 	}

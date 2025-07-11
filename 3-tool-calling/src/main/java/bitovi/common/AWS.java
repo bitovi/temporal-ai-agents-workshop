@@ -7,6 +7,7 @@ import java.util.List;
 import org.json.JSONObject;
 
 import bitovi.activities.tools.WeatherTool;
+import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
@@ -29,7 +30,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 public class AWS {
 
-    public record ModelResponse(String response, String toolName, Document toolInputs) {
+    public record ModelResponse(String response, String toolName, String toolInputs) {
     }
 
     public record ChatMessage(String role, String content) {
@@ -122,7 +123,7 @@ public class AWS {
 
         toolConfig.tools(tools);
 
-        String systemPrompt = "You are a helpful assistant that can answer questions and call tools when needed.";
+        String systemPrompt = "You are a helpful assistant that can answer questions and call tools when needed. If you need to call a tool to fetch more information, be sure to do so.";
 
         ConverseRequest request = ConverseRequest.builder()
                 .modelId(AWS_MODEL_ARN)
@@ -134,17 +135,36 @@ public class AWS {
         BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
         ConverseResponse response = bedrockRuntimeClient.converse(request);
 
-        ContentBlock cb = response.output().message().content().get(0);
-        if (cb.toolUse() != null) {
-            ToolUseBlock toolUseBlock = cb.toolUse();
+        List<ContentBlock> contentBlocks = response.output().message().content();
 
-            // If the response is a tool call, return the tool name and inputs
-            String toolName = toolUseBlock.name();
-            Document toolInputs = toolUseBlock.input();
-            System.out.println("Model requested tool call: " + toolName + " with inputs: " + toolInputs);
-            return new ModelResponse(null, toolName, toolInputs);
+        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
+
+        // Grab any content block that has a tool call first
+        if (contentBlocks.isEmpty()) {
+            System.out.println("Model did not respond with any content blocks.");
+            return new ModelResponse(null, null, null);
         }
 
+        // If the response contains a tool call, we will handle it first
+        for (ContentBlock block : contentBlocks) {
+            if (block.toolUse() != null) {
+                ToolUseBlock toolUseBlock = block.toolUse();
+
+                // If the response is a tool call, return the tool name and inputs
+                String toolName = toolUseBlock.name();
+                Document toolInputs = toolUseBlock.input();
+                try {
+                    System.out.println(
+                            "Model requested tool call: " + toolName + " with inputs: " + toolInputs.toString());
+                    return new ModelResponse(null, toolName, toolInputs.toString());
+                } catch (Exception e) {
+                    throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tool inputs",
+                            "InvalidToolInputs", e, toolInputs.toString());
+                }
+            }
+        }
+
+        ContentBlock cb = contentBlocks.get(0);
         if (cb.text() != null) {
             System.out.println("Model response: " + cb.text());
             return new ModelResponse(cb.text(), null, null);
