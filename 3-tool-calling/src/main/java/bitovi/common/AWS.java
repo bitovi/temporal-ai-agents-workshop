@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import bitovi.activities.Activities;
 import bitovi.activities.tools.WeatherTool;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
