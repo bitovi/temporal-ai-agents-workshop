@@ -1,14 +1,11 @@
+AWS_S3_ENDPOINT_URL=http://localhost:4566
 AWS_S3_ACCESS_KEY_ID=testUser
 AWS_S3_SECRET_ACCESS_KEY=testAccessKey
-AWS_S3_BUCKET_NAME=bitovi-ai-agents-workshop
-
-TEMPORAL_HOST_PORT=localhost:7233
-TEMPORAL_NAMESPACE=default
-TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 
 AWS_ACCESS_KEY_ID=aws-access-key-id
 AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 AWS_SESSION_TOKEN=aws-session-token
+
 AWS_REGION=us-east-2
 
 AWS_MODEL_ARN=arn:aws:bedrock:us-east-2::foundation-model/meta.llama3-1-8b-instruct-v1:0
@@ -17,9 +14,15 @@ AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
 AWS_EMBEDDING_MODEL_ARN=arn:aws:bedrock:us-east-2::foundation-model/amazon.titan-embed-text-v2:0
 AWS_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
 
+POSTGRES_JDBC_CONNECTION_STRING=jdbc:postgresql://localhost:5432/workshop
+POSTGRES_USERNAME=dbuser
+POSTGRES_PASSWORD=dbpassword
+
 QDRANT_HOST=localhost
 QDRANT_PORT=6334
 
-POSTGRES_JDBC_CONNECTION_STRING=jdbc:postgresql://postgres:5432/workshop?user=dbuser&password=dbpassword
+TEMPORAL_HOST_PORT=localhost:7233
+TEMPORAL_NAMESPACE=default
+TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 
 USER_ID=user
