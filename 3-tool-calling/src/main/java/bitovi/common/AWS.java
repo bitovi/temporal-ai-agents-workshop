@@ -30,7 +30,11 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 public class AWS {
 
-    public record ModelResponse(String response, String toolName, String toolInputs) {
+    public record ModelToolCall(String toolName, String toolInputsDocument) {
+
+    }
+
+    public record ModelResponse(String response, ModelToolCall toolCall) {
     }
 
     public record ChatMessage(String role, String content) {
@@ -142,7 +146,7 @@ public class AWS {
         // Grab any content block that has a tool call first
         if (contentBlocks.isEmpty()) {
             System.out.println("Model did not respond with any content blocks.");
-            return new ModelResponse(null, null, null);
+            return new ModelResponse(null, null);
         }
 
         // If the response contains a tool call, we will handle it first
@@ -156,7 +160,8 @@ public class AWS {
                 try {
                     System.out.println(
                             "Model requested tool call: " + toolName + " with inputs: " + toolInputs.toString());
-                    return new ModelResponse(null, toolName, toolInputs.toString());
+
+                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputs.toString()));
                 } catch (Exception e) {
                     throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tool inputs",
                             "InvalidToolInputs", e, toolInputs.toString());
@@ -167,11 +172,11 @@ public class AWS {
         ContentBlock cb = contentBlocks.get(0);
         if (cb.text() != null) {
             System.out.println("Model response: " + cb.text());
-            return new ModelResponse(cb.text(), null, null);
+            return new ModelResponse(cb.text(), null);
         }
 
         // If we reach here, we didn't get a valid response
         System.out.println("Model did not respond with text or tool call.");
-        return new ModelResponse(null, null, null);
+        return new ModelResponse(null, null);
     }
 }

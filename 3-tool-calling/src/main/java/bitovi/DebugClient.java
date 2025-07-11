@@ -17,5 +17,7 @@ public class DebugClient {
         Document doc3 = Document.fromString(doc.toString());
         System.out.println("doc3.toString(): " + doc3.toString());
         System.out.println("doc3.asString(): " + doc3.asString());
+
+        System.out.println("doc.unwrap(doc): " + doc.unwrap().toString());
     }
 }

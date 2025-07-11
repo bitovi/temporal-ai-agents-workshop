@@ -3,6 +3,7 @@ package bitovi.activities;
 import java.util.List;
 
 import bitovi.common.AWS;
+import bitovi.common.AWS.ModelToolCall;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
@@ -14,5 +15,5 @@ public interface Activities {
 	AWS.ModelResponse prompt(List<AWS.ChatMessage> history) throws ApplicationFailure;
 
 	@ActivityMethod
-	String executeTool(String toolName, String toolInputs) throws ApplicationFailure;
+	String executeTool(ModelToolCall toolCall) throws ApplicationFailure;
 }

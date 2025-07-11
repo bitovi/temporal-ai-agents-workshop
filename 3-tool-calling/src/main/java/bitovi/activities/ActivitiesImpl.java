@@ -4,6 +4,7 @@ import java.util.List;
 
 import bitovi.activities.tools.WeatherTool;
 import bitovi.common.AWS;
+import bitovi.common.AWS.ModelToolCall;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.core.document.Document;
 
@@ -15,16 +16,19 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String executeTool(String toolName, String toolInputs) throws ApplicationFailure {
-		switch (toolName) {
+	public String executeTool(ModelToolCall toolCall) throws ApplicationFailure {
+		switch (toolCall.toolName()) {
 			case "get_weather": {
 				// Call the WeatherTool's execute method with the toolInputs
-				Document toolInputsDoc = Document.fromString(toolInputs);
+				String toolInputsDocument = toolCall.toolInputsDocument();
+				System.out.print("Executing tool: " + toolCall.toolName() + " with inputs: "
+						+ toolInputsDocument + "\n");
+				Document toolInputsDoc = Document.fromString(toolInputsDocument);
 				return WeatherTool.execute(toolInputsDoc);
 			}
 
 			default: {
-				throw ApplicationFailure.newNonRetryableFailure(toolName, "UnknownToolCall");
+				throw ApplicationFailure.newNonRetryableFailure(toolCall.toolName(), "UnknownToolCall");
 			}
 		}
 

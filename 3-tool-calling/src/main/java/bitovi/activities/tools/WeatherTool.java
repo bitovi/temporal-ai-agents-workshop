@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
@@ -13,12 +12,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
 public class WeatherTool {
     public static String execute(Document toolUseInput) {
-        Map<String, Document> map = toolUseInput.asMap();
-        Document documentZip = map.get("zipCode");
-        if (documentZip.asString() != "94102") {
-            throw ApplicationFailure.newNonRetryableFailure("Expected 94102", "InvalidZipCode");
-        }
-
         return "{\"coord\":{\"lon\":-122.4167,\"lat\":37.7813},\"weather\":[{\"id\":801,\"main\":\"Clouds\",\"description\":\"few clouds\",\"icon\":\"02d\"}],\"base\":\"stations\",\"main\":{\"temp\":291.97,\"feels_like\":291.84,\"temp_min\":289.87,\"temp_max\":295.05,\"pressure\":1012,\"humidity\":74,\"sea_level\":1012,\"grnd_level\":1009},\"visibility\":10000,\"wind\":{\"speed\":6.17,\"deg\":330},\"clouds\":{\"all\":20},\"dt\":1752258201,\"sys\":{\"type\":2,\"id\":2017837,\"country\":\"US\",\"sunrise\":1752238625,\"sunset\":1752291176},\"timezone\":-25200,\"id\":0,\"name\":\"San Francisco\",\"cod\":200}";
     }
 

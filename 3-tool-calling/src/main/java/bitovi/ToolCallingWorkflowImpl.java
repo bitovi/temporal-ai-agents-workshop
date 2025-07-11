@@ -7,6 +7,7 @@ import java.util.List;
 import bitovi.activities.Activities;
 import bitovi.common.AWS;
 import bitovi.common.AWS.ChatMessage;
+import bitovi.common.AWS.ModelToolCall;
 import io.temporal.workflow.Workflow;
 import io.temporal.activity.ActivityOptions;
 
@@ -35,17 +36,17 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 				return modelResponse.response();
 			}
 
-			if (modelResponse.toolName() == null) {
-				// We should never get here, we didnt get text or a tool call out of the mode.
+			if (modelResponse.toolCall() == null) {
+				// We should never get here, we didnt get text or a tool call out of the model.
 				// Just give up.
 				return null;
 			}
 
 			// The model responded with a tool call, so we need to execute it.
-			String toolResponse = activities.executeTool(modelResponse.toolName(),
-					modelResponse.toolInputs());
+			ModelToolCall modelToolCall = modelResponse.toolCall();
+			String toolResponse = activities.executeTool(modelToolCall);
 			history.add(new ChatMessage("assistant",
-					"Tool: " + modelResponse.toolName() + ", Inputs: " + modelResponse.toolInputs()
+					"Tool: " + modelToolCall.toolName() + ", Inputs: " + modelToolCall.toolInputsDocument()
 							+ ", Result: " + toolResponse));
 		}
 	}
