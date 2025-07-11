@@ -28,4 +28,12 @@ A `ToolSpecification` for Bedrock contains the following fields:
 - `description`: A brief description of what the tool does, which helps the model understand when to use it.
 - `inputSchema`: A `ToolInputSchema` describes the input parameters required by the tool. This includes the type of each parameter, if it is required or optiona, and any additional constraints on the format.
 
+The list of available tools is provided to the model as part of the `ConverseRequest` in the `toolConfig`. The model can then decide, instead of generating a text response, to return a `ToolUseBlock`that contains the name of the tool to call and the input parameters to pass to that tool.
+
+When the model returns a `ToolUseBlock`, it indicates that it has determined that calling an external tool is necessary to answer the user's query. It is up to the application developer to implement the logic to call the specified tool, and check that the tool even exists, before calling the model again with the tool's output as part of the context for the next request.
+
+In our simple example here we will provide a single tool that fetches the current weather for a given location. The wrapper code will also only allow the model to call one tool. In a more complete implementation the tool calling, context updating, and error handling could be done in a recursive manner, allowing the model to call multiple tools (even in parallel) to fetch information and handle errors gracefully.
+
+Once the model has called all the tools it needs, it can then generate a final response based on the outputs of those tools. Because all the tool output has been added to the context, very much like our RAG example, the model can use that information to generate a more accurate and useful response.
+
 ## Solution
