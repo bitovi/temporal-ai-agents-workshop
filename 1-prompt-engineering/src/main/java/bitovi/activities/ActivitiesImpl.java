@@ -75,13 +75,11 @@ public class ActivitiesImpl implements Activities {
 										]
 									}
 								],
-								"max_tokens": 100,
+								"max_tokens": 500,
 								"temperature": 0.7
 							}
 							""",
 					policyPrompt, userQuestion, agentResponse);
-
-			System.out.println("Request Body: " + requestBody);
 
 			InvokeModelRequest request = InvokeModelRequest.builder()
 					.modelId(AWS_MODEL_ID)

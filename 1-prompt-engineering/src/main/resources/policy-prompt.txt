@@ -47,4 +47,21 @@ Policies:
 </document>
 
 Provide a detailed explanation for your grade.
-Please list all Policies that are not met by the response, including the number(s).
+Please list **all** Policies and whether or not they are being followed.
+Follow this format:
+
+<formatting_example>
+Overall Score: 3
+Explanation: The agent's response provides accurate information but fails to meet several key customer service policies.
+Policies:
+1. Greet Every Customer Warmly ❌
+2. Acknowledge the Customer's Concern ❌
+3. Use Positive Language at All Times ✅
+4. Provide Clear and Concise Answers ✅
+5. Respond Within a Timely Manner ✅
+6. Follow Up on Unresolved Issues ✅
+7. Use the Customer’s Name Whenever Appropriate ❌
+8. Verify Resolution Satisfaction Before Closing ✅
+9. Document Every Interaction Clearly ✅
+10. End Every Interaction on a Positive Note ✅
+</formatting_example>
