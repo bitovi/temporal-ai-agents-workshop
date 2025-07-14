@@ -2,7 +2,7 @@ services:
 
   temporal-dev-server:
     container_name: temporal-dev-server
-    image: debian:buster
+    image: debian:stable
     command: >
       bash -c '\
         apt update && \
