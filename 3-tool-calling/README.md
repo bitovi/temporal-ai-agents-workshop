@@ -2,7 +2,7 @@
 
 ## Goals
 
-The goal of this exercise is to understand how to configure an LLM to call external tools, such as APIs, query datbases, or perform calculations, to enhance its capabilities and to provide more accurate and useful responses to user queries.
+The goal of this exercise is to understand how to configure an LLM to call external tools, such as APIs, query databases, or perform calculations, to enhance its capabilities and to provide more accurate and useful responses to user queries.
 
 In this exercise, by registering tools with the LLM, and then posing a question to the model, we can allow the model to determine when it needs to call an external tool to fetch information or perform a task that is otherwise outside of its text-based capabilities.
 

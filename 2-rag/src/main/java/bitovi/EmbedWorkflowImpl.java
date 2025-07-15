@@ -17,6 +17,7 @@ public class EmbedWorkflowImpl implements EmbedWorkflow {
     @Override
     public void execute(String[] urls) {
         // For each URL, call the embed activity
+        // TODO: Maybe talk about parallel execution here
         for (String url : urls) {
             activities.embed(url);
         }
