@@ -27,7 +27,9 @@ public class PromptEngineeringClient {
 		PromptEngineeringWorkflow workflow = temporalClient
 				.newWorkflowStub(PromptEngineeringWorkflow.class, workflowOptions);
 
-		String response = workflow.execute();
+		String response = workflow.execute(
+				"7:44 AM: How do I reset my password?",
+				"7:51 AM: To reset your password, go to the login page and click on 'Forgot Password?'. Follow the instructions to reset your password via email or SMS.");
 
 		System.out.println("Workflow Executed: " + response);
 	}
