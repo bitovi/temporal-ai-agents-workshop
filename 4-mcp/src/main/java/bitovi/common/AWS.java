@@ -187,7 +187,8 @@ public class AWS {
 
         // If we reach here, we didn't get a valid response
         System.out.println("Model did not respond with text or tool call.");
-        return new ModelResponse(null, null);
+        throw ApplicationFailure.newNonRetryableFailure(response.toString(),
+                "UnexpectedModelResponseShape");
     }
 
     private static Map<String, Object> toDocumentMap(ToolUseBlock toolUseBlock) {

@@ -102,8 +102,6 @@ public class ModelContextProtocolClient {
     }
 
     private Document inputSchemaToDocument(JsonSchema inputSchema) throws JsonProcessingException {
-        // {"type":"object","properties":{"zipCode":{"type":"string"}},"required":["zipCode"],"additionalProperties":false}
-
         // Loop over the properties and convert them to Documents
         Map<String, Document> propertiesMap = new HashMap<>();
         if (inputSchema.properties() != null) {
