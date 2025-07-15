@@ -1,5 +1,4 @@
 import express from "express";
-import dotenv from "dotenv";
 import { z } from "zod";
 
 import { randomUUID } from "node:crypto";
@@ -7,8 +6,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js"
-
-dotenv.config();
 
 // Map to store transports by session ID
 const transports = {};
@@ -87,9 +84,8 @@ function main() {
         }
     });
 
-    const port = parseInt(process.env.PORT || "8090", 10);
-    app.listen(port, () => {
-        console.log(`MCP server is running on port ${port}`);
+    app.listen(8090, () => {
+        console.log(`MCP server is running on port 8090`);
     });
 }
 
