@@ -1,0 +1,20 @@
+{
+  "name": "mock-mcp-server",
+  "version": "1.0.0",
+  "description": "Example MCP Server",
+  "license": "MIT",
+  "author": "Mark Repka <mrepka@bitovi.com>",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "inspect": "npx @modelcontextprotocol/inspector"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "zod": "^3.23.76"
+  }
+}

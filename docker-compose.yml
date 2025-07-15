@@ -73,6 +73,21 @@ services:
       - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
+  mock-mcp-server:
+    container_name: mock-mcp-server
+    build:
+      context: ./mock-mcp-server
+      dockerfile: Dockerfile
+    ports:
+      - 8090:8090
+    networks:
+      - docker-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8090/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   docker-network:
     driver: bridge
