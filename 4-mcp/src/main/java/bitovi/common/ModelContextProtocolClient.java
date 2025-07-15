@@ -3,14 +3,11 @@ package bitovi.common;
 import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
@@ -62,24 +59,13 @@ public class ModelContextProtocolClient {
         if (availableTools == null || availableTools.isEmpty()) {
             this.availableTools = new ArrayList<software.amazon.awssdk.services.bedrockruntime.model.Tool>();
             ListToolsResult tools = mcpClient.listTools();
-            System.out.println("Loaded " + availableTools.size() + " MCP tools");
 
             // Convert MCP tools to Bedrock runtime tool format
             for (Tool mcpTool : tools.tools()) {
-                System.out.println("Tool: " + mcpTool.name() + ", Description: " + mcpTool.description());
-
-                ObjectMapper objectMapper = new ObjectMapper();
                 JsonSchema inputSchema = mcpTool.inputSchema();
-
-                ObjectNode bedrockTool = objectMapper.createObjectNode();
-                bedrockTool.put("type", "object");
-                bedrockTool.set("properties", objectMapper.valueToTree(inputSchema.properties()));
-                bedrockTool.set("required", objectMapper.valueToTree(inputSchema.required()));
-                bedrockTool.set("additionalProperties", inputSchema.additionalProperties() != null
-                        ? objectMapper.valueToTree(inputSchema.additionalProperties())
-                        : BooleanNode.FALSE);
-
-                String converted = objectMapper.writeValueAsString(bedrockTool);
+                if (inputSchema == null) {
+                    continue;
+                }
 
                 software.amazon.awssdk.services.bedrockruntime.model.Tool bedrockRuntimeTool = software.amazon.awssdk.services.bedrockruntime.model.Tool
                         .builder()
@@ -87,7 +73,7 @@ public class ModelContextProtocolClient {
                                 .name(mcpTool.name())
                                 .description(mcpTool.description())
                                 .inputSchema(ToolInputSchema.builder()
-                                        .json(Document.fromString(converted))
+                                        .json(inputSchemaToDocument(inputSchema))
                                         .build())
                                 .build())
                         .build();
@@ -113,5 +99,49 @@ public class ModelContextProtocolClient {
             System.err.println("Failed to execute MCP tool " + toolName + ": " + e.getMessage());
             return "Error executing tool: " + e.getMessage();
         }
+    }
+
+    private Document inputSchemaToDocument(JsonSchema inputSchema) throws JsonProcessingException {
+        // {"type":"object","properties":{"zipCode":{"type":"string"}},"required":["zipCode"],"additionalProperties":false}
+
+        // Loop over the properties and convert them to Documents
+        Map<String, Document> propertiesMap = new HashMap<>();
+        if (inputSchema.properties() != null) {
+            for (Map.Entry<String, Object> entry : inputSchema.properties().entrySet()) {
+                String key = entry.getKey();
+                Map<String, Object> value = (Map<String, Object>) entry.getValue();
+
+                Map<String, Document> propertyMap = new HashMap<>();
+                if (value.get("type") != null) {
+                    propertyMap.put("type", Document.fromString(value.get("type").toString()));
+                }
+
+                if (value.get("description") != null) {
+                    propertyMap.put("description", Document.fromString(value.get("description").toString()));
+                }
+
+                Document valueDoc = Document.fromMap(propertyMap);
+                propertiesMap.put(key, valueDoc);
+            }
+        }
+
+        // Create the required list
+        List<Document> requiredList = new ArrayList<>();
+        if (inputSchema.required() != null) {
+            for (String requiredField : inputSchema.required()) {
+                requiredList.add(Document.fromString(requiredField));
+            }
+        }
+
+        Map<String, Document> rootMap = new HashMap<>();
+        rootMap.put("type", Document.fromString("object"));
+        rootMap.put("properties", Document.fromMap(propertiesMap));
+        rootMap.put("required", Document.fromList(requiredList));
+        rootMap.put("additionalProperties", Document.fromBoolean(false));
+
+        // Now create the Document representing the JSON schema
+        Document document = Document.fromMap(rootMap);
+
+        return document;
     }
 }

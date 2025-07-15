@@ -143,6 +143,8 @@ public class AWS {
                 .system(SystemContentBlock.fromText(systemPrompt))
                 .build();
 
+        System.out.println("Sending ConverseRequest: " + request.toString());
+
         BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
         ConverseResponse response = bedrockRuntimeClient.converse(request);
 
@@ -180,7 +182,6 @@ public class AWS {
 
         ContentBlock cb = contentBlocks.get(0);
         if (cb.text() != null) {
-            System.out.println("Model response: " + cb.text());
             return new ModelResponse(cb.text(), null);
         }
 

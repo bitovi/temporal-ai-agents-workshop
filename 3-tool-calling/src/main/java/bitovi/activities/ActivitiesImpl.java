@@ -12,7 +12,12 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public AWS.ModelResponse prompt(List<AWS.ChatMessage> history) throws ApplicationFailure {
-		return AWS.bedrockConverse(history);
+		try {
+			return AWS.bedrockConverse(history);
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailureWithCause("Error during Bedrock Converse",
+					"BedrockConverseException", e, e.getMessage());
+		}
 	}
 
 	@Override
