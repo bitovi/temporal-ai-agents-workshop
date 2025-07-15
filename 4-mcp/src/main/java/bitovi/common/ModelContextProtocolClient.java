@@ -1,6 +1,5 @@
 package bitovi.common;
 
-import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +12,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.ClientCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
@@ -27,27 +27,21 @@ public class ModelContextProtocolClient {
 
     public ModelContextProtocolClient() {
         Config config = new Config();
-        String MCP_SERVER_API_KEY = config.getProperty("MCP_SERVER_API_KEY");
         String MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
         String MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
-
-        // Create a transport for the MCP API with authorization header
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .header("Authorization", "Bearer " + MCP_SERVER_API_KEY)
-                .header("Accept", "text/event-stream")
-                .header("Cache-Control", "no-cache")
-                .header("Content-Type", "application/json");
 
         // Create McpClientTransport using HttpClientSseClientTransport
         HttpClientSseClientTransport transport = HttpClientSseClientTransport
                 .builder(MCP_SERVER_BASE_URL)
                 .sseEndpoint(MCP_SERVER_SSE_URL)
-                .requestBuilder(builder)
                 .build();
 
         // Create a sync client with custom configuration
         this.mcpClient = McpClient.sync(transport)
-                .requestTimeout(Duration.ofSeconds(10))
+                .requestTimeout(Duration.ofSeconds(30))
+                .capabilities(ClientCapabilities.builder()
+                        .roots(true) // Enable roots capability
+                        .build())
                 .build();
 
         // Initialize connection
@@ -85,8 +79,13 @@ public class ModelContextProtocolClient {
     }
 
     public String executeMCPTool(String toolName, Map<String, Object> arguments) {
+        if (!this.mcpClient.isInitialized()) {
+            throw new IllegalStateException("MCP Client is not initialized. Please call initialize() first.");
+        }
+
         try {
-            CallToolResult result = mcpClient.callTool(new CallToolRequest(toolName, arguments));
+            CallToolRequest req = new CallToolRequest(toolName, arguments);
+            CallToolResult result = mcpClient.callTool(req);
 
             // Extract content from the result - content() returns a list of Content objects
             if (result.content() != null && !result.content().isEmpty()) {
