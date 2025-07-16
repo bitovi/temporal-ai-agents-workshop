@@ -24,38 +24,11 @@ public class ModelContextProtocolClient {
 
     private List<software.amazon.awssdk.services.bedrockruntime.model.Tool> availableTools;
 
-    private String MCP_SERVER_BASE_URL;
-    private String MCP_SERVER_SSE_URL;
-
-    public ModelContextProtocolClient() {
-        Config config = new Config();
-        this.MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
-        this.MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
-    }
-
-    private McpSyncClient createClient(String MCP_SERVER_BASE_URL, String MCP_SERVER_SSE_URL) {
-        // Create McpClientTransport using HttpClientSseClientTransport
-        HttpClientSseClientTransport transport = HttpClientSseClientTransport
-                .builder(MCP_SERVER_BASE_URL)
-                .sseEndpoint(MCP_SERVER_SSE_URL)
-                .build();
-
-        // Create a sync client with custom configuration
-        McpSyncClient client = McpClient.sync(transport)
-                .requestTimeout(Duration.ofSeconds(30))
-                .capabilities(ClientCapabilities.builder()
-                        .roots(true) // Enable roots capability
-                        .build())
-                .build();
-
-        client.initialize();
-        return client;
-    }
-
     public List<software.amazon.awssdk.services.bedrockruntime.model.Tool> getAvailableTools()
             throws JsonProcessingException {
-        McpSyncClient mcpClient = createClient(MCP_SERVER_BASE_URL, MCP_SERVER_SSE_URL);
         if (availableTools == null || availableTools.isEmpty()) {
+            McpSyncClient mcpClient = createClient();
+
             this.availableTools = new ArrayList<software.amazon.awssdk.services.bedrockruntime.model.Tool>();
             ListToolsResult tools = mcpClient.listTools();
 
@@ -84,7 +57,7 @@ public class ModelContextProtocolClient {
     }
 
     public String executeMCPTool(String toolName, Map<String, Object> arguments) {
-        McpSyncClient mcpClient = createClient(MCP_SERVER_BASE_URL, MCP_SERVER_SSE_URL);
+        McpSyncClient mcpClient = createClient();
 
         try {
             CallToolRequest req = new CallToolRequest(toolName, arguments);
@@ -101,6 +74,29 @@ public class ModelContextProtocolClient {
             System.err.println("Failed to execute MCP tool " + toolName + ": " + e.getMessage());
             return "Error executing tool: " + e.getMessage();
         }
+    }
+
+    private McpSyncClient createClient() {
+        Config config = new Config();
+        String MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
+        String MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
+
+        // Create McpClientTransport using HttpClientSseClientTransport
+        HttpClientSseClientTransport transport = HttpClientSseClientTransport
+                .builder(MCP_SERVER_BASE_URL)
+                .sseEndpoint(MCP_SERVER_SSE_URL)
+                .build();
+
+        // Create a sync client with custom configuration
+        McpSyncClient client = McpClient.sync(transport)
+                .requestTimeout(Duration.ofSeconds(30))
+                .capabilities(ClientCapabilities.builder()
+                        .roots(true) // Enable roots capability
+                        .build())
+                .build();
+
+        client.initialize();
+        return client;
     }
 
     private Document inputSchemaToDocument(JsonSchema inputSchema) throws JsonProcessingException {
