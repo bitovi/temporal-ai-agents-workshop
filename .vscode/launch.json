@@ -85,6 +85,14 @@
             "projectName": "mcp",
             "cwd": "${workspaceFolder}/4-mcp/"
         },
+                {
+            "type": "java",
+            "name": "Exercise 4 - Debug",
+            "request": "launch",
+            "mainClass": "bitovi.McpDemoClient",
+            "projectName": "mcp",
+            "cwd": "${workspaceFolder}/4-mcp/"
+        },
         {
             "type": "java",
             "name": "Exercise 5 - Worker",

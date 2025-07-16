@@ -22,14 +22,18 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
 public class ModelContextProtocolClient {
 
-    private McpSyncClient mcpClient;
     private List<software.amazon.awssdk.services.bedrockruntime.model.Tool> availableTools;
+
+    private String MCP_SERVER_BASE_URL;
+    private String MCP_SERVER_SSE_URL;
 
     public ModelContextProtocolClient() {
         Config config = new Config();
-        String MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
-        String MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
+        this.MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
+        this.MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
+    }
 
+    private McpSyncClient createClient(String MCP_SERVER_BASE_URL, String MCP_SERVER_SSE_URL) {
         // Create McpClientTransport using HttpClientSseClientTransport
         HttpClientSseClientTransport transport = HttpClientSseClientTransport
                 .builder(MCP_SERVER_BASE_URL)
@@ -37,19 +41,20 @@ public class ModelContextProtocolClient {
                 .build();
 
         // Create a sync client with custom configuration
-        this.mcpClient = McpClient.sync(transport)
+        McpSyncClient client = McpClient.sync(transport)
                 .requestTimeout(Duration.ofSeconds(30))
                 .capabilities(ClientCapabilities.builder()
                         .roots(true) // Enable roots capability
                         .build())
                 .build();
 
-        // Initialize connection
-        this.mcpClient.initialize();
+        client.initialize();
+        return client;
     }
 
     public List<software.amazon.awssdk.services.bedrockruntime.model.Tool> getAvailableTools()
             throws JsonProcessingException {
+        McpSyncClient mcpClient = createClient(MCP_SERVER_BASE_URL, MCP_SERVER_SSE_URL);
         if (availableTools == null || availableTools.isEmpty()) {
             this.availableTools = new ArrayList<software.amazon.awssdk.services.bedrockruntime.model.Tool>();
             ListToolsResult tools = mcpClient.listTools();
@@ -79,9 +84,7 @@ public class ModelContextProtocolClient {
     }
 
     public String executeMCPTool(String toolName, Map<String, Object> arguments) {
-        if (!this.mcpClient.isInitialized()) {
-            throw new IllegalStateException("MCP Client is not initialized. Please call initialize() first.");
-        }
+        McpSyncClient mcpClient = createClient(MCP_SERVER_BASE_URL, MCP_SERVER_SSE_URL);
 
         try {
             CallToolRequest req = new CallToolRequest(toolName, arguments);
