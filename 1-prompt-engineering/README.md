@@ -7,7 +7,7 @@ The goal of this first exercise is to learn the best practices of prompt enginee
 
 ## What you need to know
 
-Each LLM has its own set of guidelines for how to optimize your text prompts to get the highest quality responses. [Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html) has a good list of each model's prompt guides. For this workshop, we will use Claude 3.7 Sonnet, so you can refer to [Anthropic's guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview). Anthropic also has an [interactive guide](https://github.com/anthropics/prompt-eng-interactive-tutorial/tree/master/AmazonBedrock) that you can try on your own.
+Each LLM has its own set of guidelines for how to optimize your text prompts to get the highest quality responses. [Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html) has a good list of each model's prompt guides. For this workshop, we will use Claude 3.7 Sonnet, so you can refer to [Anthropic's guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview). Anthropic also has an [interactive guide](https://github.com/anthropics/prompt-eng-interactive-tutorial/tree/master/AmazonBedrock/anthropic) that you can try on your own.
 
 ### Parts of a Prompt
 
