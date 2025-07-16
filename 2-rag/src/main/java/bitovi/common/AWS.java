@@ -1,7 +1,6 @@
 package bitovi.common;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,7 +9,6 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -41,32 +39,37 @@ public class AWS {
                         AWS_SESSION_TOKEN));
     }
 
-    public static AwsCredentialsProvider getAwsLocalstackCredentialsProvider() {
-        String AWS_S3_ACCESS_KEY_ID = config.getProperty("AWS_S3_ACCESS_KEY_ID");
-        String AWS_S3_SECRET_ACCESS_KEY = config.getProperty("AWS_S3_SECRET_ACCESS_KEY");
-
-        return StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(
-                        AWS_S3_ACCESS_KEY_ID,
-                        AWS_S3_SECRET_ACCESS_KEY));
-    }
-
     public static Region getAwsRegion() {
         return Region.of(config.getProperty("AWS_REGION"));
     }
 
     public static S3Client getS3Client() {
-        AwsCredentialsProvider credentialsProvider = AWS.getAwsLocalstackCredentialsProvider();
+        AwsCredentialsProvider credentialsProvider = AWS.getAwsCredentialsProvider();
         Region region = AWS.getAwsRegion();
-
-        String endpointOverride = config.getProperty("AWS_S3_ENDPOINT_URL");
 
         S3Client s3Client = S3Client.builder()
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(URI.create(endpointOverride))
                 .region(region).build();
 
         return s3Client;
+    }
+
+    public static void createBucket(String bucketName) {
+        // Create an S3Client
+        S3Client s3Client = AWS.getS3Client();
+
+        // Check if the bucket already exists
+        if (s3Client.listBuckets().buckets().stream()
+                .anyMatch(bucket -> bucket.name().equals(bucketName))) {
+            System.out.println("Bucket already exists: " + bucketName);
+            return;
+        }
+
+        // Create the bucket
+        s3Client.createBucket(b -> b.bucket(bucketName));
+
+        // Optionally, you can set the bucket policy or other configurations here
+        System.out.println("Bucket created: " + bucketName);
     }
 
     public static GetObjectRequest createGetObjectRequest(String bucketName, String key) {

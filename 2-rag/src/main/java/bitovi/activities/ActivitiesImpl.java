@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -66,7 +67,35 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public String search(String searchTerm) throws ApplicationFailure {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'search'");
+		List<Float> embedding;
+		try {
+			embedding = AWS.calculateEmbedding(searchTerm);
+		} catch (Exception e) {
+			throw ApplicationFailure.newFailureWithCause(
+					"Failed to get embedding for chunk", "EmbeddingError", e);
+		}
+
+		try {
+			String[] uuids = VectorDatabaseClient.searchVectorDatabase(embedding, 5);
+			if (uuids.length == 0) {
+				return "No results found.";
+			}
+
+			ArrayList<String> results = VectorDatabaseClient.getPayloadsByIds(uuids);
+			if (results.isEmpty()) {
+				return "No results found.";
+			}
+
+			StringBuilder sb = new StringBuilder();
+			for (String result : results) {
+				sb.append(result).append("\n");
+			}
+			return sb.toString();
+
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailureWithCause(
+					"Failed to insert embedding into vector database", "VectorDatabaseError", e);
+		}
 	}
+
 }

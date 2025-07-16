@@ -43,7 +43,7 @@
             "mainClass": "bitovi.RagWorker",
             "projectName": "rag",
             "cwd": "${workspaceFolder}/2-rag/"
-        },
+        },      
         {
             "type": "java",
             "name": "Exercise 2 - Client",
@@ -82,14 +82,6 @@
             "name": "Exercise 4 - Client",
             "request": "launch",
             "mainClass": "bitovi.McpClient",
-            "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/"
-        },
-                {
-            "type": "java",
-            "name": "Exercise 4 - Debug",
-            "request": "launch",
-            "mainClass": "bitovi.McpDemoClient",
             "projectName": "mcp",
             "cwd": "${workspaceFolder}/4-mcp/"
         },

@@ -60,10 +60,14 @@ public class RagClient {
 			return new String[0];
 		}
 
+		String bucketName = new Config().getProperty("AWS_S3_BUCKET_NAME");
+
+		// Create the s3 bucket if it doesn't exist
+		AWS.createBucket(bucketName);
+
 		String[] urls = new String[files.length];
 		for (int i = 0; i < files.length; i++) {
 			String filePath = pathToDocuments + File.separator + files[i];
-			String bucketName = new Config().getProperty("AWS_S3_BUCKET_NAME");
 			String key = files[i] + "-" + System.currentTimeMillis(); // Use the file name as the key
 			String s3Url = AWS.uploadFile(bucketName, key, filePath);
 			urls[i] = s3Url;
