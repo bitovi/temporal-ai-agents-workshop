@@ -35,5 +35,3 @@ When the model returns a `ToolUseBlock`, it indicates that it has determined tha
 In our simple example here we will provide a single tool that fetches the current weather for a given location. The wrapper code will also only allow the model to call one tool. In a more complete implementation the tool calling, context updating, and error handling could be done in a recursive manner, allowing the model to call multiple tools (even in parallel) to fetch information and handle errors gracefully.
 
 Once the model has called all the tools it needs, it can then generate a final response based on the outputs of those tools. Because all the tool output has been added to the context, very much like our RAG example, the model can use that information to generate a more accurate and useful response.
-
-## Solution

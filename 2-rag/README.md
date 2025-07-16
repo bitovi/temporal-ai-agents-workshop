@@ -71,7 +71,3 @@ If you do not know the answer, say "I don't know" instead of making up an answer
 ```
 
 This prompt defines the role of the model, the type of response we expect, and provides a placeholder for the context that will be retrieved from the vector database. The `{context}` placeholder will be replaced with the relevant information from the vector database when the model is called.
-
-## Solution
-
-TODO

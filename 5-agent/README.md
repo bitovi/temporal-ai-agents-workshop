@@ -4,5 +4,3 @@
 ## Goals
 
 ## What you need to know
-
-## Solution
