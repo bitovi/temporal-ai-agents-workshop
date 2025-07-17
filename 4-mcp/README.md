@@ -41,17 +41,21 @@ There are other transports defined as part of the MCP specification, including:
 `Streamable HTTP` which uses HTTP POST requests for client-to-server communication and optional Server-Sent Events (SSE) streams for server-to-client communication. At the time of writing, this transport is not yet implemented in the Java MCP SDK.
 
 ```java
+Config config = new Config();
+String MCP_SERVER_BASE_URL = config.getProperty("MCP_SERVER_BASE_URL");
+String MCP_SERVER_SSE_URL = config.getProperty("MCP_SERVER_SSE_URL");
+
+// Create McpClientTransport using HttpClientSseClientTransport
 HttpClientSseClientTransport transport = HttpClientSseClientTransport
-        .builder("https://api.repkam09.com/api/mcp")
-        .sseEndpoint("https://api.repkam09.com/api/mcp")
+        .builder(MCP_SERVER_BASE_URL)
+        .sseEndpoint(MCP_SERVER_SSE_URL)
         .build();
 
 // Create a sync client with custom configuration
 McpSyncClient client = McpClient.sync(transport)
-        .requestTimeout(Duration.ofSeconds(10))
+        .requestTimeout(Duration.ofSeconds(30))
         .build();
 
-// Initialize connection
 client.initialize();
 
 // List available tools
@@ -60,15 +64,54 @@ ListToolsResult tools = client.listTools();
 
 ### MCP Server
 
-To provide a basic example of an MCP server we will look at a simple Java Spring Boot application that exposes a single tool for fetching weather data. Spring Boot provides a set of `ai` imports that make it easy to create MCP servers.
+To provide a basic example of an MCP server we have provided a simple implementation, in TypeScript, that exposes a basic Weather tool. This server is running locally on port 8090 as part of the Docker Compose setup.
+The MCP specification is implemented in a number of different languages and frameworks, including Java/Spring Boot. For more information you can refer to the MCP Java SDK: <https://github.com/modelcontextprotocol/java-sdk>
+
+From our TypeScript example, and for most of the other SDKs, the pattern is the same. You define an MCP Server instance that exposes a set of tools and resources. The MCP Server is wrapped in some kind of transport, such as HTTP or SSE, to allow clients to connect and interact with it.
+
+We can take advantage of existing frameworks such as Spring Boot in Java or Express in TypeScript to create the HTTP endpoints.
+
+```ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+const server = new McpServer({
+  name: "mcp-server",
+  version: "1.0.0",
+});
+
+server.registerTool(
+  "weather-by-zip-code",
+  {
+    title: "Weather by Zip Code",
+    description: "Get current weather for a zip code",
+    inputSchema: { zipCode: z.string() },
+  },
+  async ({ zipCode }) => {
+    const weatherData = {
+      temperature: 72,
+      condition: "Sunny",
+    };
+    return weatherData;
+  }
+);
+```
+
+If we're using Spring Boot we can use the MCP Server Boot Starter to simplify the setup. This starter provides auto-configuration for setting up an MCP server in your Spring Boot application.
+
+See: <https://docs.spring.io/spring-ai/reference/api/mcp/mcp-server-boot-starter-docs.html>
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+</dependency>
+```
 
 ```java
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
-```
-
-```java
 @SpringBootApplication
 public class McpServerApplication {
     public static void main(String[] args) {

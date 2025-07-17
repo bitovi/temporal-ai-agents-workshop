@@ -1,5 +1,4 @@
 services:
-
   temporal-dev-server:
     container_name: temporal-dev-server
     image: debian:stable
@@ -49,10 +48,10 @@ services:
       - 5432:5432
     restart: always
     environment:
-       - POSTGRES_HOST_AUTH_METHOD=trust
-       - POSTGRES_PASSWORD=dbpassword
-       - POSTGRES_USER=dbuser
-       - POSTGRES_DB=workshop
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_PASSWORD=dbpassword
+      - POSTGRES_USER=dbuser
+      - POSTGRES_DB=workshop
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dbuser -d workshop"]
       interval: 10s
@@ -73,10 +72,10 @@ services:
       - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
-  mock-mcp-server:
-    container_name: mock-mcp-server
+  mock-mcp-server-ts:
+    container_name: mock-mcp-server-ts
     build:
-      context: ./mock-mcp-server
+      context: ./mock-mcp-server-ts
       dockerfile: Dockerfile
     ports:
       - 8090:8090
@@ -87,6 +86,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # mock-mcp-server-java:
+  #   container_name: mock-mcp-server-java
+  #   build:
+  #     context: ./mock-mcp-server-java
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 8091:8091
+  #   networks:
+  #     - docker-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl --fail http://localhost:8091/ || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
 networks:
   docker-network:

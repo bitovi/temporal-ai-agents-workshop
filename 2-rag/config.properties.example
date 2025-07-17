@@ -7,6 +7,7 @@ TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 AWS_ACCESS_KEY_ID=aws-access-key-id
 AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 AWS_SESSION_TOKEN=aws-session-token
+AWS_REGION=us-east-2
 
 AWS_MODEL_ARN=arn:aws:bedrock:us-east-2:755521597925:inference-profile/us.meta.llama3-1-8b-instruct-v1:0
 AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
@@ -17,7 +18,6 @@ AWS_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
 AWS_S3_ACCESS_KEY_ID=testUser
 AWS_S3_SECRET_ACCESS_KEY=testAccessKey
 AWS_S3_BUCKET_NAME=bitovi-ai-agents-workshop
-AWS_S3_ENDPOINT_URL=localhost:4566
 
 QDRANT_VECTOR_SIZE=1024
 QDRANT_HOST=localhost

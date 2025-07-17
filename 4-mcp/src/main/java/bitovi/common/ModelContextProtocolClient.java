@@ -12,7 +12,6 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.ClientCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
@@ -90,9 +89,6 @@ public class ModelContextProtocolClient {
         // Create a sync client with custom configuration
         McpSyncClient client = McpClient.sync(transport)
                 .requestTimeout(Duration.ofSeconds(30))
-                .capabilities(ClientCapabilities.builder()
-                        .roots(true) // Enable roots capability
-                        .build())
                 .build();
 
         client.initialize();
