@@ -10,7 +10,8 @@
             "request": "launch",
             "mainClass": "bitovi.EnvironmentSetupWorker",
             "projectName": "environment-setup",
-            "cwd": "${workspaceFolder}/0-environment-setup/"
+            "cwd": "${workspaceFolder}/0-environment-setup/",
+            "preLaunchTask": "Docker Compose Up"
         },
         {
             "type": "java",
