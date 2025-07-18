@@ -45,6 +45,7 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 			// The model responded with a tool call, so we need to execute it.
 			ModelToolCall modelToolCall = modelResponse.toolCall();
 			String toolResponse = activities.executeTool(modelToolCall);
+			// REPKA TODO: Is this allowed???
 			history.add(new ChatMessage("assistant",
 					"Tool: " + modelToolCall.toolName() + ", Inputs: " + modelToolCall.toolInputsDocument()
 							+ ", Result: " + toolResponse));
