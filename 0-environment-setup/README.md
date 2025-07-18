@@ -17,20 +17,23 @@ The goal of this exercise is to ensure your local development envrionment is suc
 
 ## External Systems
 
-The only _external_ system being used in this workshop is *AWS Bedrock*, which will host the AI models being used throughout the exercises.
+There are a few external systems being used by the exercises in this repo:
 
-To correctly connect to Bedrock, copy the `config.properties-example` file to `config.properties` and replace the `TODO` property.
+1. AWS Bedrock - used to host the AI models
+1. AWS S3 - used for document storage
+1. Postgres - used for structured data storage
+
+To correctly connect to these, copy the `config.properties-example` file to `config.properties` and replace the `TODO` property.
 
 ## Local Systems / Mocks
 
-All other systems will be run locally using `docker compose`. This includes a mock of the Zendesk API, which will be used to retrieve some sample ticket data.
+All other systems will be run locally using `docker compose`.
 
 1. Temporal - orchestration layer for AI workflows
 1. Qdrant - being used as a vector database for storing embeddings for use in Retrieval Augmented Generation
-1. Postgres - being used to store structured data
-1. Zendesk API - being used to retrieve documents in order to supply them as context to AI systems
+1. An MCP Server - used to test the Model Context Protocol in exercise 4
 
-To start these, run the `up.sh` script in the root of the repo. There is also a `down.sh` script to tear everything down.
+These will start automatically when you launch `Exercise 0 - Worker` (see below).
 
 ## VSCode Launch Configurations
 
@@ -46,5 +49,7 @@ After making code changes, be sure to restart the worker:
 ![image](https://github.com/user-attachments/assets/3d4a47a2-f65b-403a-ab0c-9bb4d8a02bbc)
 
 ## Solution
+
+When you have the `config.properties` set up correctly and launch `Exercise 0 - Worker` and then `Exercise 0 - Client` you should be able to visit the [Temporal UI](http://localhost:8233) and see the workflow executed successfully:
 
 ![image](https://github.com/user-attachments/assets/4d497e90-f245-4108-8f72-03ca1c9602e7)

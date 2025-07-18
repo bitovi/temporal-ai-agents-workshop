@@ -1,7 +1,7 @@
 package bitovi.activities;
 
 import io.temporal.failure.ApplicationFailure;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.s3.S3Client;
 import bitovi.common.Config;
@@ -13,19 +13,19 @@ public class S3Impl implements S3 {
 	public void checkS3Connection() throws ApplicationFailure {
 		Config config = new Config();
 
-		String AWS_S3_ENDPOINT_URL = config.getProperty("AWS_S3_ENDPOINT_URL");
-		String AWS_S3_ACCESS_KEY_ID = config.getProperty("AWS_S3_ACCESS_KEY_ID");
-		String AWS_S3_SECRET_ACCESS_KEY = config.getProperty("AWS_S3_SECRET_ACCESS_KEY");
+		String AWS_S3_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
+		String AWS_S3_SECRET_ACCESS_KEY = config.getProperty("AWS_SECRET_ACCESS_KEY");
+		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 
 		try {
 			S3Client s3client = S3Client.builder()
 					.credentialsProvider(
 							StaticCredentialsProvider.create(
-									AwsBasicCredentials.create(
+									AwsSessionCredentials.create(
 											AWS_S3_ACCESS_KEY_ID,
-											AWS_S3_SECRET_ACCESS_KEY)))
+											AWS_S3_SECRET_ACCESS_KEY,
+											AWS_SESSION_TOKEN)))
 					.region(Region.of(config.getProperty("AWS_REGION")))
-					.endpointOverride(java.net.URI.create(AWS_S3_ENDPOINT_URL))
 					.build();
 
 			s3client.listBuckets().buckets().forEach(bucket -> {
