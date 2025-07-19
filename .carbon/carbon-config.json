@@ -16,7 +16,7 @@
     "lineHeight": "133%",
     "windowControls": false,
     "widthAdjustment": false,
-    "lineNumbers": false,
+    "lineNumbers": true,
     "firstLineNumber": 1,
     "exportSize": "2x",
     "watermark": false,
