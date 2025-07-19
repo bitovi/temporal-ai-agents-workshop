@@ -150,7 +150,12 @@ public class AWS {
         }
 
         // If the response contains a tool call, we will handle it first
+        StringBuilder textResponse = new StringBuilder();
         for (ContentBlock block : contentBlocks) {
+            if (block.text() != null) {
+                textResponse.append(block.text());
+            }
+
             if (block.toolUse() != null) {
                 ToolUseBlock toolUseBlock = block.toolUse();
 
@@ -169,14 +174,14 @@ public class AWS {
             }
         }
 
-        ContentBlock cb = contentBlocks.get(0);
-        if (cb.text() != null) {
-            System.out.println("Model response: " + cb.text());
-            return new ModelResponse(cb.text(), null);
+        if (textResponse.length() > 0) {
+            System.out.println("Model response text: " + textResponse.toString());
+            return new ModelResponse(textResponse.toString(), null);
         }
 
         // If we reach here, we didn't get a valid response
         System.out.println("Model did not respond with text or tool call.");
-        return new ModelResponse(null, null);
+        throw ApplicationFailure.newNonRetryableFailure(response.toString(),
+                "UnexpectedModelResponseShape");
     }
 }
