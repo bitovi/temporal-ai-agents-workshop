@@ -1,5 +1,7 @@
 package bitovi.activities;
 
+import java.util.ArrayList;
+
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
@@ -10,5 +12,5 @@ public interface Activities {
 	void embed(String url) throws ApplicationFailure;
 
 	@ActivityMethod
-	String search(String searchTerm) throws ApplicationFailure;
+	ArrayList<String> search(String searchTerm) throws ApplicationFailure;
 }

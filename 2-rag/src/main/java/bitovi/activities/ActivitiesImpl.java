@@ -1,7 +1,7 @@
 package bitovi.activities;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,7 +12,11 @@ import java.util.concurrent.ExecutionException;
 import bitovi.common.AWS;
 import bitovi.common.Config;
 import bitovi.common.VectorDatabaseClient;
-import dev.langchain4j.data.document.splitter.DocumentByParagraphSplitter;
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.parser.TextDocumentParser;
+import dev.langchain4j.data.document.splitter.DocumentByCharacterSplitter;
+import dev.langchain4j.data.segment.TextSegment;
 import io.temporal.failure.ApplicationFailure;
 
 public class ActivitiesImpl implements Activities {
@@ -32,22 +36,25 @@ public class ActivitiesImpl implements Activities {
 		Path path = AWS.downloadFile(bucketName, storageKey, outputPath);
 
 		// Chunk and split the document into parts using DocumentByParagraphSplitter
-		String content;
+		Document doc;
 		try {
-			content = Files.readString(path, StandardCharsets.UTF_8);
+			InputStream input = Files.newInputStream(path);
+			doc = new TextDocumentParser().parse(input);
 		} catch (IOException e) {
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to read file content: " + path.toAbsolutePath(), "FileReadError", e);
 		}
 
-		DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(2500, 500);
-		String[] chunks = splitter.split(content);
+		DocumentSplitter splitter = new DocumentByCharacterSplitter(1024, 250);
+		List<TextSegment> chunks = splitter.split(doc);
 
-		for (String chunk : chunks) {
-			if (chunk.length() > 0) {
+		for (TextSegment chunk : chunks) {
+			String text = chunk.text();
+			if (text != null && !text.isEmpty()) {
+				System.out.println("Chunk: " + text);
 				List<Float> embedding;
 				try {
-					embedding = AWS.calculateEmbedding(chunk);
+					embedding = AWS.calculateEmbedding(text);
 				} catch (Exception e) {
 					throw ApplicationFailure.newFailureWithCause(
 							"Failed to get embedding for chunk", "EmbeddingError", e);
@@ -55,7 +62,7 @@ public class ActivitiesImpl implements Activities {
 
 				UUID id = UUID.randomUUID(); // Generate a random UUID for the point ID
 				try {
-					VectorDatabaseClient.insertEmbedding(id, embedding, chunk, storageKey);
+					VectorDatabaseClient.insertEmbedding(id, embedding, text, storageKey);
 				} catch (InterruptedException | ExecutionException e) {
 					throw ApplicationFailure.newFailureWithCause(
 							"Failed to insert embedding into vector database", "VectorDatabaseError", e);
@@ -66,7 +73,7 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String search(String searchTerm) throws ApplicationFailure {
+	public ArrayList<String> search(String searchTerm) throws ApplicationFailure {
 		List<Float> embedding;
 		try {
 			embedding = AWS.calculateEmbedding(searchTerm);
@@ -78,19 +85,15 @@ public class ActivitiesImpl implements Activities {
 		try {
 			String[] uuids = VectorDatabaseClient.searchVectorDatabase(embedding, 5);
 			if (uuids.length == 0) {
-				return "No results found.";
+				return null;
 			}
 
 			ArrayList<String> results = VectorDatabaseClient.getPayloadsByIds(uuids);
 			if (results.isEmpty()) {
-				return "No results found.";
+				return null;
 			}
 
-			StringBuilder sb = new StringBuilder();
-			for (String result : results) {
-				sb.append(result).append("\n");
-			}
-			return sb.toString();
+			return results;
 
 		} catch (InterruptedException | ExecutionException e) {
 			throw ApplicationFailure.newFailureWithCause(

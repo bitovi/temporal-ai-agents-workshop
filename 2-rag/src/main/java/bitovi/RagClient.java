@@ -90,7 +90,7 @@ public class RagClient {
 		RagWorkflow workflow = temporalClient
 				.newWorkflowStub(RagWorkflow.class, workflowOptions);
 
-		String response = workflow.execute("How do I delete my Riot account?");
+		String response = workflow.execute("How do I change my Riot ID?");
 
 		System.out.println("Search Workflow Executed: " + response);
 	}
