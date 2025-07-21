@@ -2,7 +2,7 @@ AWS_ACCESS_KEY_ID=TODO
 AWS_SECRET_ACCESS_KEY=TODO
 AWS_SESSION_TOKEN=TODO
 
-AWS_REGION=us-east-2
+AWS_REGION=TODO
 
 AWS_MODEL_ARN=arn:aws:bedrock:us-east-2::foundation-model/meta.llama3-1-8b-instruct-v1:0
 AWS_MODEL_ID=meta.llama3-1-8b-instruct-v1:0
@@ -21,4 +21,4 @@ TEMPORAL_HOST_PORT=localhost:7233
 TEMPORAL_NAMESPACE=default
 TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 
-USER_ID=user
+USER_ID=TODO
