@@ -1,0 +1,106 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Exercise 0 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.EnvironmentSetupWorker",
+            "projectName": "environment-setup",
+            "cwd": "${workspaceFolder}/0-environment-setup/",
+            "preLaunchTask": "Docker Compose Up"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 0 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.EnvironmentSetupClient",
+            "projectName": "environment-setup",
+            "cwd": "${workspaceFolder}/0-environment-setup/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 1 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.PromptEngineeringWorker",
+            "projectName": "prompt-engineering",
+            "cwd": "${workspaceFolder}/1-prompt-engineering/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 1 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.PromptEngineeringClient",
+            "projectName": "prompt-engineering",
+            "cwd": "${workspaceFolder}/1-prompt-engineering/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 2 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.RagWorker",
+            "projectName": "rag",
+            "cwd": "${workspaceFolder}/2-rag/"
+        },      
+        {
+            "type": "java",
+            "name": "Exercise 2 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.RagClient",
+            "projectName": "rag",
+            "cwd": "${workspaceFolder}/2-rag/",
+            "args": "${workspaceFolder}/2-rag/documents/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 3 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.ToolCallingWorker",
+            "projectName": "tool-calling",
+            "cwd": "${workspaceFolder}/3-tool-calling/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 3 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.ToolCallingClient",
+            "projectName": "tool-calling",
+            "cwd": "${workspaceFolder}/3-tool-calling/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 4 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.McpWorker",
+            "projectName": "mcp",
+            "cwd": "${workspaceFolder}/4-mcp/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 4 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.McpClient",
+            "projectName": "mcp",
+            "cwd": "${workspaceFolder}/4-mcp/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 5 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentWorker",
+            "projectName": "agent",
+            "cwd": "${workspaceFolder}/5-agent/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 5 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentClient",
+            "projectName": "agent",
+            "cwd": "${workspaceFolder}/5-agent/"
+        }
+    ]
+}
