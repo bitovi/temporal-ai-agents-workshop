@@ -1,0 +1,6 @@
+
+Evaluate the following interaction and assign a score from 1-5 (where 1 = poor, 5 = excellent).
+
+%s
+
+%s
