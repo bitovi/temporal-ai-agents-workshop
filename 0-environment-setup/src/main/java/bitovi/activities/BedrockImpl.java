@@ -1,16 +1,20 @@
 package bitovi.activities;
 
-import java.util.List;
-
 import bitovi.common.Config;
+
+import org.json.JSONObject;
 
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.services.bedrock.BedrockClient;
-import software.amazon.awssdk.services.bedrock.model.FoundationModelSummary;
-import software.amazon.awssdk.services.bedrock.model.ListFoundationModelsResponse;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
+import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 
 public class BedrockImpl implements Bedrock {
 	@Override
@@ -22,13 +26,11 @@ public class BedrockImpl implements Bedrock {
 		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 		String AWS_REGION = config.getProperty("AWS_REGION");
 
-		String AWS_MODEL_ARN = config.getProperty("AWS_MODEL_ARN");
 		String AWS_MODEL_ID = config.getProperty("AWS_MODEL_ID");
-		String AWS_EMBEDDING_MODEL_ARN = config.getProperty("AWS_EMBEDDING_MODEL_ARN");
 		String AWS_EMBEDDING_MODEL_ID = config.getProperty("AWS_EMBEDDING_MODEL_ID");
 
 		try {
-			BedrockClient bedrockClient = BedrockClient.builder()
+			BedrockRuntimeClient bedrockRuntimeClient = BedrockRuntimeClient.builder()
 					.credentialsProvider(
 							StaticCredentialsProvider.create(
 									AwsSessionCredentials.create(
@@ -38,36 +40,27 @@ public class BedrockImpl implements Bedrock {
 					.region(Region.of(AWS_REGION))
 					.build();
 
-			ListFoundationModelsResponse response = bedrockClient.listFoundationModels(r -> {
-			});
-			List<FoundationModelSummary> models = response.modelSummaries();
+			ConverseRequest converseRequest = ConverseRequest.builder()
+					.modelId(AWS_MODEL_ID)
+					.messages(Message.builder()
+							.role(ConversationRole.USER)
+							.content(ContentBlock.fromText("Are you alive?"))
+							.build())
+					.inferenceConfig(interfaceConfig -> interfaceConfig
+							.maxTokens(2000)
+							.temperature(1.0f)
+							.build())
+					.build();
+			bedrockRuntimeClient.converse(converseRequest);
 
-			if (models.isEmpty()) {
-				throw ApplicationFailure.newNonRetryableFailure(
-						"No foundation models found. Please check your AWS credentials and region.",
-						"BedrockError");
-			}
-
-			boolean modelFound = models.stream()
-					.anyMatch(model -> model.modelArn().equals(AWS_MODEL_ARN)
-							&& model.modelId().equals(AWS_MODEL_ID)
-							&& model.modelLifecycle().status().toString().equals("ACTIVE"));
-			if (!modelFound) {
-				throw ApplicationFailure.newNonRetryableFailure(
-						"Model not found or not active: " + AWS_MODEL_ARN + " with ID: " + AWS_MODEL_ID,
-						"BedrockError");
-			}
-
-			boolean embeddingModelFound = models.stream()
-					.anyMatch(model -> model.modelArn().equals(AWS_EMBEDDING_MODEL_ARN)
-							&& model.modelId().equals(AWS_EMBEDDING_MODEL_ID)
-							&& model.modelLifecycle().status().toString().equals("ACTIVE"));
-			if (!embeddingModelFound) {
-				throw ApplicationFailure.newNonRetryableFailure(
-						"Embedding model not found or not active: " + AWS_EMBEDDING_MODEL_ARN +
-								" with ID: " + AWS_EMBEDDING_MODEL_ID,
-						"BedrockError");
-			}
+			InvokeModelRequest embedRequest = InvokeModelRequest.builder()
+					.modelId(AWS_EMBEDDING_MODEL_ID)
+					.contentType("application/json")
+					.accept("*/*")
+					.body(SdkBytes.fromUtf8String(new JSONObject()
+							.put("inputText", "Hello").toString()))
+					.build();
+			bedrockRuntimeClient.invokeModel(embedRequest);
 		} catch (Exception e) {
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to connect to Bedrock: " + e.getMessage(),
