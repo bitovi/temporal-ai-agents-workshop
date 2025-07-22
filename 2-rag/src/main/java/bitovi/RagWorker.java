@@ -26,7 +26,7 @@ public class RagWorker {
 
 			factory.start();
 
-			System.out.println("Temporal Worker started. Press Ctrl+C to exit.");
+			System.out.println("Exercise 2 Temporal Worker started. Press Ctrl+C to exit.");
 
 			// Keep the worker running
 			Thread.currentThread().join();
