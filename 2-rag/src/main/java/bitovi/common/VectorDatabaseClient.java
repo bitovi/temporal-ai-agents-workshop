@@ -48,10 +48,9 @@ public class VectorDatabaseClient {
         Config config = new Config();
         String qdrantHost = config.getProperty("QDRANT_HOST");
         Integer qdrantPort = config.getIntegerProperty("QDRANT_PORT");
-        String qdrantApiKey = config.getProperty("QDRANT_SERVICE_API_KEY");
 
         // Initialize the Qdrant client with the configuration
-        QdrantGrpcClient grpc = QdrantGrpcClient.newBuilder(qdrantHost, qdrantPort, false).withApiKey(qdrantApiKey)
+        QdrantGrpcClient grpc = QdrantGrpcClient.newBuilder(qdrantHost, qdrantPort, false)
                 .build();
         VectorDatabaseClient.instance = new QdrantClient(grpc);
 
