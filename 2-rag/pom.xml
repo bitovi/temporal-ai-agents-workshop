@@ -69,6 +69,18 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>..</directory>
+                <includes>
+                    <include>config.properties</include>
+                </includes>
+                <targetPath>${project.build.outputDirectory}</targetPath>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

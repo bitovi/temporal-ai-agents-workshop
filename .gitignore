@@ -1,4 +1,5 @@
 **/*/target/
+**/*/bin/
 **/*/config.properties
 config.properties
 .DS_Store
