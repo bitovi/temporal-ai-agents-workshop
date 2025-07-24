@@ -10,13 +10,12 @@ public class EnvironmentSetupClient {
 
 	public static void main(String[] args) {
 		Config config = new Config();
-		String userId = config.getProperty("USER_ID");
 		String taskQueue = config.getProperty("TEMPORAL_TASK_QUEUE");
 
 		WorkflowClient temporalClient = TemporalClient.getTemporalClient();
 
 		String uuid = java.util.UUID.randomUUID().toString();
-		String workflowId = "environment-setup-workflow-" + uuid + "-" + userId;
+		String workflowId = "environment-setup-workflow-" + uuid;
 
 		WorkflowOptions workflowOptions = WorkflowOptions
 				.newBuilder()

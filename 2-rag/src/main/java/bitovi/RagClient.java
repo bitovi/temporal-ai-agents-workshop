@@ -26,13 +26,12 @@ public class RagClient {
 		String[] urls = Setup.uploadDocuments(pathToDocuments);
 
 		Config config = new Config();
-		String userId = config.getProperty("USER_ID");
 		String taskQueue = config.getProperty("TEMPORAL_TASK_QUEUE");
 
 		WorkflowClient temporalClient = TemporalClient.getTemporalClient();
 
 		String uuid = java.util.UUID.randomUUID().toString();
-		String workflowId = "retrieval-augmented-generation-" + uuid + "-" + userId;
+		String workflowId = "retrieval-augmented-generation-" + uuid;
 
 		WorkflowOptions workflowOptions = WorkflowOptions
 				.newBuilder()
