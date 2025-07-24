@@ -1,7 +1,10 @@
 package bitovi.common;
 
 import java.util.Properties;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class Config {
 	private static Properties properties;
@@ -9,7 +12,10 @@ public class Config {
 	public Config() {
 		properties = new Properties();
 		try {
-			properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
+			InputStream input = new FileInputStream("config.properties");
+			properties.load(input);
+		} catch (FileNotFoundException ex) {
+			ex.printStackTrace();
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
