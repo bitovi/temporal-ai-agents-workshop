@@ -3,11 +3,11 @@ package bitovi.activities;
 import java.io.InputStream;
 import java.util.IllegalFormatException;
 
+import bitovi.common.AWS;
 import bitovi.common.Config;
 
 import io.temporal.failure.ApplicationFailure;
-import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
@@ -21,22 +21,14 @@ public class ActivitiesImpl implements Activities {
 	@Override
 	public String promptLLM(String userQuestion, String agentResponse) throws ApplicationFailure {
 		Config config = new Config();
-
-		String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
-		String AWS_SECRET_ACCESS_KEY = config.getProperty("AWS_SECRET_ACCESS_KEY");
-		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 		String AWS_REGION = config.getProperty("AWS_REGION");
-
 		String AWS_MODEL_ID = config.getProperty("AWS_MODEL_ID");
 
 		try {
+			AwsCredentialsProvider credentialsProvider = AWS.getAwsCredentialsProvider();
+
 			BedrockRuntimeClient bedrockRuntimeClient = BedrockRuntimeClient.builder()
-					.credentialsProvider(
-							StaticCredentialsProvider.create(
-									AwsSessionCredentials.create(
-											AWS_ACCESS_KEY_ID,
-											AWS_SECRET_ACCESS_KEY,
-											AWS_SESSION_TOKEN)))
+					.credentialsProvider(credentialsProvider)
 					.region(Region.of(AWS_REGION))
 					.build();
 
