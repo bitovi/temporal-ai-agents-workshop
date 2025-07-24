@@ -16,6 +16,10 @@ function main() {
     const app = express();
     app.use(express.json());
 
+    app.get('/readyz', (req, res) => {
+        res.status(200).send('OK');
+    });
+
     app.post('/mcp', async (req, res) => {
         const sessionId = req.headers['mcp-session-id']
         let transport;

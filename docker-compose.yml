@@ -35,7 +35,7 @@ services:
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      test: ["CMD-SHELL", "apt update && apt install -y curl && curl --fail http://localhost:6333/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -50,25 +50,10 @@ services:
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8090/ || exit 1"]
+      test: ["CMD-SHELL", "apk add curl && curl --fail http://localhost:8090/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # mock-mcp-server-java:
-  #   container_name: mock-mcp-server-java
-  #   build:
-  #     context: ./mock-mcp-server-java
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8091:8091
-  #   networks:
-  #     - docker-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl --fail http://localhost:8091/ || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
 
 networks:
   docker-network:
