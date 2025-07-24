@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -11,7 +8,7 @@
             "mainClass": "bitovi.EnvironmentSetupWorker",
             "projectName": "environment-setup",
             "cwd": "${workspaceFolder}/0-environment-setup/",
-            "preLaunchTask": "Docker Compose Up"
+            "preLaunchTask": "Exercise 0 Maven Build"
         },
         {
             "type": "java",
@@ -27,7 +24,8 @@
             "request": "launch",
             "mainClass": "bitovi.PromptEngineeringWorker",
             "projectName": "prompt-engineering",
-            "cwd": "${workspaceFolder}/1-prompt-engineering/"
+            "cwd": "${workspaceFolder}/1-prompt-engineering/",
+            "preLaunchTask": "Exercise 1 Maven Build"
         },
         {
             "type": "java",
@@ -43,7 +41,8 @@
             "request": "launch",
             "mainClass": "bitovi.RagWorker",
             "projectName": "rag",
-            "cwd": "${workspaceFolder}/2-rag/"
+            "cwd": "${workspaceFolder}/2-rag/",
+            "preLaunchTask": "Exercise 2 Maven Build"
         },      
         {
             "type": "java",
@@ -60,7 +59,8 @@
             "request": "launch",
             "mainClass": "bitovi.ToolCallingWorker",
             "projectName": "tool-calling",
-            "cwd": "${workspaceFolder}/3-tool-calling/"
+            "cwd": "${workspaceFolder}/3-tool-calling/",
+            "preLaunchTask": "Exercise 3 Maven Build"
         },
         {
             "type": "java",
@@ -76,7 +76,8 @@
             "request": "launch",
             "mainClass": "bitovi.McpWorker",
             "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/"
+            "cwd": "${workspaceFolder}/4-mcp/",
+            "preLaunchTask": "Exercise 4 Maven Build"
         },
         {
             "type": "java",
@@ -100,7 +101,8 @@
             "request": "launch",
             "mainClass": "bitovi.AgentClient",
             "projectName": "agent",
-            "cwd": "${workspaceFolder}/5-agent/"
+            "cwd": "${workspaceFolder}/5-agent/",
+            "preLaunchTask": "Exercise 5 Maven Build"
         }
     ]
 }

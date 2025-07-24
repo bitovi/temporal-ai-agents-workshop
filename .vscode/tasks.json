@@ -53,6 +53,90 @@
       },
       "problemMatcher": [],
       "detail": "Stop and remove Docker Compose services and volumes"
+    },
+    {
+      "label": "Exercise 0 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/0-environment-setup"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
+    },
+    {
+      "label": "Exercise 1 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/1-prompt-engineering"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
+    },
+    {
+      "label": "Exercise 2 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/2-rag"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
+    },
+    {
+      "label": "Exercise 3 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/3-tool-calling"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
+    },
+    {
+      "label": "Exercise 4 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/4-mcp"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
+    },
+    {
+      "label": "Exercise 5 Maven Build",
+      "type": "shell",
+      "command": "mvn clean install",
+      "options": {
+        "cwd": "${workspaceFolder}/5-agent"
+      },
+      "group": {
+          "kind": "build",
+          "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn clean install"
     }
   ]
 }
