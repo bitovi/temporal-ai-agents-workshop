@@ -32,7 +32,7 @@ public class ActivitiesImpl implements Activities {
 				return WeatherTool.execute(toolInputsDoc);
 			}
 
-			// TODO: Implement your DefineYourOwnTool execution here.
+			// TODO_TOOLS: Implement your DefineYourOwnTool execution here.
 			case "define_your_own_tool": {
 				throw ApplicationFailure.newNonRetryableFailure("DefineYourOwnTool is not implemented yet.",
 						"DefineYourOwnToolNotImplemented");

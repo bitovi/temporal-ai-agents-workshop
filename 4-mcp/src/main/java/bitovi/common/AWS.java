@@ -3,10 +3,12 @@ package bitovi.common;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 
-import bitovi.activities.tools.WeatherTool;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -30,7 +32,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 public class AWS {
 
-    public record ModelToolCall(String toolName, String toolInputsDocument) {
+    public record ModelToolCall(String toolName, Map<String, Object> toolInputs) {
 
     }
 
@@ -121,15 +123,17 @@ public class AWS {
         }
 
         ToolConfiguration.Builder toolConfig = ToolConfiguration.builder();
-        List<Tool> tools = new ArrayList<>();
 
-        // Add the WeatherTool to the tool configuration
-        tools.add(WeatherTool.getBedrockTool());
-
-        // TODO_TOOLS: Once you have implemented DefineYourOwnTool you can register it here.
-        //       See activities/tools/DefineYourOwnTool.java.
-        // tools.add(DefineYourOwnTool.getBedrockTool());
-        toolConfig.tools(tools);
+        // TODO_MCP: Take a look at this method and compare it to what we did in the
+        // previous Tool Calling exercise.
+        ModelContextProtocolClient mcpIntegration = new ModelContextProtocolClient();
+        try {
+            List<Tool> availableTools = mcpIntegration.getAvailableTools();
+            toolConfig.tools(availableTools);
+        } catch (JsonProcessingException err) {
+            throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tools from MCP server",
+                    "JsonProcessingException", err, err.getMessage());
+        }
 
         String systemPrompt = "You are a helpful assistant that can answer questions and call tools when needed. If you need to call a tool to fetch more information, be sure to do so.";
 
@@ -166,11 +170,13 @@ public class AWS {
                 // If the response is a tool call, return the tool name and inputs
                 String toolName = toolUseBlock.name();
                 Document toolInputs = toolUseBlock.input();
+
+                Map<String, Object> toolInputsMap = toDocumentMap(toolUseBlock);
                 try {
                     System.out.println(
                             "Model requested tool call: " + toolName + " with inputs: " + toolInputs.toString());
 
-                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputs.toString()));
+                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputsMap));
                 } catch (Exception e) {
                     throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tool inputs",
                             "InvalidToolInputs", e, toolInputs.toString());
@@ -187,5 +193,16 @@ public class AWS {
         System.out.println("Model did not respond with text or tool call.");
         throw ApplicationFailure.newNonRetryableFailure(response.toString(),
                 "UnexpectedModelResponseShape");
+    }
+
+    private static Map<String, Object> toDocumentMap(ToolUseBlock toolUseBlock) {
+        Map<String, Object> objectMap = new java.util.HashMap<>();
+        Map<String, Document> docMap = toolUseBlock
+                .input().asMap();
+        for (Map.Entry<String, Document> entry : docMap
+                .entrySet()) {
+            objectMap.put(entry.getKey(), entry.getValue().toString());
+        }
+        return objectMap;
     }
 }

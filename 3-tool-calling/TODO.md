@@ -6,12 +6,14 @@ First take a look at the `ToolCallingWorkflowImpl.java` file. The `execute` meth
 
 You should run the provided Worker and Client first to see the default behavior.
 
-Run the workflow without modiications first by using the vscode launch configuration for 'Exercise 2 - Worker' and then 'Exercise 2 - Client'. This will start the Temporal worker and client, allowing you to see how the workflow executes with the provided chat history.
+Run the workflow without modifications first by using the vscode launch configuration for 'Exercise 2 - Worker' and then 'Exercise 2 - Client'. This will start the Temporal worker and client, allowing you to see how the workflow executes with the provided chat history.
 
 Take a look at the Temporal Web UI to observe the Workflow executions. You can access it at:
 <http://localhost:8233/namespaces/default/workflows>
 
 Once you have run the default implementation, you can start modifying the code to customize the Tool Calling workflow.
+
+Below are some steps to guide you through the process, but also look for the `TODO_TOOLS` comments in the code to find areas that you might want to modify or enhance.
 
 Using the provided `WeatherTool.java` as an example, create your own tool implementation in the `DefineYourOwnTool.java` file. The TODOs in that file will provide guidance on what to implement.
 

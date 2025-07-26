@@ -16,12 +16,12 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
  */
 public class DefineYourOwnTool {
     public static String execute(Document toolUseInput) {
-        // TODO: Implement the tool execution logic for DefineYourOwnTool
+        // TODO_TOOLS: Implement the tool execution logic for DefineYourOwnTool
         throw new UnsupportedOperationException("This tool is not implemented yet.");
     }
 
     public static Tool getBedrockTool() {
-        // TODO: Implement the tool specification for DefineYourOwnTool
+        // TODO_TOOLS: Implement the tool specification for DefineYourOwnTool
         throw new UnsupportedOperationException("This tool is not implemented yet.");
     }
 }
