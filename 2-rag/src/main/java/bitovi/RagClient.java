@@ -31,17 +31,16 @@ public class RagClient {
 		WorkflowClient temporalClient = TemporalClient.getTemporalClient();
 
 		String uuid = java.util.UUID.randomUUID().toString();
-		String workflowId = "retrieval-augmented-generation-" + uuid;
 
-		WorkflowOptions workflowOptions = WorkflowOptions
+		WorkflowOptions workflowOptionsDocuments = WorkflowOptions
 				.newBuilder()
 				.setTaskQueue(taskQueue)
-				.setWorkflowId(workflowId)
+				.setWorkflowId("document-embedding-" + uuid)
 				.build();
 
 		// Start off by importing the documents into the vector database
 		EmbedWorkflow embedWorkflow = temporalClient
-				.newWorkflowStub(EmbedWorkflow.class, workflowOptions);
+				.newWorkflowStub(EmbedWorkflow.class, workflowOptionsDocuments);
 
 		embedWorkflow.execute(urls);
 
@@ -50,8 +49,14 @@ public class RagClient {
 		// Search for documents and build a prompt based on the search query
 		// TODO_RAG: Enter a search query (e.g., "How do I change my Riot ID?")
 
+		WorkflowOptions workflowOptionsRag = WorkflowOptions
+				.newBuilder()
+				.setTaskQueue(taskQueue)
+				.setWorkflowId("retrieval-augmented-generation-" + uuid)
+				.build();
+
 		RagWorkflow searchWorkflow = temporalClient
-				.newWorkflowStub(RagWorkflow.class, workflowOptions);
+				.newWorkflowStub(RagWorkflow.class, workflowOptionsRag);
 
 		String response = searchWorkflow.execute("How do I change my Riot ID?");
 

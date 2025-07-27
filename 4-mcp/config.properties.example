@@ -21,4 +21,7 @@ TEMPORAL_HOST_PORT=localhost:7233
 TEMPORAL_NAMESPACE=default
 TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
 
+MCP_SERVER_BASE_URL=http://localhost:8090
+MCP_SERVER_SSE_URL=http://localhost:8090/sse
+
 USER_ID=TODO
