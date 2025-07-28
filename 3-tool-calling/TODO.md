@@ -22,3 +22,20 @@ You will also need to update the `AWS.java` file to register your new tool. Look
 You will also need to update the `ActivitiesImpl.java` file to correctly handle the tool call. Look for the TODOs in that file for guidance on what to implement.
 
 Once you have implemented your tool, update the sample chat history in the `ToolCallingWorkflowImpl.java` file to include a question for the model that would require your new tool to be called. This will allow you to test your tool implementation within the workflow.
+
+
+Example of the Weather Tool Input Schema
+```json
+{
+    "type": "object",
+    "properties": {
+        "zipCode": {
+            "type": "string",
+            "description": "The zip code for which to get the weather information."
+        },
+    },
+    "required": ["zipCode"]
+}
+```
+
+The code in the WeatherTool.java is creating an object with this format.
