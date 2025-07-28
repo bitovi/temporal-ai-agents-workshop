@@ -111,7 +111,7 @@ public class AWS {
 
     public static ModelResponse bedrockConverse(List<ChatMessage> history) {
         Config config = new Config();
-        String AWS_MODEL_ARN = config.getProperty("AWS_MODEL_ARN");
+        String AWS_MODEL_ARN = config.getProperty("AWS_MODEL_ID");
         List<Message> messages = new ArrayList<Message>();
 
         // Convert the chat messages to Bedrock's Message format
