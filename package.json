@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "client": "ts-node src/client.ts",
+    "format": "prettier --write \"src/**/*.ts\"",
     "worker": "ts-node src/worker.ts"
   },
   "keywords": [],
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.4",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2"
   }
 }

@@ -17,12 +17,12 @@ export async function helloActivity(): Promise<string> {
     stream: true,
   })
 
-	let response = ''
+  let response = ''
   for await (const chunk of chatResponse) {
     if (chunk.message?.content) {
-			process.stdout.write(chunk.message.content)
-			response += chunk.message.content
+      process.stdout.write(chunk.message.content)
+      response += chunk.message.content
     }
   }
-	return response
+  return response
 }
