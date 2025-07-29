@@ -70,6 +70,7 @@ services:
       - docker-network
     environment:
       - OLLAMA_HOST=0.0.0.0
+    entrypoint: sh -c "ollama serve & sleep 5 && ollama pull gemma3n:e4b && wait"
     healthcheck:
       test: ["CMD-SHELL", "apt update && apt install -y curl && curl --fail http://localhost:11434/api/version || exit 1"]
       interval: 30s
