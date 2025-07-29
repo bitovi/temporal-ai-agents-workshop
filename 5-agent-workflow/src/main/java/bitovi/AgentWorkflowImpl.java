@@ -29,7 +29,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 			// Run the Thought step
 			AWS.ModelResponse thoughtResponse = activities.thought(history);
 
-			history.add(new ChatMessage("user", thoughtResponse.response()));
+			history.add(new ChatMessage("assistant", thoughtResponse.response()));
 
 			// Run the Action step
 			AWS.ModelResponse actionResponse = activities.action(history);
@@ -48,7 +48,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 					}
 
 					// Add the tool call result to the history
-					history.add(new ChatMessage("user",
+					history.add(new ChatMessage("assistant",
 							"Tool: " + modelToolCall.toolName() + ", Inputs: " + modelToolCall.toolInputs()
 									+ ", Result: " + toolResponse.output()));
 				}
@@ -69,7 +69,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 					}
 				}
 
-				history.add(new ChatMessage("user", observationResponse.response()));
+				history.add(new ChatMessage("assistant", observationResponse.response()));
 			}
 		}
 	}

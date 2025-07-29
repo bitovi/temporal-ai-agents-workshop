@@ -120,7 +120,7 @@ public class AWS {
         // Convert the chat messages to Bedrock's Message format
         for (ChatMessage message : history) {
             messages.add(Message.builder()
-                    .role(ConversationRole.fromValue("user"))
+                    .role(ConversationRole.fromValue(message.role()))
                     .content(ContentBlock.fromText(message.content()))
                     .build());
         }
