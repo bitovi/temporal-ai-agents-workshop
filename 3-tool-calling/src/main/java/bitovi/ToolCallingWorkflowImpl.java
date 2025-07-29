@@ -23,7 +23,8 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 	public String execute() {
 		List<ChatMessage> history = new ArrayList<>();
 
-		// TODO_TOOLS: Add whatever parts of the conversation you want to the history to experiment with what tools the model calls.
+		// TODO_TOOLS: Add whatever parts of the conversation you want to the history to
+		// experiment with what tools the model calls.
 		history.add(new ChatMessage("user", "What is the weather in San Francisco?"));
 		history.add(new ChatMessage("assistant",
 				"I'd be happy to check the weather in San Francisco for you, but I need a zip code to look up the weather information. San Francisco has multiple zip codes.\nCould you please provide a specific zip code for San Francisco that you'd like the weather for?"));
@@ -46,9 +47,8 @@ public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 			// The model responded with a tool call, so we need to execute it.
 			ModelToolCall modelToolCall = modelResponse.toolCall();
 			String toolResponse = activities.executeTool(modelToolCall);
-			// REPKA TODO: Is this allowed???
 			history.add(new ChatMessage("assistant",
-					"Tool: " + modelToolCall.toolName() + ", Inputs: " + modelToolCall.toolInputsDocument()
+					"Tool: " + modelToolCall.toolName() + ", Inputs: " + modelToolCall.toolInputs()
 							+ ", Result: " + toolResponse));
 		}
 	}

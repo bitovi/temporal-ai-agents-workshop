@@ -21,7 +21,15 @@ public class WeatherTool {
      * @param toolUseInput
      * @return
      */
-    public static String execute(Document toolUseInput) {
+    public static String execute(String toolName, Map<String, Object> toolUseInput) {
+        System.out.println("Executing WeatherTool with inputs: " + toolUseInput);
+
+        if (toolUseInput == null || !toolUseInput.containsKey("zipCode")) {
+            throw new IllegalArgumentException("Invalid input: 'zipCode' is required.");
+        }
+
+        String zipCode = toolUseInput.get("zipCode").toString();
+        System.out.println("Fetching weather for zip code: " + zipCode);
         return "{\"coord\":{\"lon\":-122.4167,\"lat\":37.7813},\"weather\":[{\"id\":801,\"main\":\"Clouds\",\"description\":\"few clouds\",\"icon\":\"02d\"}],\"base\":\"stations\",\"main\":{\"temp\":291.97,\"feels_like\":291.84,\"temp_min\":289.87,\"temp_max\":295.05,\"pressure\":1012,\"humidity\":74,\"sea_level\":1012,\"grnd_level\":1009},\"visibility\":10000,\"wind\":{\"speed\":6.17,\"deg\":330},\"clouds\":{\"all\":20},\"dt\":1752258201,\"sys\":{\"type\":2,\"id\":2017837,\"country\":\"US\",\"sunrise\":1752238625,\"sunset\":1752291176},\"timezone\":-25200,\"id\":0,\"name\":\"San Francisco\",\"cod\":200}";
     }
 

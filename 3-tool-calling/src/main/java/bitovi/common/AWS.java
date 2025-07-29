@@ -3,6 +3,7 @@ package bitovi.common;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 
@@ -30,7 +31,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 public class AWS {
 
-    public record ModelToolCall(String toolName, String toolInputsDocument) {
+    public record ModelToolCall(String toolName, Map<String, Object> toolInputs) {
 
     }
 
@@ -167,11 +168,14 @@ public class AWS {
                 // If the response is a tool call, return the tool name and inputs
                 String toolName = toolUseBlock.name();
                 Document toolInputs = toolUseBlock.input();
+
+                Map<String, Object> toolInputsMap = toDocumentMap(toolUseBlock);
+
                 try {
                     System.out.println(
                             "Model requested tool call: " + toolName + " with inputs: " + toolInputs.toString());
 
-                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputs.toString()));
+                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputsMap));
                 } catch (Exception e) {
                     throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tool inputs",
                             "InvalidToolInputs", e, toolInputs.toString());
@@ -188,5 +192,16 @@ public class AWS {
         System.out.println("Model did not respond with text or tool call.");
         throw ApplicationFailure.newNonRetryableFailure(response.toString(),
                 "UnexpectedModelResponseShape");
+    }
+
+    private static Map<String, Object> toDocumentMap(ToolUseBlock toolUseBlock) {
+        Map<String, Object> objectMap = new java.util.HashMap<>();
+        Map<String, Document> docMap = toolUseBlock
+                .input().asMap();
+        for (Map.Entry<String, Document> entry : docMap
+                .entrySet()) {
+            objectMap.put(entry.getKey(), entry.getValue().toString());
+        }
+        return objectMap;
     }
 }
