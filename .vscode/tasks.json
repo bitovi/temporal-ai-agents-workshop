@@ -129,7 +129,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/5-agent"
+        "cwd": "${workspaceFolder}/5-agent-workflow"
       },
       "group": {
           "kind": "build",

@@ -91,17 +91,17 @@
             "type": "java",
             "name": "Exercise 5 - Worker",
             "request": "launch",
-            "mainClass": "bitovi.AgentWorker",
-            "projectName": "agent",
-            "cwd": "${workspaceFolder}/5-agent/"
+            "mainClass": "bitovi.AgentWorkflowWorker",
+            "projectName": "agent-workflow",
+            "cwd": "${workspaceFolder}/5-agent-workflow/"
         },
         {
             "type": "java",
             "name": "Exercise 5 - Client",
             "request": "launch",
-            "mainClass": "bitovi.AgentClient",
-            "projectName": "agent",
-            "cwd": "${workspaceFolder}/5-agent/",
+            "mainClass": "bitovi.AgentWorkflowClient",
+            "projectName": "agent-workflow",
+            "cwd": "${workspaceFolder}/5-agent-workflow/",
             "preLaunchTask": "Exercise 5 Maven Build"
         }
     ]
