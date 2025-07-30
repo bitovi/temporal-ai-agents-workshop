@@ -23,7 +23,7 @@ async function main() {
 
   try {
     const handle = await client.workflow.start(agentWorkflow, {
-      args: [],
+      args: ['What clothes should I pack for a two day trip to Denver this weekend?'],
       ...workflowOptions,
     })
 

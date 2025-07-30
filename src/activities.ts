@@ -1,28 +1,132 @@
 import dotenv from 'dotenv'
-import { Ollama } from 'ollama'
+import { OpenAI } from 'openai'
+import {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionMessageToolCall,
+} from 'openai/resources/chat/completions'
+import { toolDefinitions, toolFunctions } from './tools'
+import { z } from 'zod'
+import { zodResponseFormat } from 'openai/helpers/zod'
 
 dotenv.config()
 
-export async function helloActivity(): Promise<string> {
-  const ollama = new Ollama({ host: process.env.OLLAMA_HOST_AND_PORT })
+export type Message = ChatCompletionMessageParam
+type Tool = ChatCompletionTool
 
-  const messages = [
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: 'Tell me a short story about a brave knight.' },
-  ]
+type ModelResponse = {
+  response: string | null
+  toolCall: ChatCompletionMessageToolCall | null
+  done: boolean
+}
 
-  const chatResponse = await ollama.chat({
-    model: 'gemma3n:e4b',
-    messages: messages,
-    stream: true,
+export async function executeToolCall(toolCall: ChatCompletionMessageToolCall): Promise<string> {
+  console.log('Executing tool call:', toolCall)
+  const fn = toolFunctions[toolCall.function.name]
+  if (!fn) {
+    throw new Error(`Tool function ${toolCall.function.name} not found`)
+  }
+  return fn(JSON.parse(toolCall.function.arguments))
+}
+
+export async function thought(history: Message[]): Promise<ModelResponse> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
   })
 
-  let response = ''
-  for await (const chunk of chatResponse) {
-    if (chunk.message?.content) {
-      process.stdout.write(chunk.message.content)
-      response += chunk.message.content
-    }
+  const thoughtPrompt = `
+You are a Reacting and Acting agent. This is the Thought step. You should output a response that reflects your thoughts based on the conversation history.
+You should output the steps that you think will be needed next in order to answer the users question. If you have reached the final answer, you should output the final answer.
+	`
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1',
+    messages: [
+      ...history,
+      {
+        role: 'user',
+        content: thoughtPrompt,
+      },
+    ],
+  })
+  const responseMessage = response.choices[0].message
+
+  return {
+    response: responseMessage.content,
+    done: false,
+    toolCall: null,
   }
-  return response
+}
+
+export async function action(history: Message[]): Promise<ModelResponse> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+
+  const actionPrompt = `
+You are a Reacting and Acting agent. This is the Action step. You should call a tool that will help fetch the information
+needed based on the previous Thought step and conversation history. If you have reached the final answer, you should output the final answer.
+	`
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1',
+    messages: [
+      ...history,
+      {
+        role: 'user',
+        content: actionPrompt,
+      },
+    ],
+    tools: toolDefinitions,
+    tool_choice: 'auto',
+    parallel_tool_calls: false,
+  })
+  const responseMessage = response.choices[0].message
+  const toolCall = responseMessage.tool_calls?.[0] || null
+
+  return {
+    response: '',
+    done: false,
+    toolCall: toolCall,
+  }
+}
+
+export async function observation(history: Message[]): Promise<ModelResponse> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+
+  const observationPrompt = `
+You are a Reacting and Acting agent. This is the Observation step. You should output a response that reflects your observations based
+on the conversation history and the latest tool call result. If you have reached the final answer, you must set the "done" property to true.
+	`
+
+  const completionResponse = await openai.chat.completions.create({
+    model: 'gpt-4.1',
+    messages: [
+      ...history,
+      {
+        role: 'user',
+        content: observationPrompt,
+      },
+    ],
+    response_format: zodResponseFormat(
+      z.object({
+        response: z.string().nullable(),
+        done: z.boolean(),
+      }),
+      'response'
+    ),
+  })
+
+  const responseMessage = completionResponse.choices[0].message
+  const { response, done } = JSON.parse(responseMessage.content || '') as {
+    response: string | null
+    done: boolean
+  }
+
+  return {
+    response,
+    done,
+    toolCall: null,
+  }
 }
