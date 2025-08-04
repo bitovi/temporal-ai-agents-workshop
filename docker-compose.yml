@@ -62,7 +62,7 @@ services:
     container_name: ollama
     image: ollama/ollama:latest
     ports:
-      - 11434:11434
+      - 11435:11434
     restart: always
     volumes:
       - ollama_data:/root/.ollama
@@ -70,7 +70,7 @@ services:
       - docker-network
     environment:
       - OLLAMA_HOST=0.0.0.0
-    entrypoint: sh -c "ollama serve & sleep 5 && ollama pull gemma3n:e4b && wait"
+    entrypoint: sh -c "ollama serve & sleep 5 && ollama pull qwen2.5:14b && wait"
     healthcheck:
       test: ["CMD-SHELL", "apt update && apt install -y curl && curl --fail http://localhost:11434/api/version || exit 1"]
       interval: 30s

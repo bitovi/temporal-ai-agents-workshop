@@ -8,6 +8,7 @@ import {
 import { toolDefinitions, toolFunctions } from './tools'
 import { z } from 'zod'
 import { zodResponseFormat } from 'openai/helpers/zod'
+import { ChatModel } from 'openai/resources'
 
 dotenv.config()
 
@@ -32,6 +33,7 @@ export async function executeToolCall(toolCall: ChatCompletionMessageToolCall): 
 export async function thought(history: Message[]): Promise<ModelResponse> {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_API_BASE,
   })
 
   const thoughtPrompt = `
@@ -39,7 +41,7 @@ You are a Reacting and Acting agent. This is the Thought step. You should output
 You should output the steps that you think will be needed next in order to answer the users question. If you have reached the final answer, you should output the final answer.
 	`
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: process.env.OPENAI_MODEL as ChatModel,
     messages: [
       ...history,
       {
@@ -60,6 +62,7 @@ You should output the steps that you think will be needed next in order to answe
 export async function action(history: Message[]): Promise<ModelResponse> {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_API_BASE,
   })
 
   const actionPrompt = `
@@ -68,7 +71,7 @@ needed based on the previous Thought step and conversation history. If you have 
 	`
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: process.env.OPENAI_MODEL as ChatModel,
     messages: [
       ...history,
       {
@@ -93,6 +96,7 @@ needed based on the previous Thought step and conversation history. If you have 
 export async function observation(history: Message[]): Promise<ModelResponse> {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_API_BASE,
   })
 
   const observationPrompt = `
@@ -101,7 +105,7 @@ on the conversation history and the latest tool call result. If you have reached
 	`
 
   const completionResponse = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: process.env.OPENAI_MODEL as ChatModel,
     messages: [
       ...history,
       {
