@@ -23,7 +23,9 @@ async function main() {
 
   try {
     const handle = await client.workflow.start(agentWorkflow, {
-      args: ['What clothes should I pack for a two day trip to Denver this weekend?'],
+      args: [
+        'First, what is todays date? And then, what is the number of daily League of Legends players? What is the final value if I take that number of players and multiply it by 512?',
+      ],
       ...workflowOptions,
     })
 

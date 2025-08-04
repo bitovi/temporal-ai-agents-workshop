@@ -38,8 +38,10 @@ export async function thought(history: Message[]): Promise<ModelResponse> {
 
   const thoughtPrompt = `
 You are a Reacting and Acting agent. This is the Thought step. You should output a response that reflects your thoughts based on the conversation history.
-You should output the steps that you think will be needed next in order to answer the users question. If you have reached the final answer, you should output the final answer.
-	`
+You should output the steps that you think will be needed next in order to answer the users question.
+
+In the next (Action) step you will have access to the following tools: ${Object.keys(toolDefinitions).join(', ')}. You can take these into account when planning your next steps.
+`
   const response = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL as ChatModel,
     messages: [
@@ -65,10 +67,8 @@ export async function action(history: Message[]): Promise<ModelResponse> {
     baseURL: process.env.OPENAI_API_BASE,
   })
 
-  const actionPrompt = `
-You are a Reacting and Acting agent. This is the Action step. You should call a tool that will help fetch the information
-needed based on the previous Thought step and conversation history. If you have reached the final answer, you should output the final answer.
-	`
+  const actionPrompt = `You are a Reacting and Acting agent. This is the Action step. You should call a tool that will help fetch the information needed based on the previous Thought step and conversation history.
+  You can call one tool at a time.`
 
   const response = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL as ChatModel,
@@ -100,9 +100,9 @@ export async function observation(history: Message[]): Promise<ModelResponse> {
   })
 
   const observationPrompt = `
-You are a Reacting and Acting agent. This is the Observation step. You should output a response that reflects your observations based
-on the conversation history and the latest tool call result. If you have reached the final answer, you must set the "done" property to true.
-	`
+You are a Reacting and Acting agent. This is the Observation step. You should output a response that reflects your observations based on the conversation history and the latest tool call result.
+If you are not confident that the final answer has been determined you should set "done" to false and continue the conversation for another round, this will allow for another planning (Thought) and execution (Action) step.
+If you are confident that you have reached the final answer, you must set the "done" property to true and output the final answer in the "response" property.`
 
   const completionResponse = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL as ChatModel,
