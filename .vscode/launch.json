@@ -7,7 +7,7 @@
             "request": "launch",
             "mainClass": "bitovi.EnvironmentSetupWorker",
             "projectName": "environment-setup",
-            "cwd": "${workspaceFolder}/0-environment-setup/",
+            "cwd": "${workspaceFolder}/0-environment-setup/java/",
             "preLaunchTask": "Exercise 0 Maven Build"
         },
         {
@@ -16,7 +16,7 @@
             "request": "launch",
             "mainClass": "bitovi.EnvironmentSetupClient",
             "projectName": "environment-setup",
-            "cwd": "${workspaceFolder}/0-environment-setup/"
+            "cwd": "${workspaceFolder}/0-environment-setup/java/"
         },
         {
             "type": "java",
@@ -24,7 +24,7 @@
             "request": "launch",
             "mainClass": "bitovi.PromptEngineeringWorker",
             "projectName": "prompt-engineering",
-            "cwd": "${workspaceFolder}/1-prompt-engineering/",
+            "cwd": "${workspaceFolder}/1-prompt-engineering/java/",
             "preLaunchTask": "Exercise 1 Maven Build"
         },
         {
@@ -33,7 +33,7 @@
             "request": "launch",
             "mainClass": "bitovi.PromptEngineeringClient",
             "projectName": "prompt-engineering",
-            "cwd": "${workspaceFolder}/1-prompt-engineering/"
+            "cwd": "${workspaceFolder}/1-prompt-engineering/java/"
         },
         {
             "type": "java",
@@ -41,7 +41,7 @@
             "request": "launch",
             "mainClass": "bitovi.RagWorker",
             "projectName": "rag",
-            "cwd": "${workspaceFolder}/2-rag/",
+            "cwd": "${workspaceFolder}/2-rag/java/",
             "preLaunchTask": "Exercise 2 Maven Build"
         },      
         {
@@ -50,8 +50,8 @@
             "request": "launch",
             "mainClass": "bitovi.RagClient",
             "projectName": "rag",
-            "cwd": "${workspaceFolder}/2-rag/",
-            "args": "${workspaceFolder}/2-rag/documents/"
+            "cwd": "${workspaceFolder}/2-rag/java/",
+            "args": "${workspaceFolder}/2-rag/java/documents/"
         },
         {
             "type": "java",
@@ -59,7 +59,7 @@
             "request": "launch",
             "mainClass": "bitovi.ToolCallingWorker",
             "projectName": "tool-calling",
-            "cwd": "${workspaceFolder}/3-tool-calling/",
+            "cwd": "${workspaceFolder}/3-tool-calling/java/",
             "preLaunchTask": "Exercise 3 Maven Build"
         },
         {
@@ -68,7 +68,7 @@
             "request": "launch",
             "mainClass": "bitovi.ToolCallingClient",
             "projectName": "tool-calling",
-            "cwd": "${workspaceFolder}/3-tool-calling/"
+            "cwd": "${workspaceFolder}/3-tool-calling/java/"
         },
         {
             "type": "java",
@@ -76,7 +76,7 @@
             "request": "launch",
             "mainClass": "bitovi.McpWorker",
             "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/",
+            "cwd": "${workspaceFolder}/4-mcp/java/",
             "preLaunchTask": "Exercise 4 Maven Build"
         },
         {
@@ -85,7 +85,7 @@
             "request": "launch",
             "mainClass": "bitovi.McpClient",
             "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/"
+            "cwd": "${workspaceFolder}/4-mcp/java/"
         },
         {
             "type": "java",
@@ -93,7 +93,7 @@
             "request": "launch",
             "mainClass": "bitovi.AgentWorkflowWorker",
             "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/"
+            "cwd": "${workspaceFolder}/5-agent-workflow/java/"
         },
         {
             "type": "java",
@@ -101,7 +101,7 @@
             "request": "launch",
             "mainClass": "bitovi.AgentWorkflowClient",
             "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/",
+            "cwd": "${workspaceFolder}/5-agent-workflow/java/",
             "preLaunchTask": "Exercise 5 Maven Build"
         }
     ]

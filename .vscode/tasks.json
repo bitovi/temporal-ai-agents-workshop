@@ -59,7 +59,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/0-environment-setup"
+        "cwd": "${workspaceFolder}/0-environment-setup/java"
       },
       "group": {
           "kind": "build",
@@ -73,7 +73,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/1-prompt-engineering"
+        "cwd": "${workspaceFolder}/1-prompt-engineering/java"
       },
       "group": {
           "kind": "build",
@@ -87,7 +87,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/2-rag"
+        "cwd": "${workspaceFolder}/2-rag/java"
       },
       "group": {
           "kind": "build",
@@ -101,7 +101,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/3-tool-calling"
+        "cwd": "${workspaceFolder}/3-tool-calling/java"
       },
       "group": {
           "kind": "build",
@@ -115,7 +115,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/4-mcp"
+        "cwd": "${workspaceFolder}/4-mcp/java"
       },
       "group": {
           "kind": "build",
@@ -129,7 +129,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/5-agent-workflow"
+        "cwd": "${workspaceFolder}/5-agent-workflow/java"
       },
       "group": {
           "kind": "build",

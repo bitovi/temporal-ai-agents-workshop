@@ -39,7 +39,25 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
+  postgres:
+    container_name: postgres-db
+    image: postgres:14-bookworm
+    command: postgres -c 'max_connections=200'
+    networks:
+      - docker-network    
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_PASSWORD=dbpassword
+      - POSTGRES_USER=dbuser
+      - POSTGRES_DB=workshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbuser -d workshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   mock-mcp-server-ts:
     container_name: mock-mcp-server-ts
     build:
