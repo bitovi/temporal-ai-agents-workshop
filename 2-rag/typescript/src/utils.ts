@@ -33,3 +33,8 @@ export const getTemporalClientOptions = (): TemporalClientOptions => {
 
   return temporalClientOptions
 }
+
+export function documentChunksToString(chunks: string[]): string {
+  const documents: string = chunks.map((chunk) => `<chunk>\n${chunk}\n</chunk>`).join('\n')
+  return `<documents>\n${documents}\n</documents>`
+}

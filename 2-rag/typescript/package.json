@@ -13,6 +13,7 @@
     "author": "Mark Repka",
     "license": "ISC",
     "dependencies": {
+        "@qdrant/js-client-rest": "^1.15.0",
         "@temporalio/activity": "^1.12.1",
         "@temporalio/client": "^1.12.1",
         "@temporalio/worker": "^1.12.1",

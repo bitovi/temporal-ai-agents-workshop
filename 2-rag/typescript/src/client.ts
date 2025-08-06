@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import { Connection, Client } from '@temporalio/client'
 import { v4 as uuidv4 } from 'uuid'
 import { getTemporalClientOptions } from './utils'
-import { environmentSetupWorkflow } from './workflows'
+import { retrievalAugmentedGenerationWorkflow, documentEmbeddingWorkflow } from './workflows'
 
 dotenv.config()
 
@@ -14,17 +14,20 @@ async function main() {
     namespace: process.env.TEMPORAL_NAMESPACE,
   })
 
-  const workflowId = `${uuidv4()}`
+  documentEmbedding(client)
+  retrievalAugmentedGeneration(client, 'How do I change my account id?')
+}
 
-  const workflowOptions = {
-    taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
-    workflowId: workflowId,
-  }
-
+async function retrievalAugmentedGeneration(client: Client, query: string) {
   try {
-    const handle = await client.workflow.start(environmentSetupWorkflow, {
-      args: [],
-      ...workflowOptions,
+    const handle = await client.workflow.start(retrievalAugmentedGenerationWorkflow, {
+      args: [
+        {
+          query: query,
+        },
+      ],
+      taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
+      workflowId: `retrieval-augmented-generation-${uuidv4()}`,
     })
 
     console.log('Workflow started with ID: %s', handle.workflowId)
@@ -32,6 +35,34 @@ async function main() {
     const result: string = await handle.result()
 
     console.log(`Response: ${result}`)
+  } catch (error: any) {
+    console.error('Error executing workflow:', error)
+    process.exit(1)
+  }
+}
+
+async function documentEmbedding(client: Client) {
+  try {
+    const handle = await client.workflow.start(documentEmbeddingWorkflow, {
+      args: [
+        {
+          urls: [
+            'policies/Account-Deactivation-and-Deletion.txt',
+            'policies/Account-Transfer.txt',
+            'policies/Changing-Your-Riot-ID.txt',
+            'policies/Protecting-Your-Account.txt',
+            'policies/Requesting-Your-Account-Data.txt',
+          ],
+        },
+      ],
+      taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
+      workflowId: `document-embedding-${uuidv4()}`,
+    })
+
+    console.log('Workflow started with ID: %s', handle.workflowId)
+
+    await handle.result()
+    console.log(`Response: Document embedding completed successfully`)
   } catch (error: any) {
     console.error('Error executing workflow:', error)
     process.exit(1)
