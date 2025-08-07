@@ -22,7 +22,7 @@ export async function checkPostgresConnection(): Promise<void> {
 export async function checkQdrantConnection(): Promise<void> {
   const client = new QdrantClient({
     host: process.env.QDRANT_HOST,
-    port: Number.parseInt(process.env.QDRANT_PORT ?? '6333'),
+    port: Number.parseInt(process.env.QDRANT_PORT_HTTP ?? '6333'),
   })
 
   await client.getCollections()

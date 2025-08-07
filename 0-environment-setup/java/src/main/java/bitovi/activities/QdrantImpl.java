@@ -13,13 +13,12 @@ public class QdrantImpl implements Qdrant {
 		Config config = new Config();
 
 		String QDRANT_HOST = config.getProperty("QDRANT_HOST");
-		String QDRANT_PORT = config.getProperty("QDRANT_PORT");
+		String QDRANT_PORT_GRPC = config.getProperty("QDRANT_PORT_GRPC");
 		QdrantClient client = null;
 
 		try {
 			client = new QdrantClient(
-					QdrantGrpcClient.newBuilder(QDRANT_HOST, Integer.parseInt(QDRANT_PORT), false)
-							// .withApiKey(QDRANT_PORT)
+					QdrantGrpcClient.newBuilder(QDRANT_HOST, Integer.parseInt(QDRANT_PORT_GRPC), false)
 							.build());
 
 			client.listCollectionsAsync().get();

@@ -47,7 +47,7 @@ public class VectorDatabaseClient {
     private VectorDatabaseClient() throws InterruptedException, ExecutionException {
         Config config = new Config();
         String qdrantHost = config.getProperty("QDRANT_HOST");
-        Integer qdrantPort = config.getIntegerProperty("QDRANT_PORT");
+        Integer qdrantPort = config.getIntegerProperty("QDRANT_PORT_GRPC");
 
         // Initialize the Qdrant client with the configuration
         QdrantGrpcClient grpc = QdrantGrpcClient.newBuilder(qdrantHost, qdrantPort, false)

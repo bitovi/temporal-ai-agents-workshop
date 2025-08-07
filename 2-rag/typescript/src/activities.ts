@@ -15,7 +15,7 @@ export async function semanticSearchDocuments(
   threshold: number
 ): Promise<string[]> {
   const client = new QdrantClient({
-    url: `http://${process.env.QDRANT_HOST}:${process.env.QDRANT_PORT}`,
+    url: `http://${process.env.QDRANT_HOST}:${process.env.QDRANT_PORT_HTTP}`,
   })
 
   const results = await client.search(COLLECTION_NAME, {
@@ -81,7 +81,7 @@ export async function embeddingsRequest(input: string): Promise<number[]> {
 
 export async function validateQdrantCollection(): Promise<void> {
   const client = new QdrantClient({
-    url: `http://${process.env.QDRANT_HOST}:${process.env.QDRANT_PORT}`,
+    url: `http://${process.env.QDRANT_HOST}:${process.env.QDRANT_PORT_HTTP}`,
   })
 
   try {

@@ -11,7 +11,9 @@ public class PostgresImpl implements Postgres {
 	@Override
 	public void checkPostgresConnection() throws ApplicationFailure {
 		Config config = new Config();
-		String POSTGRES_JDBC_CONNECTION_STRING = config.getProperty("POSTGRES_JDBC_CONNECTION_STRING");
+		String POSTGRES_HOST = config.getProperty("POSTGRES_HOST");
+		String POSTGRES_PORT = config.getProperty("POSTGRES_PORT");
+		String POSTGRES_DATABASE = config.getProperty("POSTGRES_DATABASE");
 		String POSTGRES_USERNAME = config.getProperty("POSTGRES_USERNAME");
 		String POSTGRES_PASSWORD = config.getProperty("POSTGRES_PASSWORD");
 		Connection connection = null;
@@ -20,7 +22,7 @@ public class PostgresImpl implements Postgres {
 			Class.forName("org.postgresql.Driver");
 
 			connection = DriverManager.getConnection(
-					POSTGRES_JDBC_CONNECTION_STRING,
+					"jdbc:postgresql://" + POSTGRES_HOST + ":" + POSTGRES_PORT + "/" + POSTGRES_DATABASE,
 					POSTGRES_USERNAME,
 					POSTGRES_PASSWORD);
 
