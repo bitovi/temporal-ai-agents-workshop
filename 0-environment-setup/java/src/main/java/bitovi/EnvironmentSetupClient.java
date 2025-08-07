@@ -1,6 +1,11 @@
 package bitovi;
 
 import bitovi.common.TemporalClient;
+
+import java.io.FileNotFoundException;
+
+import javax.net.ssl.SSLException;
+
 import bitovi.common.Config;
 
 import io.temporal.client.WorkflowClient;
@@ -8,7 +13,7 @@ import io.temporal.client.WorkflowOptions;
 
 public class EnvironmentSetupClient {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SSLException, FileNotFoundException {
 		Config config = new Config();
 		String taskQueue = config.getProperty("TEMPORAL_TASK_QUEUE");
 
