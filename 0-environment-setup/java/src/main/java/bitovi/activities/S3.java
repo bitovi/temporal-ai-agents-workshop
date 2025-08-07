@@ -8,5 +8,5 @@ import io.temporal.failure.ApplicationFailure;
 public interface S3 {
 
 	@ActivityMethod
-	void checkS3Connection() throws ApplicationFailure;
+	String checkS3Connection() throws ApplicationFailure;
 }

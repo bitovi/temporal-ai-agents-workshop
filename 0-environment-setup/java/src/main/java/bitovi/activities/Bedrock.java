@@ -8,5 +8,5 @@ import io.temporal.failure.ApplicationFailure;
 public interface Bedrock {
 
 	@ActivityMethod
-	void checkBedrockConnection() throws ApplicationFailure;
+	String checkBedrockConnection() throws ApplicationFailure;
 }

@@ -1,7 +1,11 @@
 package bitovi.common;
 
+import java.util.Collections;
+
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
+import io.temporal.common.converter.CodecDataConverter;
+import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 
@@ -19,6 +23,11 @@ public class TemporalClient {
 		WorkflowServiceStubs service = WorkflowServiceStubs.newServiceStubs(serviceOptions);
 		WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder()
 				.setNamespace(temporalNamespace)
+				// Use CodecDataConverter to add custom payload codec, as an example
+				.setDataConverter(
+						new CodecDataConverter(
+								DefaultDataConverter.newDefaultInstance(),
+								Collections.singletonList(new ExamplePayloadCodec())))
 				.build();
 
 		WorkflowClient client = WorkflowClient.newInstance(service, clientOptions);

@@ -8,5 +8,5 @@ import io.temporal.failure.ApplicationFailure;
 public interface Qdrant {
 
 	@ActivityMethod
-	void checkQdrantConnection() throws ApplicationFailure;
+	String checkQdrantConnection() throws ApplicationFailure;
 }

@@ -11,7 +11,7 @@ import software.amazon.awssdk.regions.Region;
 public class S3Impl implements S3 {
 
 	@Override
-	public void checkS3Connection() throws ApplicationFailure {
+	public String checkS3Connection() throws ApplicationFailure {
 		Config config = new Config();
 
 		String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
@@ -48,5 +48,7 @@ public class S3Impl implements S3 {
 		} finally {
 
 		}
+
+		return "S3 connection successful.";
 	}
 }

@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutionException;
 public class QdrantImpl implements Qdrant {
 
 	@Override
-	public void checkQdrantConnection() throws ApplicationFailure {
+	public String checkQdrantConnection() throws ApplicationFailure {
 		Config config = new Config();
 
 		String QDRANT_HOST = config.getProperty("QDRANT_HOST");
@@ -35,5 +35,7 @@ public class QdrantImpl implements Qdrant {
 				client.close();
 			}
 		}
+
+		return "Qdrant connection successful.";
 	}
 }

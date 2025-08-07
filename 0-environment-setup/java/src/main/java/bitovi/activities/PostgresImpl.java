@@ -9,7 +9,7 @@ import java.sql.SQLException;
 public class PostgresImpl implements Postgres {
 
 	@Override
-	public void checkPostgresConnection() throws ApplicationFailure {
+	public String checkPostgresConnection() throws ApplicationFailure {
 		Config config = new Config();
 		String POSTGRES_HOST = config.getProperty("POSTGRES_HOST");
 		String POSTGRES_PORT = config.getProperty("POSTGRES_PORT");
@@ -47,5 +47,7 @@ public class PostgresImpl implements Postgres {
 				}
 			}
 		}
+
+		return "Postgres connection successful.";
 	}
 }

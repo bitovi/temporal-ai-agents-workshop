@@ -8,5 +8,5 @@ import io.temporal.failure.ApplicationFailure;
 public interface Postgres {
 
 	@ActivityMethod
-	void checkPostgresConnection() throws ApplicationFailure;
+	String checkPostgresConnection() throws ApplicationFailure;
 }

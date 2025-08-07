@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 
 public class BedrockImpl implements Bedrock {
 	@Override
-	public void checkBedrockConnection() throws ApplicationFailure {
+	public String checkBedrockConnection() throws ApplicationFailure {
 		Config config = new Config();
 
 		String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
@@ -30,9 +30,9 @@ public class BedrockImpl implements Bedrock {
 		String AWS_MODEL_ID = config.getProperty("AWS_MODEL_ID");
 		String AWS_EMBEDDING_MODEL_ID = config.getProperty("AWS_EMBEDDING_MODEL_ID");
 
-		try {
-			StaticCredentialsProvider credentialsProvider;
+		StaticCredentialsProvider credentialsProvider;
 
+		try {
 			if (AWS_SESSION_TOKEN == null || AWS_SESSION_TOKEN.isEmpty()) {
 				credentialsProvider = StaticCredentialsProvider.create(
 						AwsBasicCredentials.create(
@@ -45,12 +45,27 @@ public class BedrockImpl implements Bedrock {
 								AWS_SECRET_ACCESS_KEY,
 								AWS_SESSION_TOKEN));
 			}
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to create AWS credentials: " + e.getMessage(),
+					"AWSCredentialsError");
+		}
 
-			BedrockRuntimeClient bedrockRuntimeClient = BedrockRuntimeClient.builder()
+		BedrockRuntimeClient bedrockRuntimeClient;
+
+		try {
+			bedrockRuntimeClient = BedrockRuntimeClient.builder()
 					.credentialsProvider(credentialsProvider)
 					.region(Region.of(AWS_REGION))
 					.build();
 
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to create Bedrock client: " + e.getMessage(),
+					"BedrockClientError");
+		}
+
+		try {
 			ConverseRequest converseRequest = ConverseRequest.builder()
 					.modelId(AWS_MODEL_ID)
 					.messages(Message.builder()
@@ -63,7 +78,13 @@ public class BedrockImpl implements Bedrock {
 							.build())
 					.build();
 			bedrockRuntimeClient.converse(converseRequest);
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to converse with Bedrock: " + e.getMessage(),
+					"BedrockError");
+		}
 
+		try {
 			InvokeModelRequest embedRequest = InvokeModelRequest.builder()
 					.modelId(AWS_EMBEDDING_MODEL_ID)
 					.contentType("application/json")
@@ -72,10 +93,13 @@ public class BedrockImpl implements Bedrock {
 							.put("inputText", "Hello").toString()))
 					.build();
 			bedrockRuntimeClient.invokeModel(embedRequest);
+
 		} catch (Exception e) {
 			throw ApplicationFailure.newNonRetryableFailure(
-					"Failed to connect to Bedrock: " + e.getMessage(),
+					"Failed to embed with Bedrock: " + e.getMessage(),
 					"BedrockError");
 		}
+
+		return "Bedrock connection successful.";
 	}
 }
