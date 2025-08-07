@@ -10,11 +10,13 @@ import bitovi.common.AWS.ChatMessage;
 import bitovi.common.AWS.ModelToolCall;
 import io.temporal.workflow.Workflow;
 import io.temporal.activity.ActivityOptions;
+import io.temporal.common.RetryOptions;
 
 public class ToolCallingWorkflowImpl implements ToolCallingWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
 			.setStartToCloseTimeout(Duration.ofSeconds(120))
+			.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())			
 			.build();
 
 	private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);

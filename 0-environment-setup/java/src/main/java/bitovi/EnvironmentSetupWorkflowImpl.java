@@ -8,11 +8,13 @@ import bitovi.activities.S3;
 import bitovi.activities.Qdrant;
 import io.temporal.workflow.Workflow;
 import io.temporal.activity.ActivityOptions;
+import io.temporal.common.RetryOptions;
 
 public class EnvironmentSetupWorkflowImpl implements EnvironmentSetupWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
 			.setStartToCloseTimeout(Duration.ofSeconds(120))
+			.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
 			.build();
 
 	private final Bedrock bedrockActivities = Workflow.newActivityStub(Bedrock.class, defaultActivityOptions);
