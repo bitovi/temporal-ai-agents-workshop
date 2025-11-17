@@ -12,14 +12,14 @@ import io.temporal.failure.ApplicationFailure;
 public interface Activities {
 
 	@ActivityMethod
-	AWS.ModelResponse thought(List<AWS.ChatMessage> history) throws ApplicationFailure;
+	ThoughtResponse thought(String query, List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	AWS.ModelResponse action(List<AWS.ChatMessage> history) throws ApplicationFailure;
+	ActionResponse action(String name, Object inputs) throws ApplicationFailure;
 
 	@ActivityMethod
-	AWS.ModelResponse observation(List<AWS.ChatMessage> history) throws ApplicationFailure;
+	ObservationResponse observation(String query, List<String> context, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
-	AWS.ToolResult executeTool(ModelToolCall toolCall) throws ApplicationFailure;
+	CompactResponse compact(String query, List<String> context) throws ApplicationFailure;
 }
