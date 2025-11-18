@@ -7,12 +7,14 @@
         "client": "ts-node src/client.ts",
         "format": "prettier --write \"src/**/*.ts\"",
         "worker": "ts-node src/worker.ts",
-        "build": "tsc --noEmit"
+        "build": "tsc --noEmit",
+        "test": "ts-node src/test.ts"
     },
     "keywords": [],
     "author": "Mark Repka",
     "license": "ISC",
     "dependencies": {
+        "@aws-sdk/client-bedrock-agentcore": "^3.933.0",
         "@temporalio/activity": "^1.12.1",
         "@temporalio/client": "^1.12.1",
         "@temporalio/worker": "^1.12.1",

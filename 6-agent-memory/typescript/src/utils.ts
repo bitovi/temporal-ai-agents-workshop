@@ -1,3 +1,12 @@
+import {
+  BedrockAgentCoreClient,
+  CreateEventCommand,
+  CreateEventCommandInput,
+  CreateEventCommandOutput,
+  ListMemoryRecordsCommand,
+  ListMemoryRecordsCommandOutput,
+} from '@aws-sdk/client-bedrock-agentcore'
+
 interface TemporalClientOptions {
   address: string
   tls?: {
@@ -32,4 +41,37 @@ export const getTemporalClientOptions = (): TemporalClientOptions => {
   }
 
   return temporalClientOptions
+}
+
+export const getAWSBedrockCoreClient = () => {
+  return new BedrockAgentCoreClient({
+    region: process.env.AWS_REGION!,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      sessionToken: process.env.AWS_SESSION_TOKEN!,
+    },
+  })
+}
+
+export const createBedrockEvent = async (
+  input: CreateEventCommandInput
+): Promise<CreateEventCommandOutput> => {
+  const client = getAWSBedrockCoreClient()
+  const command = new CreateEventCommand(input)
+  const response = await client.send(command)
+  return response
+}
+
+export async function listMemoryRecordsCommand(
+  namespace: string
+): Promise<ListMemoryRecordsCommandOutput> {
+  const client = getAWSBedrockCoreClient()
+  const command = new ListMemoryRecordsCommand({
+    memoryId: process.env.AWS_BEDROCK_MEMORY_ID!,
+    namespace,
+    maxResults: 10,
+  })
+  const response = await client.send(command)
+  return response
 }

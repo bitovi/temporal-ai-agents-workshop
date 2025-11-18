@@ -1,13 +1,7 @@
 import { proxyActivities } from '@temporalio/workflow'
 import type * as activities from './activities'
 
-const {
-  checkBedrockConnection,
-  checkQdrantConnection,
-  checkS3Connection,
-  checkOpenAIConnection,
-  checkPostgresConnection,
-} = proxyActivities<typeof activities>({
+const { checkBedrockConnection } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
   retry: {
     backoffCoefficient: 1,
@@ -18,10 +12,5 @@ const {
 
 export async function environmentSetupWorkflow(): Promise<string> {
   await checkBedrockConnection()
-  await checkOpenAIConnection()
-  await checkPostgresConnection()
-  await checkQdrantConnection()
-  await checkS3Connection()
-
   return 'Success'
 }
