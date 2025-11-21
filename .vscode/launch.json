@@ -103,6 +103,23 @@
             "projectName": "agent-workflow",
             "cwd": "${workspaceFolder}/5-agent-workflow/java/",
             "preLaunchTask": "Exercise 5 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 6 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentMemoryWorker",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/6-agent-memory/java/"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 6 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentMemoryClient",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/6-agent-memory/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
         }
     ]
 }

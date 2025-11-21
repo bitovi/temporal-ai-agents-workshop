@@ -62,8 +62,8 @@
         "cwd": "${workspaceFolder}/0-environment-setup/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -76,8 +76,8 @@
         "cwd": "${workspaceFolder}/1-prompt-engineering/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -90,8 +90,8 @@
         "cwd": "${workspaceFolder}/2-rag/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -104,8 +104,8 @@
         "cwd": "${workspaceFolder}/3-tool-calling/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -118,8 +118,8 @@
         "cwd": "${workspaceFolder}/4-mcp/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -132,8 +132,22 @@
         "cwd": "${workspaceFolder}/5-agent-workflow/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn compile"
+    },
+    {
+      "label": "Exercise 6 Maven Build",
+      "type": "shell",
+      "command": "mvn compile",
+      "options": {
+        "cwd": "${workspaceFolder}/6-agent-memory/java"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
