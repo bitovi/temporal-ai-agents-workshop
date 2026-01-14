@@ -1,3 +1,5 @@
+package bitovi.activities.DTO;
+
 public class Action {
 
     private String name;

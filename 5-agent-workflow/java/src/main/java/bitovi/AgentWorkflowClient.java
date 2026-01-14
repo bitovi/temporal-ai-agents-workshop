@@ -27,7 +27,7 @@ public class AgentWorkflowClient {
 		AgentWorkflow workflow = temporalClient
 				.newWorkflowStub(AgentWorkflow.class, workflowOptions);
 
-		String response = workflow.execute("What is the weather in San Francisco? ZIP Code 94102");
+		String response = workflow.execute();
 
 		System.out.println("Workflow Executed: " + response);
 	}

@@ -2,8 +2,10 @@ package bitovi.activities;
 
 import java.util.List;
 
-import bitovi.common.AWS;
-import bitovi.common.AWS.ModelToolCall;
+import bitovi.activities.DTO.ActionResponse;
+import bitovi.activities.DTO.CompactResponse;
+import bitovi.activities.DTO.ObservationResponse;
+import bitovi.activities.DTO.ThoughtResponse;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;

@@ -1,3 +1,5 @@
+package bitovi.activities.DTO;
+
 public class ThoughtResponse {
 
     private String thought;
@@ -21,3 +23,5 @@ public class ThoughtResponse {
     public String getAnswer() {
         return answer;
     }
+
+}
