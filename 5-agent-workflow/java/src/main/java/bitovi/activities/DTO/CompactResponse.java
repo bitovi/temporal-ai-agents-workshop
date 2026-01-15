@@ -1,5 +1,11 @@
 package bitovi.activities.DTO;
 
-public class CompactResponse {
-    
+import java.util.List;
+
+import bitovi.UsageMetadata;
+
+public record CompactResponse(
+	List<String> context,
+	UsageMetadata usage
+) {
 }

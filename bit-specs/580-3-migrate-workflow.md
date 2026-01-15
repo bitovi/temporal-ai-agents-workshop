@@ -16,7 +16,7 @@ Migrate the agent workflow from [temp-ref-code/src/workflows/workflow.ts](../tem
 ## Context
 
 The TypeScript reference workflow in [temp-ref-code/src/workflows/workflow.ts](../temp-ref-code/src/workflows/workflow.ts) is a conversational agent that:
-- Uses two signals: `agentEntityWorkflowMessageSignal` for incoming messages and `agentEntityWorkflowExitSignal` to terminate
+- Uses two signals: `agentWorkflowMessageSignal` for incoming messages and `agentWorkflowExitSignal` to terminate
 - Maintains state including context history, usage metrics, and pending messages
 - Implements an event loop that waits for messages, processes them through activities, and continues
 - Uses five activities: `thoughtEntity`, `actionEntity`, `observationEntity`, `compactEntity`, and `persistEntity`
@@ -52,8 +52,8 @@ The Java implementation at [AgentWorkflowImpl.java](../5-agent-workflow/java/src
 **Actions:**
 - Update [AgentWorkflow.java](../5-agent-workflow/java/src/main/java/bitovi/AgentWorkflow.java):
   - Change method signature from `String execute()` to `WorkflowResult execute(WorkflowInput input)`
-  - Add `@SignalMethod(name = "agentEntityWorkflowMessage")` for `receiveMessage(MessagePayload payload)` - Must match TypeScript signal name for interoperability
-  - Add `@SignalMethod(name = "agentEntityWorkflowExit")` for `requestExit()` - Must match TypeScript signal name for interoperability
+  - Add `@SignalMethod(name = "agentWorkflowMessage")` for `receiveMessage(MessagePayload payload)` - Must match TypeScript signal name for interoperability
+  - Add `@SignalMethod(name = "agentWorkflowExit")` for `requestExit()` - Must match TypeScript signal name for interoperability
 - Create DTOs as Java records in separate files in the same package:
   - `WorkflowInput` record with `ContinueAsNewState continueAsNew` (nullable - use plain nullable references for simplicity)
   - `ContinueAsNewState` record with: `List<String> context`, `List<UsageMetadata> usage`, `List<MessagePayload> pending`
@@ -65,7 +65,7 @@ The Java implementation at [AgentWorkflowImpl.java](../5-agent-workflow/java/src
 **How to verify:**
 - Code compiles without errors
 - Interface follows Temporal Java SDK conventions for workflow methods and signals
-- Matches the TypeScript interface structure: `AgentEntityWorkflowInput` and `AgentEntityWorkflowMessagePayload`
+- Matches the TypeScript interface structure: `AgentWorkflowInput` and `AgentWorkflowMessagePayload`
 
 ### Step 2: Update Activities Interface
 
@@ -201,7 +201,7 @@ The Java implementation at [AgentWorkflowImpl.java](../5-agent-workflow/java/src
 **How to verify:**
 - Continue-as-new logic compiles
 - State preservation includes context, usage, and pending messages
-- Logic matches TypeScript `continueAsNew<typeof agentEntityWorkflow>()` call
+- Logic matches TypeScript `continueAsNew<typeof agentWorkflow>()` call
 
 ### Step 7: Implement Usage Tracking
 

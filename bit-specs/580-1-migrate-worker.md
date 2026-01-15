@@ -125,7 +125,7 @@ The worker itself is complete, but we need to:
 **Goal:** Ensure structural alignment with TypeScript worker
 
 **Actions:**
-- Verify the TypeScript reference implementation ([workflow.ts](../temp-ref-code/src/workflows/workflow.ts)) has only one workflow: `agentEntityWorkflow`
+- Verify the TypeScript reference implementation ([workflow.ts](../temp-ref-code/src/workflows/workflow.ts)) has only one workflow: `agentWorkflow`
 - Confirm AgentWorkflowWorker.java registers only `AgentWorkflowImpl.class`
 - Compare with Exercise 2 (RagWorker) which registers multiple workflows - note this is intentionally different
 - Ensure no additional workflow types are registered
@@ -179,7 +179,7 @@ Based on answers to requirements questions:
 
 3. **Metrics & Monitoring**: No custom metrics, health checks, or monitoring required beyond default Temporal SDK behavior.
 
-4. **Workflow Types**: Worker registers only `AgentWorkflow` (single workflow type). The TypeScript reference has one workflow (`agentEntityWorkflow`). This differs from Exercise 2 which has multiple workflow types.
+4. **Workflow Types**: Worker registers only `AgentWorkflow` (single workflow type). The TypeScript reference has one workflow (`agentWorkflow`). This differs from Exercise 2 which has multiple workflow types.
 
 5. **Concurrency**: Use default Temporal SDK concurrency settings. Follow the pattern from other Java exercises (0-4) - no explicit concurrency limits configured.
 

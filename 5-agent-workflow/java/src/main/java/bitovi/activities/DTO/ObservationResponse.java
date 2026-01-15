@@ -1,5 +1,9 @@
 package bitovi.activities.DTO;
 
-public class ObservationResponse {
-    
+import bitovi.UsageMetadata;
+
+public record ObservationResponse(
+	String observations,
+	UsageMetadata usage
+) {
 }

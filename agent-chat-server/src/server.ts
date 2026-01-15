@@ -17,9 +17,9 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-const WORKFLOW_NAME = 'agentEntityWorkflow';
-const MESSAGE_SIGNAL = 'agentEntityWorkflowMessage';
-const EXIT_SIGNAL = 'agentEntityWorkflowExit';
+const WORKFLOW_NAME = 'AgentWorkflow';
+const MESSAGE_SIGNAL = 'agentWorkflowMessage';
+const EXIT_SIGNAL = 'agentWorkflowExit';
 
 const workflowSessions: Map<string, any> = new Map();
 let connection: any;
@@ -42,8 +42,8 @@ app.post('/api/conversations', async (req, res) => {
     const conversationId = randomUUID();
     const handle = await client.workflow.start(WORKFLOW_NAME, {
       args: [{}],
-      taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
-      workflowId: `entity-workflow-${conversationId}`,
+      taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'bitovi-ai-agents-workshop',
+      workflowId: `agent-workflow-${conversationId}`,
     });
     workflowSessions.set(conversationId, handle);
     res.json({ conversationId, workflowId: handle.workflowId });

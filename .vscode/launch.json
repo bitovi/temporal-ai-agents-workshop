@@ -93,7 +93,8 @@
             "request": "launch",
             "mainClass": "bitovi.AgentWorkflowWorker",
             "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/java/"
+            "cwd": "${workspaceFolder}/5-agent-workflow/java/",
+            "preLaunchTask": "Exercise 5 Maven Build"
         },
         {
             "type": "java",

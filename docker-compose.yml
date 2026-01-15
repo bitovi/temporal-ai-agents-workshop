@@ -32,7 +32,7 @@ services:
     environment:
       - TEMPORAL_HOST_PORT=temporal-dev-server:7233
       - TEMPORAL_NAMESPACE=default
-      - TEMPORAL_TASK_QUEUE=agent-queue
+      - TEMPORAL_TASK_QUEUE=bitovi-ai-agents-workshop
       - PORT=3000
     networks:
       - docker-network

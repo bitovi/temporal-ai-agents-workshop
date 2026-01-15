@@ -2,9 +2,9 @@ package bitovi.activities;
 
 import java.util.List;
 
-import bitovi.activities.DTO.ActionResponse;
 import bitovi.activities.DTO.CompactResponse;
 import bitovi.activities.DTO.ObservationResponse;
+import bitovi.activities.DTO.PersistMessage;
 import bitovi.activities.DTO.ThoughtResponse;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
@@ -12,16 +12,18 @@ import io.temporal.failure.ApplicationFailure;
 
 @ActivityInterface
 public interface Activities {
+	@ActivityMethod
+	ThoughtResponse thoughtEntity(List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	ThoughtResponse thought(String query, List<String> context) throws ApplicationFailure;
+	String actionEntity(String toolName, Object input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ActionResponse action(String name, Object inputs) throws ApplicationFailure;
+	ObservationResponse observationEntity(List<String> context, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observation(String query, List<String> context, String actionResult) throws ApplicationFailure;
+	CompactResponse compactEntity(List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	CompactResponse compact(String query, List<String> context) throws ApplicationFailure;
+	void persistEntity(List<PersistMessage> messages) throws ApplicationFailure;
 }

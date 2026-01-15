@@ -112,9 +112,9 @@ const taskQueue = process.env.TEMPORAL_TASK_QUEUE || 'agent-queue';
 // Replace workflow imports with string constants
 // These names match the temp-ref-code TypeScript implementation
 // Note: Java signal handlers will be implemented in future exercises
-const WORKFLOW_NAME = 'agentEntityWorkflow';
-const MESSAGE_SIGNAL = 'agentEntityWorkflowMessage';
-const EXIT_SIGNAL = 'agentEntityWorkflowExit';
+const WORKFLOW_NAME = 'agentWorkflow';
+const MESSAGE_SIGNAL = 'agentWorkflowMessage';
+const EXIT_SIGNAL = 'agentWorkflowExit';
 ```
 
 **Verification:**
@@ -297,7 +297,7 @@ Test the server is working correctly:
 
 1. **Access the UI:**
    - Open browser to `http://localhost:3000`
-   - Should see "Agent Entity Workflow" interface
+   - Should see "Agent Workflow" interface
    - Status should show "✓ Connected to event stream"
 
 2. **Test REST endpoints:**
@@ -396,9 +396,9 @@ Remove or archive `temp-ref-code/` if no longer needed:
 
 ### Workflow Compatibility
 This server uses workflow and signal names from the `temp-ref-code` TypeScript implementation:
-- `agentEntityWorkflow`
-- `agentEntityWorkflowMessage`
-- `agentEntityWorkflowExit`
+- `agentWorkflow`
+- `agentWorkflowMessage`
+- `agentWorkflowExit`
 
 The Java worker signal handlers will be implemented in future exercises. For now, the server is compatible with the TypeScript worker from temp-ref-code.
 
