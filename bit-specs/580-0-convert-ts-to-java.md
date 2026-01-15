@@ -11,3 +11,6 @@
 - This implementation for 5-agent-workflow should follow the same setup/structure/execution as the other examples.
 - Note the launch config and the tasks configured in .vscode/
 
+**How to verify: Code compiles without errors**
+- Test this by running the "Exercise 5 Maven Build" task (see .vscode/tasks.json)
+
