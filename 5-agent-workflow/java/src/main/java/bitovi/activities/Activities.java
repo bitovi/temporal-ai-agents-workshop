@@ -13,17 +13,17 @@ import io.temporal.failure.ApplicationFailure;
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	ThoughtResponse thoughtEntity(List<String> context) throws ApplicationFailure;
+	ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	String actionEntity(String toolName, Object input) throws ApplicationFailure;
+	String actionActivity(String toolName, Object input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observationEntity(List<String> context, String actionResult) throws ApplicationFailure;
+	ObservationResponse observationActivity(List<String> context, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
-	CompactResponse compactEntity(List<String> context) throws ApplicationFailure;
+	CompactResponse compactActivity(List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	void persistEntity(List<PersistMessage> messages) throws ApplicationFailure;
+	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
 }

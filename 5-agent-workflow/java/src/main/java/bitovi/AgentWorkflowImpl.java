@@ -86,14 +86,14 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 				}
 
 				// Persist the user messages
-				activities.persistEntity(messagesToPersist);
+				activities.persistActivity(messagesToPersist);
 				
 				// Clear pending messages
 				pending.clear();
 			}
 
 			// Get thought from AI
-			ThoughtResponse thoughtResponse = activities.thoughtEntity(context);
+			ThoughtResponse thoughtResponse = activities.thoughtActivity(context);
 			
 			// Track usage
 			if (thoughtResponse.usage() != null) {
@@ -110,7 +110,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 				List<PersistMessage> assistantMessages = List.of(
 					new PersistMessage("assistant", thoughtResponse.answer(), null, null)
 				);
-				activities.persistEntity(assistantMessages);
+				activities.persistActivity(assistantMessages);
 				
 				// Wait for next message or exit
 				Workflow.await(() -> !pending.isEmpty() || userRequestedExit);
@@ -142,10 +142,10 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 				context.add(actionContext);
 				
 				// Execute the action
-				String actionResult = activities.actionEntity(action.name(), action.input());
+				String actionResult = activities.actionActivity(action.name(), action.input());
 				
 				// Get observation
-				ObservationResponse observationResponse = activities.observationEntity(context, actionResult);
+				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
 				
 				// Track usage
 				if (observationResponse.usage() != null) {
@@ -160,7 +160,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 				// Check for continue-as-new
 				if (Workflow.getInfo().isContinueAsNewSuggested()) {
 					// Compact the context
-					CompactResponse compactResponse = activities.compactEntity(context);
+					CompactResponse compactResponse = activities.compactActivity(context);
 					
 					// Track usage
 					if (compactResponse.usage() != null) {
