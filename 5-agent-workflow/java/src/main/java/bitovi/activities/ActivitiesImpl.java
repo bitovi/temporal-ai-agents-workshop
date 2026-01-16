@@ -19,8 +19,10 @@ import bitovi.activities.DTO.PersistMessage;
 import bitovi.activities.DTO.ThoughtResponse;
 import bitovi.activities.tools.ToolRegistry;
 import bitovi.common.AWS;
+import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
 import bitovi.common.ModelUtils;
+import bitovi.utils.EventClient;
 import io.temporal.failure.ApplicationFailure;
 
 public class ActivitiesImpl implements Activities {
@@ -54,7 +56,8 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					new ArrayList<>(), // Empty message history for single-turn
+					// Must have a user message
+					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")), // Empty message history for single-turn
 					null, // No tool config needed for thought
 					modelId
 			);
@@ -69,6 +72,7 @@ public class ActivitiesImpl implements Activities {
 			// Parse JSON response
 			JSONObject jsonResponse = new JSONObject(responseText);
 			String thought = jsonResponse.optString("thought", "");
+			EventClient.emitEvent("thought", thought);
 			
 			// Determine type based on fields present
 			String type;
@@ -78,6 +82,8 @@ public class ActivitiesImpl implements Activities {
 			if (jsonResponse.has("answer")) {
 				type = "answer";
 				answer = jsonResponse.getString("answer");
+				// Emit events for answer type
+				EventClient.emitEvent("answer", answer);
 			} else if (jsonResponse.has("action")) {
 				type = "action";
 				JSONObject actionObj = jsonResponse.getJSONObject("action");
@@ -93,11 +99,15 @@ public class ActivitiesImpl implements Activities {
 			return new ThoughtResponse(type, thought, answer, action, response.usage());
 			
 		} catch (JSONException e) {
-			System.err.println("Error parsing JSON response: " + e.getMessage());
+			String errorMsg = "Error parsing JSON response: " + e.getMessage();
+			System.err.println(errorMsg);
+			EventClient.emitEvent("error", "Thought error: " + errorMsg);
 			throw ApplicationFailure.newFailure("Failed to parse model response: " + e.getMessage(), 
 					"ThoughtActivityError");
 		} catch (Exception e) {
-			System.err.println("Error in thoughtActivity: " + e.getMessage());
+			String errorMsg = "Error in thoughtActivity: " + e.getMessage();
+			System.err.println(errorMsg);
+			EventClient.emitEvent("error", "Thought error: " + errorMsg);
 			throw ApplicationFailure.newFailure("thoughtActivity failed: " + e.getMessage(), 
 					"ThoughtActivityError");
 		}
@@ -110,6 +120,7 @@ public class ActivitiesImpl implements Activities {
 			
 			// Check if tool exists
 			if (!ToolRegistry.hasToolNamed(toolName)) {
+				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.");
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
 				errorResult.put("input", input);
@@ -144,11 +155,16 @@ public class ActivitiesImpl implements Activities {
 			
 			// Execute tool
 			try {
+				// Emit action event
+				EventClient.emitEvent("action", "Invoked tool " + toolName + " with input " + new JSONObject(inputMap).toString());
+				
 				String result = ToolRegistry.executeTool(toolName, inputMap);
 				System.out.println("Tool execution successful: " + toolName);
 				return result;
 			} catch (Exception e) {
-				System.err.println("Error executing tool " + toolName + ": " + e.getMessage());
+				String errorMsg = "Error executing tool " + toolName + ": " + e.getMessage();
+				System.err.println(errorMsg);
+				EventClient.emitEvent("error", errorMsg);
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
 				errorResult.put("input", input);
@@ -200,10 +216,15 @@ public class ActivitiesImpl implements Activities {
 			System.out.println("Observation generated: " + observations.substring(0, 
 					Math.min(100, observations.length())));
 			
+			// Emit observation event
+			EventClient.emitEvent("observation", observations);
+			
 			return new ObservationResponse(observations, response.usage());
 			
 		} catch (Exception e) {
-			System.err.println("Error in observationActivity: " + e.getMessage());
+			String errorMsg = "Error in observationActivity: " + e.getMessage();
+			System.err.println(errorMsg);
+			EventClient.emitEvent("error", "Observation error: " + errorMsg);
 			throw ApplicationFailure.newFailure("observationActivity failed: " + e.getMessage(), 
 					"ObservationActivityError");
 		}
@@ -257,10 +278,15 @@ public class ActivitiesImpl implements Activities {
 			System.out.println("Context compacted from " + context.size() + " to " + 
 					newContext.size() + " entries");
 			
+			// Emit compact event
+			EventClient.emitEvent("compact", "Context compacted");
+			
 			return new CompactResponse(newContext, response.usage());
 			
 		} catch (Exception e) {
-			System.err.println("Error in compactActivity: " + e.getMessage());
+			String errorMsg = "Error in compactActivity: " + e.getMessage();
+			System.err.println(errorMsg);
+			EventClient.emitEvent("error", "Compact error: " + errorMsg);
 			throw ApplicationFailure.newFailure("compactActivity failed: " + e.getMessage(), 
 					"CompactActivityError");
 		}
