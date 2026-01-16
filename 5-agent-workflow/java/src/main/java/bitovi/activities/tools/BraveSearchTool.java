@@ -22,12 +22,18 @@ public class BraveSearchTool {
     public static String execute(String toolName, Map<String, Object> toolUseInput) {
         System.out.println("Executing BraveSearchTool with inputs: " + toolUseInput);
 
-        if (toolUseInput == null || !toolUseInput.containsKey("q")) {
+        // Extract the actual parameter map if it's nested under "map" key
+        Map<String, Object> params = toolUseInput;
+        if (toolUseInput.containsKey("map") && toolUseInput.get("map") instanceof Map) {
+            params = (Map<String, Object>) toolUseInput.get("map");
+        }
+
+        if (params == null || !params.containsKey("q")) {
             throw new IllegalArgumentException("Invalid input: 'q' is required.");
         }
 
-        String query = toolUseInput.get("q").toString();
-        String count = toolUseInput.containsKey("count") ? toolUseInput.get("count").toString() : "10";
+        String query = params.get("q").toString();
+        String count = params.containsKey("count") ? params.get("count").toString() : "10";
         
         Config config = new Config();
         String apiKey = config.getProperty("BRAVE_SEARCH_API_KEY");
@@ -44,7 +50,6 @@ public class BraveSearchTool {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Accept", "application/json")
-                    .header("Accept-Encoding", "gzip")
                     .header("X-Subscription-Token", apiKey)
                     .GET()
                     .build();

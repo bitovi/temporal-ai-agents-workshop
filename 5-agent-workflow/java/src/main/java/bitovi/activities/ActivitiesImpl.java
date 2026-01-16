@@ -72,7 +72,6 @@ public class ActivitiesImpl implements Activities {
 			// Parse JSON response
 			JSONObject jsonResponse = new JSONObject(responseText);
 			String thought = jsonResponse.optString("thought", "");
-			EventClient.emitEvent("thought", thought);
 			
 			// Determine type based on fields present
 			String type;
@@ -83,6 +82,7 @@ public class ActivitiesImpl implements Activities {
 				type = "answer";
 				answer = jsonResponse.getString("answer");
 				// Emit events for answer type
+				EventClient.emitEvent("thought", thought);
 				EventClient.emitEvent("answer", answer);
 			} else if (jsonResponse.has("action")) {
 				type = "action";
@@ -91,6 +91,8 @@ public class ActivitiesImpl implements Activities {
 				String reason = actionObj.optString("reason", "");
 				Object input = actionObj.get("input");
 				action = new ActionDetail(name, reason, input);
+				// Emit events for action type
+				EventClient.emitEvent("thought", thought);
 			} else {
 				throw ApplicationFailure.newFailure("Invalid response format: missing 'answer' or 'action'", 
 						"InvalidResponseFormat");
@@ -203,7 +205,8 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					new ArrayList<>(),
+					// must have a user message
+					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")),
 					null,
 					modelId
 			);
