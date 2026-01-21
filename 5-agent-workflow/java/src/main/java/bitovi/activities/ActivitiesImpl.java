@@ -57,7 +57,7 @@ public class ActivitiesImpl implements Activities {
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
 					// Must start with a user message
-					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")),
+					List.of(new ChatMessage("user", "perform THOUGHT")),
 					null, // No tool config needed for thought
 					modelId
 			);
@@ -206,7 +206,7 @@ public class ActivitiesImpl implements Activities {
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
 					// must start with a user message
-					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")),
+					List.of(new ChatMessage("user", "perform OBSERVATION")),
 					null,
 					modelId
 			);
@@ -215,9 +215,6 @@ public class ActivitiesImpl implements Activities {
 			if (observations == null || observations.isEmpty()) {
 				observations = "No observation generated";
 			}
-			
-			System.out.println("Observation generated: " + observations.substring(0, 
-					Math.min(100, observations.length())));
 			
 			// Emit observation event
 			EventClient.emitEvent("observation", observations);
@@ -254,7 +251,7 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					List.of(new ChatMessage("user", "compact the context history")),
+					List.of(new ChatMessage("user", "perform COMPACTION")),
 					null,
 					modelId
 			);

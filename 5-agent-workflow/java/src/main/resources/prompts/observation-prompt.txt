@@ -9,6 +9,8 @@ Instructions:
 
 You do not need to include any XML tags such as <thought>, <action>, or <observation> in your response, those will be added automatically by the Agent Workflow.
 
+Do not include any preamble, introductory remarks, explanations, or conversational filler. Output only the final result.
+
 In this observation step, consider the following information from previous steps:
 
 <previous-steps>

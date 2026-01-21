@@ -21,6 +21,7 @@ public class EventClient {
 	private static final String SERVER_URL = System.getenv().getOrDefault("SERVER_URL", "http://localhost:3000");
 	private static final String EMIT_EVENT_ENDPOINT = SERVER_URL + "/api/emit-event";
 	private static final int TIMEOUT_MS = 5000;
+	private static long sequenceCounter = 0;
 
 	/**
 	 * Emit an event to the server asynchronously.
@@ -30,12 +31,18 @@ public class EventClient {
 	 * @param additionalData Optional additional data to include in the event
 	 */
 	public static void emitEvent(String type, String message, Map<String, Object> additionalData) {
+		// Capture timestamp and sequence BEFORE async execution to maintain order
+		final long timestamp = System.currentTimeMillis();
+		final long sequence = getNextSequence();
+		
 		CompletableFuture.runAsync(() -> {
 			try {
 				// Build event data
 				Map<String, Object> eventData = new HashMap<>();
 				eventData.put("type", type);
 				eventData.put("message", message);
+				eventData.put("timestamp", timestamp);
+				eventData.put("sequence", sequence);
 				
 				if (additionalData != null) {
 					eventData.putAll(additionalData);
@@ -85,5 +92,12 @@ public class EventClient {
 	 */
 	public static void emitEvent(String type, String message) {
 		emitEvent(type, message, null);
+	}
+	
+	/**
+	 * Get next sequence number in a thread-safe manner.
+	 */
+	private static synchronized long getNextSequence() {
+		return sequenceCounter++;
 	}
 }

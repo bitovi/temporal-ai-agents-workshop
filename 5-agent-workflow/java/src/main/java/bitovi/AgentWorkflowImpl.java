@@ -29,6 +29,8 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 	private List<MessagePayload> pendingMsgs = new ArrayList<>();
 	private boolean userRequestedExit = false;
 	private boolean userRequestedCompaction = false;
+
+	// React (Reasoning and Acting) Agent State
 	private ReactStep reactStep = ReactStep.IDLE;
 
 	@Override
@@ -200,6 +202,7 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 					context.add(observationContext);
 
 					reactStep = ReactStep.THINKING;
+					continue; // start ReAct (Reasoning and Acting) Loop again
 				}
 			}
 
