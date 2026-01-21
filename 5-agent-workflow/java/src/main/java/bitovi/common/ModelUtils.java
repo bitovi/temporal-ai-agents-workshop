@@ -1,29 +1,44 @@
 package bitovi.common;
 
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingRegistry;
+import com.knuddels.jtokkit.api.EncodingType;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Utility class for token estimation and context management.
- * Uses simple character-based estimation (1 token ≈ 4 characters).
+ * Uses jtokkit for accurate token counting with character-based fallback.
  */
 public class ModelUtils {
     
     private static final int CHARS_PER_TOKEN = 4;
     private static final int DEFAULT_MAX_TOKENS = 12000;
+    private static final EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
+    private static final Encoding encoding = registry.getEncoding(EncodingType.CL100K_BASE);
 
     /**
-     * Estimate the number of tokens in a text string.
-     * Uses a simple heuristic: 1 token ≈ 4 characters
+     * Count the number of tokens in a text string.
+     * Uses jtokkit for accurate token counting, with character-based heuristic as fallback.
      * 
-     * @param text The text to estimate tokens for
-     * @return Estimated token count
+     * @param text The text to count tokens for
+     * @return Token count
      */
     public static int estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) {
             return 0;
         }
-        return text.length() / CHARS_PER_TOKEN;
+        
+        try {
+            // Use jtokkit for accurate token counting
+            return encoding.countTokens(text);
+        } catch (Exception e) {
+            // Fallback to character-based heuristic if jtokkit fails
+            System.out.println("Warning: jtokkit token counting failed, falling back to character-based heuristic. Error: " + e.getMessage());
+            return text.length() / CHARS_PER_TOKEN;
+        }
     }
 
     /**
