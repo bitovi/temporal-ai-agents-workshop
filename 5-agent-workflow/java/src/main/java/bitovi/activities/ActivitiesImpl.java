@@ -56,8 +56,8 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					// Must have a user message
-					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")), // Empty message history for single-turn
+					// Must start with a user message
+					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")),
 					null, // No tool config needed for thought
 					modelId
 			);
@@ -205,7 +205,7 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					// must have a user message
+					// must start with a user message
 					List.of(new ChatMessage("user", "Disregard this message. Pickup pickup where we left off from the previous steps.")),
 					null,
 					modelId
@@ -239,13 +239,13 @@ public class ActivitiesImpl implements Activities {
 			System.out.println("compactActivity called with context size: " + context.size());
 			
 			// Load prompt template
-			String promptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
+			String systemPromptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
 			
 			// Truncate context
 			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
 			
 			// Format prompt
-			String systemPrompt = promptTemplate
+			String systemPrompt = systemPromptTemplate
 					.replace("{contextHistory}", String.join("\n", truncatedContext));
 			
 			// Call Bedrock with low-quality model for cost optimization
@@ -254,7 +254,7 @@ public class ActivitiesImpl implements Activities {
 			
 			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
 					systemPrompt,
-					new ArrayList<>(),
+					List.of(new ChatMessage("user", "compact the context history")),
 					null,
 					modelId
 			);

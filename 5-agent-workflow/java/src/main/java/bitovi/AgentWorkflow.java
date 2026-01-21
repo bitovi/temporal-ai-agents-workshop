@@ -14,4 +14,7 @@ public interface AgentWorkflow {
 
 	@SignalMethod(name = "agentWorkflowExit")
 	void requestExit();
+
+	@SignalMethod(name = "agentWorkflowCompact")
+	void requestCompaction();
 }

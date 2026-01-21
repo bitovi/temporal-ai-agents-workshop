@@ -20,6 +20,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 const WORKFLOW_NAME = 'AgentWorkflow';
 const MESSAGE_SIGNAL = 'agentWorkflowMessage';
 const EXIT_SIGNAL = 'agentWorkflowExit';
+const COMPACT_SIGNAL = 'agentWorkflowCompact';
 
 const workflowSessions: Map<string, any> = new Map();
 let connection: any;
@@ -98,6 +99,22 @@ app.post('/api/conversations/:id/exit', async (req, res) => {
     const result = await handle.result();
     workflowSessions.delete(id);
     res.json({ success: true, usage: result.usage });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// POST /api/conversations/:id/compact - Trigger compaction
+app.post('/api/conversations/:id/compact', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const handle = workflowSessions.get(id);
+    if (!handle) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    await handle.signal(COMPACT_SIGNAL);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
