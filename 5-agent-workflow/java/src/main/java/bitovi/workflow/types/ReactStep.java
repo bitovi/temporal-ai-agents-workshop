@@ -1,4 +1,4 @@
-package bitovi;
+package bitovi.workflow.types;
 
 public enum ReactStep {
     THINKING,

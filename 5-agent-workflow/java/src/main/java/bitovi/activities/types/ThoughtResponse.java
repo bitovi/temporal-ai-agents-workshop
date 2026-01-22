@@ -1,6 +1,6 @@
-package bitovi.activities.DTO;
+package bitovi.activities.types;
 
-import bitovi.UsageMetadata;
+import bitovi.workflow.types.UsageMetadata;
 
 public record ThoughtResponse(
 String type,

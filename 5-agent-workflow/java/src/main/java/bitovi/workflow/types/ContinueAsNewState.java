@@ -1,4 +1,4 @@
-package bitovi;
+package bitovi.workflow.types;
 
 import java.util.List;
 

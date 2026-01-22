@@ -1,4 +1,4 @@
-package bitovi;
+package bitovi.workflow;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -7,11 +7,17 @@ import java.util.List;
 import org.json.JSONObject;
 
 import bitovi.activities.Activities;
-import bitovi.activities.DTO.ActionDetail;
-import bitovi.activities.DTO.CompactResponse;
-import bitovi.activities.DTO.ObservationResponse;
-import bitovi.activities.DTO.PersistMessage;
-import bitovi.activities.DTO.ThoughtResponse;
+import bitovi.activities.types.ActionDetail;
+import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.ObservationResponse;
+import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.ThoughtResponse;
+import bitovi.workflow.types.ContinueAsNewState;
+import bitovi.workflow.types.MessagePayload;
+import bitovi.workflow.types.ReactStep;
+import bitovi.workflow.types.UsageMetadata;
+import bitovi.workflow.types.WorkflowInput;
+import bitovi.workflow.types.WorkflowResult;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;

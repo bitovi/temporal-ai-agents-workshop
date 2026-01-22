@@ -23,9 +23,6 @@ public class ToolRegistry {
         toolExecutors.put("fetch_webpage", FetchWebpageTool::execute);
         // Note: Keep existing tools available if needed in future
         // toolExecutors.put("get_weather", WeatherTool::execute);
-        // toolExecutors.put("get_account_info", FetchAccountInfo::execute);
-        // toolExecutors.put("question_answered", QuestionAnswered::execute);
-        // toolExecutors.put("search_web", SearchWeb::execute);
     }
 
     /**

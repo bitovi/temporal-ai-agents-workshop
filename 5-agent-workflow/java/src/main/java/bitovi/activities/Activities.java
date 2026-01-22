@@ -2,10 +2,10 @@ package bitovi.activities;
 
 import java.util.List;
 
-import bitovi.activities.DTO.CompactResponse;
-import bitovi.activities.DTO.ObservationResponse;
-import bitovi.activities.DTO.PersistMessage;
-import bitovi.activities.DTO.ThoughtResponse;
+import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.ObservationResponse;
+import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.ThoughtResponse;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;

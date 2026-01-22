@@ -1,4 +1,4 @@
-package bitovi.utils;
+package bitovi.common;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;

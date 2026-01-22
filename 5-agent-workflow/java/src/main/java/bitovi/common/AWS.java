@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import bitovi.UsageMetadata;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;

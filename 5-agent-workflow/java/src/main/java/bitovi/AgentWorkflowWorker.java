@@ -1,6 +1,7 @@
 package bitovi;
 
 import bitovi.common.TemporalClient;
+import bitovi.workflow.AgentWorkflowImpl;
 import bitovi.common.Config;
 import bitovi.activities.ActivitiesImpl;
 

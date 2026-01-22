@@ -1,4 +1,4 @@
-package bitovi.activities.DTO;
+package bitovi.activities.types;
 
 public class ActionResponse {
 

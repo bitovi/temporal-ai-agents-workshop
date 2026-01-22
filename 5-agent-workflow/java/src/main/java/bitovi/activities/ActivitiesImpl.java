@@ -12,17 +12,17 @@ import java.util.stream.Collectors;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import bitovi.activities.DTO.ActionDetail;
-import bitovi.activities.DTO.CompactResponse;
-import bitovi.activities.DTO.ObservationResponse;
-import bitovi.activities.DTO.PersistMessage;
-import bitovi.activities.DTO.ThoughtResponse;
 import bitovi.activities.tools.ToolRegistry;
+import bitovi.activities.types.ActionDetail;
+import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.ObservationResponse;
+import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.ThoughtResponse;
 import bitovi.common.AWS;
 import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
+import bitovi.common.EventClient;
 import bitovi.common.ModelUtils;
-import bitovi.utils.EventClient;
 import io.temporal.failure.ApplicationFailure;
 
 public class ActivitiesImpl implements Activities {
