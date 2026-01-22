@@ -69,7 +69,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
-                    <mainClass>bitovi.ToolCallingWorker</mainClass>
+                    <mainClass>bitovi.AgentWorkflowClient</mainClass>
                 </configuration>
             </plugin>
         </plugins>
