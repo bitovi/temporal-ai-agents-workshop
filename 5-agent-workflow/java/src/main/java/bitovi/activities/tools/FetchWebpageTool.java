@@ -21,6 +21,11 @@ public class FetchWebpageTool {
     public static String execute(String toolName, Map<String, Object> toolUseInput) {
         System.out.println("Executing FetchWebpageTool with inputs: " + toolUseInput);
 
+        // Quick fix: unwrap if input is nested in a "map" property
+        if (toolUseInput != null && toolUseInput.containsKey("map") && toolUseInput.get("map") instanceof Map) {
+            toolUseInput = (Map<String, Object>) toolUseInput.get("map");
+        }
+
         if (toolUseInput == null || !toolUseInput.containsKey("url")) {
             throw new IllegalArgumentException("Invalid input: 'url' is required.");
         }
