@@ -171,16 +171,12 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 					String thoughtContext = String.format("<thought>\n%s\n</thought>", thoughtResponse.thought());
 					context.add(thoughtContext);
 					
-					// Serialize action input to JSON
+					// Serialize action input for context
 					String actionInputJson;
 					try {
-						if (action.input() instanceof String) {
-							actionInputJson = (String) action.input();
-						} else {
-							actionInputJson = new JSONObject(action.input()).toString();
-						}
+						actionInputJson = new JSONObject(action.input().parameters()).toString();
 					} catch (Exception e) {
-						actionInputJson = String.valueOf(action.input());
+						actionInputJson = "{}";
 					}
 					
 					// Add action to context

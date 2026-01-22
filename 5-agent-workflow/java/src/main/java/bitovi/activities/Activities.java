@@ -2,6 +2,7 @@ package bitovi.activities;
 
 import java.util.List;
 
+import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
@@ -16,7 +17,7 @@ public interface Activities {
 	ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	String actionActivity(String toolName, Object input) throws ApplicationFailure;
+	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
 
 	@ActivityMethod
 	ObservationResponse observationActivity(List<String> context, String actionResult) throws ApplicationFailure;

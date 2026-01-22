@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ import org.json.JSONObject;
 
 import bitovi.activities.tools.ToolRegistry;
 import bitovi.activities.types.ActionDetail;
+import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
@@ -89,8 +91,30 @@ public class ActivitiesImpl implements Activities {
 				JSONObject actionObj = jsonResponse.getJSONObject("action");
 				String name = actionObj.getString("name");
 				String reason = actionObj.optString("reason", "");
-				Object input = actionObj.get("input");
-				action = new ActionDetail(name, reason, input);
+				
+				// Parse input as Map and wrap in ActionInput
+				Object inputObj = actionObj.get("input");
+				Map<String, Object> inputMap;
+				if (inputObj instanceof JSONObject) {
+					inputMap = ((JSONObject) inputObj).toMap();
+				} else if (inputObj instanceof Map) {
+					inputMap = (Map<String, Object>) inputObj;
+				} else {
+					// Fallback for unexpected input types
+					System.out.println("Warning: Unexpected input type " + inputObj.getClass().getName() + 
+						", wrapping in 'value' key");
+					inputMap = new HashMap<>();
+					inputMap.put("value", inputObj);
+				}
+				
+				// Validate non-null before creating ActionInput
+				if (inputMap == null) {
+					inputMap = new HashMap<>();
+				}
+				
+				ActionInput actionInput = new ActionInput(inputMap);
+				action = new ActionDetail(name, reason, actionInput);
+				
 				// Emit events for action type
 				EventClient.emitEvent("thought", thought);
 			} else {
@@ -116,7 +140,7 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String actionActivity(String toolName, Object input) throws ApplicationFailure {
+	public String actionActivity(String toolName, ActionInput input) throws ApplicationFailure {
 		try {
 			System.out.println("actionActivity called with tool: " + toolName);
 			
@@ -125,40 +149,18 @@ public class ActivitiesImpl implements Activities {
 				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.");
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
-				errorResult.put("input", input);
+				errorResult.put("input", input.parameters());
 				errorResult.put("error", "Tool not found");
 				return errorResult.toString();
 			}
 			
-			// Convert input to Map
-			Map<String, Object> inputMap;
-			if (input instanceof String) {
-				try {
-					JSONObject jsonInput = new JSONObject((String) input);
-					inputMap = jsonInput.toMap();
-				} catch (JSONException e) {
-					JSONObject errorResult = new JSONObject();
-					errorResult.put("name", toolName);
-					errorResult.put("input", input);
-					errorResult.put("error", "Invalid input format: " + e.getMessage());
-					return errorResult.toString();
-				}
-			} else if (input instanceof Map) {
-				inputMap = (Map<String, Object>) input;
-			} else if (input instanceof JSONObject) {
-				inputMap = ((JSONObject) input).toMap();
-			} else {
-				JSONObject errorResult = new JSONObject();
-				errorResult.put("name", toolName);
-				errorResult.put("input", input);
-				errorResult.put("error", "Unsupported input type: " + input.getClass().getName());
-				return errorResult.toString();
-			}
+			// Get parameters from ActionInput
+			Map<String, Object> inputMap = input.parameters();
 			
 			// Execute tool
 			try {
-				// Emit action event
-				EventClient.emitEvent("action", "Invoked tool " + toolName + " with input " + new JSONObject(inputMap).toString());
+				EventClient.emitEvent("action", "Invoked tool " + toolName + 
+					" with input " + new JSONObject(inputMap).toString());
 				
 				String result = ToolRegistry.executeTool(toolName, inputMap);
 				System.out.println("Tool execution successful: " + toolName);
@@ -169,7 +171,7 @@ public class ActivitiesImpl implements Activities {
 				EventClient.emitEvent("error", errorMsg);
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
-				errorResult.put("input", input);
+				errorResult.put("input", inputMap);
 				errorResult.put("error", e.getMessage());
 				return errorResult.toString();
 			}
