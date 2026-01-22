@@ -1,8 +1,9 @@
 package bitovi;
 
 import bitovi.common.TemporalClient;
-import bitovi.activities.BedrockImpl;
+import bitovi.workflow.AgentMemoryWorkflowImpl;
 import bitovi.common.Config;
+import bitovi.activities.ActivitiesImpl;
 
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
@@ -21,7 +22,7 @@ public class AgentMemoryWorker {
 			Worker worker = factory.newWorker(taskQueue);
 
 			worker.registerWorkflowImplementationTypes(AgentMemoryWorkflowImpl.class);
-			worker.registerActivitiesImplementations(new BedrockImpl());
+			worker.registerActivitiesImplementations(new ActivitiesImpl());
 
 			factory.start();
 

@@ -111,7 +111,8 @@
             "request": "launch",
             "mainClass": "bitovi.AgentMemoryWorker",
             "projectName": "agent-memory",
-            "cwd": "${workspaceFolder}/6-agent-memory/java/"
+            "cwd": "${workspaceFolder}/6-agent-memory/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
         },
         {
             "type": "java",

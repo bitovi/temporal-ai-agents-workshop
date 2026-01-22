@@ -17,10 +17,13 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-const WORKFLOW_NAME = 'AgentWorkflow';
-const MESSAGE_SIGNAL = 'agentWorkflowMessage';
-const EXIT_SIGNAL = 'agentWorkflowExit';
-const COMPACT_SIGNAL = 'agentWorkflowCompact';
+const TEMPORAL_HOST_PORT = process.env.TEMPORAL_HOST_PORT || 'localhost:7233';
+const TEMPORAL_NAMESPACE = process.env.TEMPORAL_NAMESPACE || 'default';
+
+const TEMPORAL_WORKFLOW_NAME = process.env.TEMPORAL_WORKFLOW_NAME || 'agentWorkflow';
+const TEMPORAL_MESSAGE_SIGNAL = process.env.TEMPORAL_MESSAGE_SIGNAL || 'message';
+const TEMPORAL_EXIT_SIGNAL = process.env.TEMPORAL_EXIT_SIGNAL || 'exit';
+const TEMPORAL_COMPACT_SIGNAL = process.env.TEMPORAL_COMPACT_SIGNAL || 'compact';
 
 const workflowSessions: Map<string, any> = new Map();
 let connection: any;
@@ -29,11 +32,11 @@ let client: any;
 // Initialize Temporal client
 async function initTemporal() {
   connection = await Connection.connect({
-    address: process.env.TEMPORAL_HOST_PORT || 'localhost:7233'
+    address: TEMPORAL_HOST_PORT
   });
   client = new Client({ 
     connection, 
-    namespace: process.env.TEMPORAL_NAMESPACE || 'default' 
+    namespace: TEMPORAL_NAMESPACE
   });
 }
 
@@ -41,7 +44,7 @@ async function initTemporal() {
 app.post('/api/conversations', async (req, res) => {
   try {
     const conversationId = randomUUID();
-    const handle = await client.workflow.start(WORKFLOW_NAME, {
+    const handle = await client.workflow.start(TEMPORAL_WORKFLOW_NAME, {
       args: [{}],
       taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'bitovi-ai-agents-workshop',
       workflowId: `agent-workflow-${conversationId}`,
@@ -74,7 +77,7 @@ app.post('/api/conversations/:id/message', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    await handle.signal(MESSAGE_SIGNAL, {
+    await handle.signal(TEMPORAL_MESSAGE_SIGNAL, {
       name,
       message,
       date: new Date().toISOString(),
@@ -95,7 +98,7 @@ app.post('/api/conversations/:id/exit', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    await handle.signal(EXIT_SIGNAL);
+    await handle.signal(TEMPORAL_EXIT_SIGNAL);
     const result = await handle.result();
     workflowSessions.delete(id);
     res.json({ success: true, usage: result.usage });
@@ -113,7 +116,7 @@ app.post('/api/conversations/:id/compact', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    await handle.signal(COMPACT_SIGNAL);
+    await handle.signal(TEMPORAL_COMPACT_SIGNAL);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });

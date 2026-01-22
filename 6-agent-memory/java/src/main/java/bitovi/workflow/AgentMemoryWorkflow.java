@@ -7,8 +7,8 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
-@WorkflowInterface()
-public interface AgentWorkflow {
+@WorkflowInterface
+public interface AgentMemoryWorkflow {
 	@WorkflowMethod(name = "agentWorkflow")
 	WorkflowResult execute(WorkflowInput input);
 
