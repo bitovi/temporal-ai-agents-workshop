@@ -1,9 +1,10 @@
-package bitovi.workflow;
+package bitovi;
 
 import java.time.LocalDateTime;
 
 import bitovi.common.Config;
 import bitovi.common.TemporalClient;
+import bitovi.workflow.AgentWorkflow;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.WorkflowInput;
 import bitovi.workflow.types.WorkflowResult;
