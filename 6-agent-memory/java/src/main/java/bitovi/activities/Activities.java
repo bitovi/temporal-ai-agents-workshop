@@ -27,4 +27,8 @@ public interface Activities {
 
 	@ActivityMethod
 	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
+
+	@ActivityMethod
+	void persistMemoryActivity(String memoryText) throws ApplicationFailure;
+
 }

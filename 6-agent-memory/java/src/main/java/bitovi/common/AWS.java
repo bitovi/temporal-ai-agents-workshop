@@ -16,6 +16,8 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -289,5 +291,19 @@ public class AWS {
             );
         }
         return new UsageMetadata(0, 0, 0);
+    }
+
+    public static BedrockAgentCoreClient getBedrockAgentCoreClient() {
+        return BedrockAgentCoreClient.builder()
+            .credentialsProvider(AWS.getAwsCredentialsProvider())
+            .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
+            .build();
+    }
+
+    public static BedrockAgentCoreControlClient getBedrockAgentCoreControlClient() {
+        return BedrockAgentCoreControlClient.builder()
+            .credentialsProvider(AWS.getAwsCredentialsProvider())
+            .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
+            .build();
     }
 }

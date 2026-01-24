@@ -117,6 +117,8 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				List<PersistMessage> messagesToPersist = new ArrayList<>();
 				
 				for (MessagePayload msg : pendingMsgs) {
+					activities.persistMemoryActivity(msg.message());
+
 					// Add user message to context with XML-like formatting
 					String userMessage = String.format("<user_message name=\"%s\" date=\"%s\">\n%s\n</user_message>",
 						msg.name(), msg.date(), msg.message());
