@@ -9,6 +9,9 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Event;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class ListEvents {
 
@@ -24,7 +27,11 @@ public class ListEvents {
 
 		System.out.println(String.format("Found %s event(s)", response.events().size()));
 
-		for (Event event : response.events()) {
+		// Sort events by eventTimestamp in chronological order
+		List<Event> sortedEvents = new ArrayList<>(response.events());
+		sortedEvents.sort(Comparator.comparing(Event::eventTimestamp));
+
+		for (Event event : sortedEvents) {
 			for (PayloadType payloadType : event.payload()) {
 				if (payloadType.type() != PayloadType.Type.CONVERSATIONAL) { continue; }
 				Conversational conversational = payloadType.conversational();

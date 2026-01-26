@@ -3,6 +3,7 @@ package bitovi.activities;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +28,8 @@ import bitovi.common.aws.AgentCoreMemory;
 import bitovi.common.aws.BedrockConverse;
 import bitovi.common.aws.BedrockConverse.ChatMessage;
 import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
+import bitovi.workflow.types.ContextEntry;
+import bitovi.workflow.types.ContextEntryType;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
@@ -35,9 +38,14 @@ public class ActivitiesImpl implements Activities {
     private static Config config = new Config();
 
 	@Override
-	public ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure {
+	public ThoughtResponse thoughtActivity(List<ContextEntry> context) throws ApplicationFailure {
 		try {
 			System.out.println("thoughtActivity called with context size: " + context.size());
+
+			// Convert ContextEntry list to XML strings for LLM prompt
+			List<String> contextStrings = context.stream()
+					.map(ContextEntry::toXmlString)
+					.collect(Collectors.toList());
 
 			// Load prompt template
 			String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
@@ -46,7 +54,7 @@ public class ActivitiesImpl implements Activities {
 			String currentDate = LocalDate.now().toString();
 
 			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
+			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(contextStrings);
 
 			// Get available tools as XML string
 			String availableActions = ToolRegistry.getToolsAsXmlString();
@@ -188,17 +196,22 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public ObservationResponse observationActivity(List<String> context, String actionResult)
+	public ObservationResponse observationActivity(List<ContextEntry> context, String actionResult)
 			throws ApplicationFailure {
 		try {
 			System.out.println("observationActivity called with action result length: " +
 					actionResult.length());
 
+			// Convert ContextEntry list to XML strings for LLM prompt
+			List<String> contextStrings = context.stream()
+					.map(ContextEntry::toXmlString)
+					.collect(Collectors.toList());
+
 			// Load prompt template
 			String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
 
 			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
+			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(contextStrings);
 
 			// Format prompt
 			String systemPrompt = promptTemplate
@@ -236,15 +249,20 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public CompactResponse compactActivity(List<String> context) throws ApplicationFailure {
+	public CompactResponse compactActivity(List<ContextEntry> context) throws ApplicationFailure {
 		try {
 			System.out.println("compactActivity called with context size: " + context.size());
+
+			// Convert ContextEntry list to XML strings for LLM prompt
+			List<String> contextStrings = context.stream()
+					.map(ContextEntry::toXmlString)
+					.collect(Collectors.toList());
 
 			// Load prompt template
 			String systemPromptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
 
 			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
+			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(contextStrings);
 
 			// Format prompt
 			String systemPrompt = systemPromptTemplate
@@ -265,14 +283,25 @@ public class ActivitiesImpl implements Activities {
 				compactedSummary = "Context summary";
 			}
 
-			// Build result: [compactedSummary, ...last 3 entries]
-			List<String> newContext = new ArrayList<>();
-			newContext.add(compactedSummary);
+			// Build result: Create SUMMARY entry + last 3 entries from original context
+			List<ContextEntry> newContext = new ArrayList<>();
+			
+			// Create SUMMARY entry with compacted content
+			ContextEntry summaryEntry = new ContextEntry(
+				Instant.now(),
+				Role.ASSISTANT,
+				compactedSummary,
+				ContextEntryType.SUMMARY,
+				null,
+				null,
+				null
+			);
+			newContext.add(summaryEntry);
 
 			// Add last N entries from original context
 			int entriesToKeep = Math.min(3, context.size());
 			if (entriesToKeep > 0) {
-				List<String> recentEntries = context.subList(
+				List<ContextEntry> recentEntries = context.subList(
 						context.size() - entriesToKeep,
 						context.size());
 				newContext.addAll(recentEntries);
@@ -337,10 +366,10 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public void persistMemoryActivity(String memoryText, Role role) throws ApplicationFailure {
+	public void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure {
 
 		try {
-			AgentCoreMemory.createEvent(memoryText, role);
+			AgentCoreMemory.createEvent(entries);
 		}
 		catch (Exception e) {
 			System.err.println("Error in persistMemoryActivity: " + e.getMessage());

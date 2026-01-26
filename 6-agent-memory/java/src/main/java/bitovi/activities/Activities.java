@@ -7,28 +7,28 @@ import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.ThoughtResponse;
+import bitovi.workflow.types.ContextEntry;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
-import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure;
+	ThoughtResponse thoughtActivity(List<ContextEntry> context) throws ApplicationFailure;
 
 	@ActivityMethod
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observationActivity(List<String> context, String actionResult) throws ApplicationFailure;
+	ObservationResponse observationActivity(List<ContextEntry> context, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
-	CompactResponse compactActivity(List<String> context) throws ApplicationFailure;
+	CompactResponse compactActivity(List<ContextEntry> context) throws ApplicationFailure;
 
 	@ActivityMethod
 	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
 
 	@ActivityMethod
-	void persistMemoryActivity(String memoryText, Role role) throws ApplicationFailure;
+	void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure;
 }

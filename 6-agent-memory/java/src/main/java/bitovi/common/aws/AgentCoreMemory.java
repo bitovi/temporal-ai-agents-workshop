@@ -1,6 +1,10 @@
 package bitovi.common.aws;
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import bitovi.common.Config;
+import bitovi.workflow.types.ContextEntry;
 import io.temporal.activity.Activity;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 import software.amazon.awssdk.services.bedrockagentcore.model.Content;
@@ -12,7 +16,6 @@ import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsResponse
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
-import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.GetMemoryRequest;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.Memory;
@@ -25,9 +28,9 @@ public class AgentCoreMemory {
 
     private static String MEMORY_ID = "memory_dy2bk-G5fQBo4USF";
 
-    private static String SESSION_ID = "agent-workflow-dde81b2b-1dc4-4e62-9983-5dccbea8d15e";
+    private static String SESSION_ID = "agent-workflow-66b75efc-33b8-46ef-9e37-5c1b7ce38c44";
 
-    public static void createEvent(String memoryText, Role role) {
+    public static void createEvent(List<ContextEntry> entries) {
         Memory memory;
         try (BedrockAgentCoreControlClient bedrockAgentCoreControlClient = AWS
                 .getBedrockAgentCoreControlClient()) {
@@ -42,19 +45,26 @@ public class AgentCoreMemory {
         }
 
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
-            Conversational userInput = Conversational.builder()
-                    .content(Content.fromText(memoryText))
-                    .role(Role.USER)
-                    .build();
+            // Create a Conversational payload for each ContextEntry
+            List<PayloadType> payloads = entries.stream()
+                .map(entry -> {
+                    Conversational conversational = Conversational.builder()
+                        .content(Content.fromText(entry.toXmlString()))
+                        .role(entry.role())
+                        .build();
+                    return PayloadType.builder().conversational(conversational).build();
+                })
+                .collect(Collectors.toList());
 
-            PayloadType payload = PayloadType.builder().conversational(userInput).build();
+            // Use timestamp from first entry
+            Instant eventTimestamp = entries.isEmpty() ? Instant.now() : entries.get(0).timestamp();
 
             CreateEventRequest request = CreateEventRequest.builder()
                     .memoryId(memory.id())
                     .sessionId(Activity.getExecutionContext().getInfo().getWorkflowId())
                     .actorId(USER_ACTOR_ID)
-                    .payload(payload)
-                    .eventTimestamp(Instant.now())
+                    .payload(payloads)
+                    .eventTimestamp(eventTimestamp)
                     .build();
 
             CreateEventResponse reponse = bedrockAgentCoreClient.createEvent(request);

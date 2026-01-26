@@ -1,6 +1,7 @@
 package bitovi.workflow;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,8 +11,9 @@ import bitovi.activities.Activities;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
-import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.ThoughtResponse;
+import bitovi.workflow.types.ContextEntry;
+import bitovi.workflow.types.ContextEntryType;
 import bitovi.workflow.types.ContinueAsNewState;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.ReactStep;
@@ -61,7 +63,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 	@Override
 	public WorkflowResult execute(WorkflowInput input) {
 		// Initialize state from input
-		List<String> context = input.continueAsNew() != null ? input.continueAsNew().context() : new ArrayList<>();
+		List<ContextEntry> context = input.continueAsNew() != null ? input.continueAsNew().context() : new ArrayList<>();
 		List<UsageMetadata> usage = input.continueAsNew() != null ? input.continueAsNew().usage() : new ArrayList<>();
 		
 		// If continuing as new, restore pending messages
@@ -114,23 +116,20 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 
 			// Process all pending messages
 			if (!pendingMsgs.isEmpty() && reactStep == ReactStep.IDLE) {
-				// Create list of messages to persist
-				List<PersistMessage> messagesToPersist = new ArrayList<>();
 				
 				for (MessagePayload msg : pendingMsgs) {
-					activities.persistMemoryActivity(msg.message(), Role.USER);
-
-					// Add user message to context with XML-like formatting
-					String userMessage = String.format("<user_message name=\"%s\" date=\"%s\">\n%s\n</user_message>",
-						msg.name(), msg.date(), msg.message());
-					context.add(userMessage);
-					
-					// Add to persist list
-					messagesToPersist.add(new PersistMessage("user", msg.message(), msg.date(), msg.name()));
+					// Add user message to context as structured entry
+					ContextEntry userEntry = new ContextEntry(
+						Instant.now(),
+						Role.USER,
+						msg.message(),
+						ContextEntryType.USER_MESSAGE,
+						null,
+						null,
+						null
+					);
+					context.add(userEntry);
 				}
-
-				// Persist the user messages
-				activities.persistActivity(messagesToPersist);
 				
 				// Clear pending messages
 				pendingMsgs.clear();
@@ -153,14 +152,35 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				// Check response type
 				if ("answer".equals(thoughtResponse.type())) {
 					// Answer type - add to context and wait for next message
-					String answerContext = String.format("<answer>\n%s\n</answer>", thoughtResponse.answer());
-					context.add(answerContext);
-					
-					// Persist assistant message
-					List<PersistMessage> assistantMessages = List.of(
-						new PersistMessage("assistant", thoughtResponse.answer(), null, null)
+					ContextEntry answerEntry = new ContextEntry(
+						Instant.now(),
+						Role.ASSISTANT,
+						thoughtResponse.answer(),
+						ContextEntryType.ANSWER,
+						null,
+						null,
+						null
 					);
-					activities.persistActivity(assistantMessages);
+					context.add(answerEntry);
+					
+					// Batch persist: collect entries from most recent USER_MESSAGE to ANSWER
+					List<ContextEntry> entriesToPersist = new ArrayList<>();
+					boolean foundUserMessage = false;
+					
+					// Iterate backwards to find the most recent USER_MESSAGE
+					for (int i = context.size() - 1; i >= 0; i--) {
+						ContextEntry entry = context.get(i);
+						entriesToPersist.add(0, entry);  // Add at beginning to maintain order
+						
+						if (entry.type() == ContextEntryType.USER_MESSAGE) {
+							foundUserMessage = true;
+							break;
+						}
+					}
+					
+					if (foundUserMessage) {
+						activities.persistMemoryActivity(entriesToPersist);
+					}
 
 					reactStep = ReactStep.IDLE;
 					
@@ -171,8 +191,16 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 					ActionDetail action = thoughtResponse.action();
 					
 					// Add thought to context
-					String thoughtContext = String.format("<thought>\n%s\n</thought>", thoughtResponse.thought());
-					context.add(thoughtContext);
+					ContextEntry thoughtEntry = new ContextEntry(
+						Instant.now(),
+						Role.ASSISTANT,
+						thoughtResponse.thought(),
+						ContextEntryType.THOUGHT,
+						null,
+						null,
+						null
+					);
+					context.add(thoughtEntry);
 					
 					// Serialize action input for context
 					String actionInputJson;
@@ -183,10 +211,16 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 					}
 					
 					// Add action to context
-					String actionContext = String.format(
-						"<action><reason>\n%s\n</reason><name>%s</name><input>%s</input></action>",
-						action.reason(), action.name(), actionInputJson);
-					context.add(actionContext);
+					ContextEntry actionEntry = new ContextEntry(
+						Instant.now(),
+						Role.ASSISTANT,
+						null,
+						ContextEntryType.ACTION,
+						action.reason(),
+						action.name(),
+						actionInputJson
+					);
+					context.add(actionEntry);
 					
 					// Execute the action
 					String actionResult = activities.actionActivity(action.name(), action.input());
@@ -202,9 +236,16 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 					}
 					
 					// Add observation to context
-					String observationContext = String.format("<observation>\n%s\n</observation>",
-						observationResponse.observations());
-					context.add(observationContext);
+					ContextEntry observationEntry = new ContextEntry(
+						Instant.now(),
+						Role.ASSISTANT,
+						observationResponse.observations(),
+						ContextEntryType.OBSERVATION,
+						null,
+						null,
+						null
+					);
+					context.add(observationEntry);
 
 					reactStep = ReactStep.THINKING;
 					continue; // start ReAct (Reasoning and Acting) Loop again
