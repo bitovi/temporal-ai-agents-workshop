@@ -10,6 +10,7 @@ import bitovi.activities.types.ThoughtResponse;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
+import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 @ActivityInterface
 public interface Activities {
@@ -29,6 +30,5 @@ public interface Activities {
 	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
 
 	@ActivityMethod
-	void persistMemoryActivity(String memoryText) throws ApplicationFailure;
-
+	void persistMemoryActivity(String memoryText, Role role) throws ApplicationFailure;
 }

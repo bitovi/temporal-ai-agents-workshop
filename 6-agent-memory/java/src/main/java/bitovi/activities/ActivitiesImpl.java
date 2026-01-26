@@ -28,6 +28,7 @@ import bitovi.common.aws.BedrockConverse;
 import bitovi.common.aws.BedrockConverse.ChatMessage;
 import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
 import io.temporal.failure.ApplicationFailure;
+import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 public class ActivitiesImpl implements Activities {
 
@@ -336,10 +337,10 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public void persistMemoryActivity(String memoryText) throws ApplicationFailure {
+	public void persistMemoryActivity(String memoryText, Role role) throws ApplicationFailure {
 
 		try {
-			AgentCoreMemory.createEvent(memoryText);
+			AgentCoreMemory.createEvent(memoryText, role);
 		}
 		catch (Exception e) {
 			System.err.println("Error in persistMemoryActivity: " + e.getMessage());

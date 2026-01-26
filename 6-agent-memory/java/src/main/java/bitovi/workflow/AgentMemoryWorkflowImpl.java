@@ -21,6 +21,7 @@ import bitovi.workflow.types.WorkflowResult;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
+import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
@@ -117,7 +118,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				List<PersistMessage> messagesToPersist = new ArrayList<>();
 				
 				for (MessagePayload msg : pendingMsgs) {
-					activities.persistMemoryActivity(msg.message());
+					activities.persistMemoryActivity(msg.message(), Role.USER);
 
 					// Add user message to context with XML-like formatting
 					String userMessage = String.format("<user_message name=\"%s\" date=\"%s\">\n%s\n</user_message>",
