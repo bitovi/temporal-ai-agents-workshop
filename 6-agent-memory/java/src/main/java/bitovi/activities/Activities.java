@@ -6,16 +6,18 @@ import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContextEntry;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	ThoughtResponse thoughtActivity(List<ContextEntry> context) throws ApplicationFailure;
+	ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords) throws ApplicationFailure;
 
 	@ActivityMethod
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
@@ -31,4 +33,7 @@ public interface Activities {
 
 	@ActivityMethod
 	void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure;
+
+	@ActivityMethod
+	RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType) throws ApplicationFailure;
 }

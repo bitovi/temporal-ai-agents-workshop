@@ -20,6 +20,7 @@ import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.common.Config;
 import bitovi.common.EventClient;
@@ -31,14 +32,18 @@ import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
 import bitovi.workflow.types.ContextEntry;
 import bitovi.workflow.types.ContextEntryType;
 import io.temporal.failure.ApplicationFailure;
+import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
+import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
+import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
 public class ActivitiesImpl implements Activities {
 
     private static Config config = new Config();
 
 	@Override
-	public ThoughtResponse thoughtActivity(List<ContextEntry> context) throws ApplicationFailure {
+	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords) throws ApplicationFailure {
 		try {
 			System.out.println("thoughtActivity called with context size: " + context.size());
 
@@ -63,7 +68,10 @@ public class ActivitiesImpl implements Activities {
 			String systemPrompt = promptTemplate
 					.replace("{currentDate}", currentDate)
 					.replace("{previousSteps}", String.join("\n", truncatedContext))
+					.replace("{userPreferences}", String.join("\n", memoryRecords))
 					.replace("{availableActions}", availableActions);
+
+			System.out.println("[THOUGHT] systemPrompt: " + systemPrompt);
 
 			// Call Bedrock with high-quality model
 			Config config = new Config();
@@ -375,6 +383,33 @@ public class ActivitiesImpl implements Activities {
 			System.err.println("Error in persistMemoryActivity: " + e.getMessage());
 			throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
 					"PersistMemoryActivityError");
+		}
+	}
+
+	@Override
+	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType) throws ApplicationFailure {
+		try {
+			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyType);
+			if (response.memoryRecordSummaries().isEmpty()) {
+				return new RetrieveMemoryRecordsResult(List.of()); // empty
+			}
+
+			var memoryRecords = new ArrayList<String>();
+			for (MemoryRecordSummary memoryRecordSummary : response.memoryRecordSummaries()) {
+				MemoryStrategyType memoryStrategyType = AgentCoreMemory.getMemoryStrategyType(memoryRecordSummary);
+				MemoryContent memoryContent = memoryRecordSummary.content();
+				if (memoryContent.type() != MemoryContent.Type.TEXT) { continue; }
+				String text = memoryContent.text();
+
+				String typeTag = memoryStrategyType.toString().toLowerCase().replace("_", "-");
+				memoryRecords.add(String.format("<%s>%s</%s>", typeTag, text, typeTag));
+			}
+			return new RetrieveMemoryRecordsResult(memoryRecords);
+		}
+		catch (Exception e) {
+			System.err.println("Error in retrieveMemoryRecordsActivity: " + e.getMessage());
+			throw ApplicationFailure.newFailure("retrieveMemoryRecordsActivity failed: " + e.getMessage(),
+					"RetrieveMemoryRecordsActivityError");
 		}
 	}
 }

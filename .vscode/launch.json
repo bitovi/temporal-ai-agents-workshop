@@ -125,6 +125,15 @@
         },
         {
             "type": "java",
+            "name": "List Events",
+            "request": "launch",
+            "mainClass": "bitovi.ListEvents",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/6-agent-memory/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
+        },
+        {
+            "type": "java",
             "name": "List Memory Records",
             "request": "launch",
             "mainClass": "bitovi.ListMemoryRecords",
@@ -134,12 +143,12 @@
         },
         {
             "type": "java",
-            "name": "List Events",
+            "name": "Retrieve Memory Records",
             "request": "launch",
-            "mainClass": "bitovi.ListEvents",
+            "mainClass": "bitovi.RetrieveMemoryRecords",
             "projectName": "agent-memory",
             "cwd": "${workspaceFolder}/6-agent-memory/java/",
             "preLaunchTask": "Exercise 6 Maven Build"
-        }
+        },
     ]
 }

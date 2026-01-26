@@ -15,10 +15,15 @@ import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
+import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
+import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsRequest;
+import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
+import software.amazon.awssdk.services.bedrockagentcore.model.SearchCriteria;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.GetMemoryRequest;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.Memory;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
 public class AgentCoreMemory {
 
@@ -28,10 +33,9 @@ public class AgentCoreMemory {
 
     private static String MEMORY_ID = "memory_dy2bk-G5fQBo4USF";
 
-    private static String SESSION_ID = "agent-workflow-66b75efc-33b8-46ef-9e37-5c1b7ce38c44";
+    private static String SESSION_ID = "agent-workflow-ca19bc68-5bd9-457d-b81a-52931370dce7";
 
-    public static void createEvent(List<ContextEntry> entries) {
-        Memory memory;
+    public static Memory getMemory() {
         try (BedrockAgentCoreControlClient bedrockAgentCoreControlClient = AWS
                 .getBedrockAgentCoreControlClient()) {
 
@@ -39,10 +43,22 @@ public class AgentCoreMemory {
                     .memoryId(MEMORY_ID)
                     .build();
 
-            memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
+            Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
 
             System.out.println("Memory found: " + memory.name());
+            return memory;
         }
+    }
+
+    public static MemoryStrategyType getMemoryStrategyType(MemoryRecordSummary summary) {
+        return getMemory().strategies().stream()
+            .filter(strat -> strat.strategyId().equals(summary.memoryStrategyId()))
+            .findFirst()
+            .orElseThrow()
+            .type();
+    }
+
+    public static void createEvent(List<ContextEntry> entries) {
 
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
             // Create a Conversational payload for each ContextEntry
@@ -60,7 +76,7 @@ public class AgentCoreMemory {
             Instant eventTimestamp = entries.isEmpty() ? Instant.now() : entries.get(0).timestamp();
 
             CreateEventRequest request = CreateEventRequest.builder()
-                    .memoryId(memory.id())
+                    .memoryId(MEMORY_ID)
                     .sessionId(Activity.getExecutionContext().getInfo().getWorkflowId())
                     .actorId(USER_ACTOR_ID)
                     .payload(payloads)
@@ -108,5 +124,29 @@ public class AgentCoreMemory {
         }
     }
 
+    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, MemoryStrategyType strategyType) {
+        try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
+            var memoryStrategyId = getMemory().strategies().stream()
+                .filter(strat -> strat.type() == strategyType)
+                .findFirst()
+                .orElseThrow()
+                .strategyId();
 
+            SearchCriteria searchCriteria = SearchCriteria.builder()
+                    .memoryStrategyId(memoryStrategyId)
+                    .searchQuery(query)
+                    .build();
+
+            RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
+                    .memoryId(MEMORY_ID)
+                    .maxResults(4)
+                    .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
+                    .searchCriteria(searchCriteria)
+                    .build();
+
+            RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
+            return response;
+        }
+
+    }
 }

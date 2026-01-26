@@ -3,17 +3,17 @@ package bitovi;
 
 import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
-import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
+import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
-public class ListMemoryRecords {
+public class RetrieveMemoryRecords {
 
 	public static void main(String[] args) throws Exception {
 		Config config = new Config();
 
-		ListMemoryRecordsResponse response = AgentCoreMemory.listMemoryRecords();
+		RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords("What do you remember about me?", MemoryStrategyType.USER_PREFERENCE);
 		
 		
 		if (response.memoryRecordSummaries().isEmpty()) {

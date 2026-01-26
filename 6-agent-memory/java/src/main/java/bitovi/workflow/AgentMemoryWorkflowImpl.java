@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -11,6 +12,7 @@ import bitovi.activities.Activities;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
+import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContextEntry;
 import bitovi.workflow.types.ContextEntryType;
@@ -24,6 +26,7 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
 public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
@@ -141,8 +144,17 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 
 			// Start ReAct (Reasoning and Acting) Steps
 			if (reactStep == ReactStep.THINKING) {
+				// Retrieve Long Term Memories
+
+				String query = context.stream()
+					.map(ContextEntry::toXmlString)
+					.collect(Collectors.joining("\n"));
+				RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query, MemoryStrategyType.USER_PREFERENCE);
+				List<String> memoryRecords = retrieveResult.memoryRecords();
+				
+
 				// Get thought from AI
-				ThoughtResponse thoughtResponse = activities.thoughtActivity(context);
+				ThoughtResponse thoughtResponse = activities.thoughtActivity(context, memoryRecords);
 				
 				// Track usage
 				if (thoughtResponse.usage() != null) {
