@@ -14,13 +14,13 @@ import { agentCardHandler, jsonRpcHandler, restHandler, UserBuilder } from '@a2a
 import { grpcService, A2AService } from '@a2a-js/sdk/server/grpc';
 
 // 1. Define your agent's identity card.
-const helloAgentCard: AgentCard = {
-  name: 'Hello Agent',
-  description: 'A simple agent that says hello.',
+const bookAgentCard: AgentCard = {
+  name: 'Book Agent',
+  description: 'An agent that can answer questions about books.',
   protocolVersion: '0.3.0',
   version: '0.1.0',
   url: 'http://localhost:4000/a2a/jsonrpc', // The public URL of your agent server
-  skills: [{ id: 'chat', name: 'Chat', description: 'Say hello', tags: ['chat'] }],
+  skills: [{ id: 'chat', name: 'Chat', description: 'Chat about books', tags: ['chat'] }],
   capabilities: {
     pushNotifications: false,
   },
@@ -34,7 +34,7 @@ const helloAgentCard: AgentCard = {
 };
 
 // 2. Implement the agent's logic.
-class HelloExecutor implements AgentExecutor {
+class BookAgentExecutor implements AgentExecutor {
   async execute(requestContext: RequestContext, eventBus: ExecutionEventBus): Promise<void> {
     // Create a direct message response.
     const responseMessage: Message = {
@@ -56,9 +56,9 @@ class HelloExecutor implements AgentExecutor {
 }
 
 // 3. Set up and run the server.
-const agentExecutor = new HelloExecutor();
+const agentExecutor = new BookAgentExecutor();
 const requestHandler = new DefaultRequestHandler(
-  helloAgentCard,
+  bookAgentCard,
   new InMemoryTaskStore(),
   agentExecutor
 );
@@ -70,7 +70,7 @@ app.use('/a2a/jsonrpc', jsonRpcHandler({ requestHandler, userBuilder: UserBuilde
 app.use('/a2a/rest', restHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }));
 
 app.listen(4000, () => {
-  console.log(`🚀 Server started on http://localhost:4000`);
+  console.log(`🚀 HTTP Server started on http://localhost:4000`);
 });
 
 const server = new Server();
@@ -79,5 +79,5 @@ server.addService(A2AService, grpcService({
   userBuilder: UserBuilder.noAuthentication,
 }));
 server.bindAsync(`localhost:4001`, ServerCredentials.createInsecure(), () => {
-  console.log(`🚀 Server started on localhost:4001`);
+  console.log(`🚀 gRPC Server started on localhost:4001`);
 });
