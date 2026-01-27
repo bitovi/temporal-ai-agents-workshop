@@ -1,8 +1,26 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { 
+  BedrockRuntimeClient, 
+  ConverseCommand, 
+  Tool, 
+  Message, 
+  ContentBlock 
+} from '@aws-sdk/client-bedrock-runtime';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+export interface ToolUse {
+  toolUseId: string;
+  name: string;
+  input: Record<string, any>;
+}
+
+export interface BedrockResponse {
+  text?: string;
+  toolUses?: ToolUse[];
+  stopReason?: string;
 }
 
 /**
@@ -74,6 +92,69 @@ export async function callBedrock(
     console.log(`[Bedrock] Received response: ${responseText.substring(0, 100)}...`);
     
     return responseText;
+  } catch (error) {
+    console.error('[Bedrock] API call failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Calls AWS Bedrock Converse API with tool calling support.
+ * 
+ * @param messages - Array of Bedrock Message objects with ContentBlock arrays
+ * @param systemPrompt - System prompt to set agent behavior
+ * @param tools - Array of tool specifications for Bedrock
+ * @returns BedrockResponse with text, toolUses, or both
+ * @throws Error if API call fails or credentials are invalid
+ */
+export async function callBedrockWithTools(
+  messages: Message[],
+  systemPrompt: string,
+  tools: Tool[]
+): Promise<BedrockResponse> {
+  console.log(`[Bedrock] Sending ${messages.length} message(s) with ${tools.length} tool(s) to model ${process.env.AWS_MODEL_ID}`);
+
+  const command = new ConverseCommand({
+    modelId: process.env.AWS_MODEL_ID as string,
+    system: [{ text: systemPrompt }],
+    messages: messages,
+    toolConfig: {
+      tools: tools,
+    },
+  });
+
+  try {
+    const response = await client.send(command);
+    
+    const outputMessage = response.output?.message;
+    if (!outputMessage || !outputMessage.content || outputMessage.content.length === 0) {
+      console.warn('[Bedrock] Empty response from Bedrock API');
+      return { stopReason: response.stopReason };
+    }
+
+    const result: BedrockResponse = {
+      stopReason: response.stopReason,
+    };
+
+    // Extract text content blocks
+    const textBlocks = outputMessage.content.filter((block) => block.text);
+    if (textBlocks.length > 0) {
+      result.text = textBlocks.map((block) => block.text).join('\n');
+      console.log(`[Bedrock] Received text response: ${result.text.substring(0, 100)}...`);
+    }
+
+    // Extract tool use blocks
+    const toolUseBlocks = outputMessage.content.filter((block) => block.toolUse);
+    if (toolUseBlocks.length > 0) {
+      result.toolUses = toolUseBlocks.map((block) => ({
+        toolUseId: block.toolUse!.toolUseId!,
+        name: block.toolUse!.name!,
+        input: block.toolUse!.input as Record<string, any>,
+      }));
+      console.log(`[Bedrock] Received ${result.toolUses.length} tool use request(s)`);
+    }
+
+    return result;
   } catch (error) {
     console.error('[Bedrock] API call failed:', error);
     throw error;

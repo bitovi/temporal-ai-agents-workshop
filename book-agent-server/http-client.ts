@@ -13,7 +13,7 @@ async function run() {
     message: {
       messageId: uuidv4(),
       role: 'user',
-      parts: [{ kind: 'text', text: 'Hi there!' }],
+      parts: [{ kind: 'text', text: 'Hi there! Are there any good books about how to be charming?' }],
       kind: 'message',
     },
   };
