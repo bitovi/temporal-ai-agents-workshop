@@ -21,6 +21,11 @@ import { callBedrockWithTools } from './bedrock-client';
 import { getGutendexTools } from './gutendex-tools';
 import { executeTool } from './tool-executor';
 
+// Environment configuration
+const HTTP_PORT = parseInt(process.env.HTTP_PORT || '4000', 10);
+const GRPC_PORT = parseInt(process.env.GRPC_PORT || '4001', 10);
+const HOST = process.env.HOST || 'localhost';
+
 /**
  * Generate system prompt dynamically from tool definitions
  */
@@ -51,7 +56,7 @@ const bookAgentCard: AgentCard = {
   description: 'An agent that can answer questions about books.',
   protocolVersion: '0.3.0',
   version: '0.1.0',
-  url: 'http://localhost:4000/a2a/jsonrpc', // The public URL of your agent server
+  url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`, // The public URL of your agent server
   skills: [{ id: 'chat', name: 'Chat', description: 'Chat about books', tags: ['chat'] }],
   capabilities: {
     pushNotifications: false,
@@ -59,9 +64,9 @@ const bookAgentCard: AgentCard = {
   defaultInputModes: ['text'],
   defaultOutputModes: ['text'],
   additionalInterfaces: [
-    { url: 'http://localhost:4000/a2a/jsonrpc', transport: 'JSONRPC' }, // Default JSON-RPC transport
-    { url: 'http://localhost:4000/a2a/rest', transport: 'HTTP+JSON' }, // HTTP+JSON/REST transport
-    { url: 'localhost:4001', transport: 'GRPC' }, // GRPC transport
+    { url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`, transport: 'JSONRPC' }, // Default JSON-RPC transport
+    { url: `http://${HOST}:${HTTP_PORT}/a2a/rest`, transport: 'HTTP+JSON' }, // HTTP+JSON/REST transport
+    { url: `${HOST}:${GRPC_PORT}`, transport: 'GRPC' }, // GRPC transport
   ],
 };
 
@@ -223,8 +228,8 @@ app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({ agentCardProvider: requestHand
 app.use('/a2a/jsonrpc', jsonRpcHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }));
 app.use('/a2a/rest', restHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }));
 
-app.listen(4000, () => {
-  console.log(`🚀 HTTP Server started on http://localhost:4000`);
+app.listen(HTTP_PORT, '0.0.0.0', () => {
+  console.log(`🚀 HTTP Server started on http://0.0.0.0:${HTTP_PORT}`);
 });
 
 const server = new Server();
@@ -232,6 +237,6 @@ server.addService(A2AService, grpcService({
   requestHandler,
   userBuilder: UserBuilder.noAuthentication,
 }));
-server.bindAsync(`localhost:4001`, ServerCredentials.createInsecure(), () => {
-  console.log(`🚀 gRPC Server started on localhost:4001`);
+server.bindAsync(`0.0.0.0:${GRPC_PORT}`, ServerCredentials.createInsecure(), () => {
+  console.log(`🚀 gRPC Server started on 0.0.0.0:${GRPC_PORT}`);
 });

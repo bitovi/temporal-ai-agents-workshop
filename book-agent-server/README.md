@@ -58,6 +58,83 @@ The server will start on:
 - **gRPC**: `localhost:4001`
 - **Agent Card**: `http://localhost:4000/.well-known/agent-card.json`
 
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+The book agent server can run as part of the workshop's Docker environment:
+
+1. **Create `.env` file** in the repository root (if not already present):
+   ```bash
+   # In repository root, create .env file
+   cat > .env << EOF
+   AWS_ACCESS_KEY_ID=your-key
+   AWS_SECRET_ACCESS_KEY=your-secret
+   AWS_SESSION_TOKEN=your-token
+   AWS_REGION=us-east-1
+   AWS_MODEL_ID=openai.gpt-oss-safeguard-120b
+   EOF
+   ```
+   
+   **Note**: Docker Compose automatically loads this file. You can also copy values from `1-prompt-engineering/config.properties`.
+
+2. **Start all services** (from workspace root):
+   ```bash
+   docker compose up --build
+   ```
+
+3. **Verify book agent is running**:
+   ```bash
+   curl http://localhost:4000/.well-known/agent-card.json
+   ```
+
+4. **Stop services**:
+   ```bash
+   docker compose down -v
+   ```
+
+### Standalone Docker
+
+To run only the book agent server in Docker:
+
+1. **Build the image**:
+   ```bash
+   docker build -t book-agent-server .
+   ```
+
+2. **Run the container**:
+   ```bash
+   docker run -p 4000:4000 -p 4001:4001 \
+     -e AWS_ACCESS_KEY_ID="your-key" \
+     -e AWS_SECRET_ACCESS_KEY="your-secret" \
+     -e AWS_SESSION_TOKEN="your-token" \
+     -e AWS_REGION="us-east-1" \
+     -e AWS_MODEL_ID="openai.gpt-oss-safeguard-120b" \
+     book-agent-server
+   ```
+
+3. **Test the agent**:
+   ```bash
+   # Check health
+   curl http://localhost:4000/.well-known/agent-card.json
+   
+   # Test with client (in another terminal)
+   npm run client:http
+   ```
+
+### Docker Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AWS_ACCESS_KEY_ID` | Yes | - | AWS access key for Bedrock |
+| `AWS_SECRET_ACCESS_KEY` | Yes | - | AWS secret key |
+| `AWS_SESSION_TOKEN` | No | - | AWS session token (if using temporary credentials) |
+| `AWS_REGION` | No | `us-east-1` | AWS region |
+| `AWS_MODEL_ID` | No | `openai.gpt-oss-safeguard-120b` | Bedrock model ID |
+| `HTTP_PORT` | No | `4000` | HTTP server port |
+| `GRPC_PORT` | No | `4001` | gRPC server port |
+| `HOST` | No | `localhost` | Hostname for agent card URLs |
+
 ## Testing
 
 ### Test with HTTP Client
