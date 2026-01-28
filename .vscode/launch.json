@@ -150,5 +150,23 @@
             "cwd": "${workspaceFolder}/6-agent-memory/java/",
             "preLaunchTask": "Exercise 6 Maven Build"
         },
+        {
+            "type": "java",
+            "name": "Exercise 8 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentToAgentWorker",
+            "projectName": "agent-to-agent",
+            "cwd": "${workspaceFolder}/8-agent-to-agent/java/",
+            "preLaunchTask": "Exercise 8 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 8 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentToAgentClient",
+            "projectName": "agent-to-agent",
+            "cwd": "${workspaceFolder}/8-agent-to-agent/java/",
+            "preLaunchTask": "Exercise 8 Maven Build"
+        },
     ]
 }
