@@ -21,6 +21,7 @@ public class ToolRegistry {
         // Register tool executors
         toolExecutors.put("brave_search", BraveSearchTool::execute);
         toolExecutors.put("fetch_webpage", FetchWebpageTool::execute);
+        toolExecutors.put("book_agent", BookAgentTool::execute);
         // Note: Keep existing tools available if needed in future
         // toolExecutors.put("get_weather", WeatherTool::execute);
     }
@@ -33,8 +34,10 @@ public class ToolRegistry {
      */
     public static List<Tool> getAllBedrockTools() {
         List<Tool> tools = new ArrayList<>();
-        tools.add(BraveSearchTool.getBedrockTool());
-        tools.add(FetchWebpageTool.getBedrockTool());
+        // prioritize the book agent
+        // tools.add(BraveSearchTool.getBedrockTool());
+        // tools.add(FetchWebpageTool.getBedrockTool());
+        tools.add(BookAgentTool.getBedrockTool());
         // Add other tools as needed
         return tools;
     }
