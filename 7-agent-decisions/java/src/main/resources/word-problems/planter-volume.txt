@@ -1,0 +1,4 @@
+A tinsmith wants to make a small planter from a  38cm x 22 cm sheet of copper.
+He'll form it by cutting equally sized squares from each of the four corners of the sheet,
+folding up the resulting flaps to form the sides of the planter, and then shouldering the four vertical edges.
+What is the maximum possible volume of the planter?

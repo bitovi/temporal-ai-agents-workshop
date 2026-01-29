@@ -33,8 +33,9 @@ public class ToolRegistry {
      */
     public static List<Tool> getAllBedrockTools() {
         List<Tool> tools = new ArrayList<>();
-        tools.add(BraveSearchTool.getBedrockTool());
-        tools.add(FetchWebpageTool.getBedrockTool());
+        // do not allow web searches to cheat reasoning
+        // tools.add(BraveSearchTool.getBedrockTool());
+        // tools.add(FetchWebpageTool.getBedrockTool());
         // Add other tools as needed
         return tools;
     }

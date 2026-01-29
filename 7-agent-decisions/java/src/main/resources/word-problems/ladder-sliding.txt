@@ -1,0 +1,2 @@
+A  13  foot ladder leans against a wall.  The foot of a ladder begins to slide away from the wall
+at the rate of 1 foot per minute.  When the foot is  5 ft from the wall,  at what rate is the top of the ladder is falling?

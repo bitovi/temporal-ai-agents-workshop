@@ -26,7 +26,7 @@ public class AgentDecisionsWorker {
 
 			factory.start();
 
-			System.out.println("Exercise 5 Temporal Worker started. Press Ctrl+C to exit.");
+			System.out.println("Exercise 7 Temporal Worker started. Press Ctrl+C to exit.");
 
 			// Keep the worker running
 			Thread.currentThread().join();

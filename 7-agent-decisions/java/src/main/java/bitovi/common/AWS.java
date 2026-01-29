@@ -13,6 +13,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
@@ -156,6 +157,15 @@ public class AWS {
             requestBuilder.toolConfig(toolConfig);
         }
 
+        // Configure reasoning parameters with a 2000 token budget
+        Document reasoningConfig = Document.mapBuilder()
+                .putDocument("reasoningConfig", Document.mapBuilder()
+                        .putString("type", "enabled")
+                        .putString("maxReasoningEffort", "low")
+                        .build())
+                .build();
+        requestBuilder.additionalModelRequestFields(reasoningConfig);
+
         BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
         ConverseResponse response = bedrockRuntimeClient.converse(requestBuilder.build());
 
@@ -163,7 +173,7 @@ public class AWS {
 
         if (contentBlocks == null || contentBlocks.isEmpty()) {
             System.out.println("Model did not respond with any content blocks.");
-            return new ModelResponseWithUsage(null, extractUsageMetadata(response));
+            return new ModelResponseWithUsage(null, extractUsageMetadata(response, null));
         }
 
         System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
@@ -171,17 +181,20 @@ public class AWS {
         // Extract text content
         StringBuilder textResponse = new StringBuilder();
         for (ContentBlock block : contentBlocks) {
-            if (block.text() != null) {
+            if (block.reasoningContent() != null) {
+                System.out.println("Model reasoning output: " + block.reasoningContent().reasoningText().text());
+            }
+            else if (block.text() != null) {
                 textResponse.append(block.text());
             }
         }
 
         if (textResponse.length() > 0) {
             System.out.println("Model response text: " + textResponse.toString());
-            return new ModelResponseWithUsage(textResponse.toString(), extractUsageMetadata(response));
+            return new ModelResponseWithUsage(textResponse.toString(), extractUsageMetadata(response, textResponse.toString()));
         }
 
-        return new ModelResponseWithUsage(null, extractUsageMetadata(response));
+        return new ModelResponseWithUsage(null, extractUsageMetadata(response, null));
     }
 
     /**
@@ -190,15 +203,17 @@ public class AWS {
      * @param response The ConverseResponse from Bedrock
      * @return UsageMetadata with token counts
      */
-    private static UsageMetadata extractUsageMetadata(ConverseResponse response) {
+    private static UsageMetadata extractUsageMetadata(ConverseResponse response, String finalOutput) {
+        int finalOutputTokens = ModelUtils.estimateTokenCount(finalOutput);
         TokenUsage usage = response.usage();
         if (usage != null) {
             return new UsageMetadata(
                 usage.inputTokens(),
                 usage.outputTokens(),
+                usage.outputTokens() - finalOutputTokens,
                 usage.totalTokens()
             );
         }
-        return new UsageMetadata(0, 0, 0);
+        return new UsageMetadata(0, 0, 0,0);
     }
 }

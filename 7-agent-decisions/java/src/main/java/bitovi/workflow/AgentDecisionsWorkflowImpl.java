@@ -77,10 +77,11 @@ public class AgentDecisionsWorkflowImpl implements AgentDecisionsWorkflow {
 			if (userRequestedExit) {
 				// Aggregate usage metrics and return
 				UsageMetadata finalUsage = usage.stream()
-					.reduce(new UsageMetadata(0, 0, 0),
+					.reduce(new UsageMetadata(0, 0, 0, 0),
 						(acc, curr) -> new UsageMetadata(
 							acc.inputTokens() + curr.inputTokens(),
 							acc.outputTokens() + curr.outputTokens(),
+							acc.reasoningTokens() + curr.reasoningTokens(),
 							acc.totalTokens() + curr.totalTokens()
 						));
 				return new WorkflowResult(finalUsage);
