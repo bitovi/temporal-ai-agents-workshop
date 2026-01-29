@@ -8,13 +8,11 @@ import java.util.Map;
 import org.json.JSONObject;
 
 import bitovi.workflow.types.UsageMetadata;
-import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
@@ -28,7 +26,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
-import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 
 public class AWS {
@@ -115,92 +112,6 @@ public class AWS {
         }
 
         return embedding;
-    }
-
-    public static ModelResponse bedrockConverse(List<ChatMessage> history, String prompt,
-            ToolConfiguration toolConfig) {
-        Config config = new Config();
-        String AWS_MODEL_ARN = config.getProperty("AWS_MODEL_ID");
-        List<Message> messages = new ArrayList<Message>();
-
-        // Convert the chat messages to Bedrock's Message format
-        for (ChatMessage message : history) {
-            messages.add(Message.builder()
-                    .role(ConversationRole.fromValue(message.role()))
-                    .content(ContentBlock.fromText(message.content()))
-                    .build());
-        }
-
-        Builder request = ConverseRequest.builder()
-                .modelId(AWS_MODEL_ARN)
-                .messages(messages)
-                .system(SystemContentBlock.fromText(prompt.trim()));
-
-        if (toolConfig != null) {
-            request.toolConfig(toolConfig);
-        }
-
-        BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
-
-        List<ContentBlock> contentBlocks = null;
-        ConverseResponse response = bedrockRuntimeClient.converse(request
-                .build());
-
-        contentBlocks = response.output().message().content();
-
-        // Grab any content block that has a tool call first
-        if (contentBlocks == null || contentBlocks.isEmpty()) {
-            System.out.println("Model did not respond with any content blocks.");
-            return new ModelResponse(null, null);
-        }
-
-        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
-
-        // If the response contains a tool call, we will handle it first
-        StringBuilder textResponse = new StringBuilder();
-        for (ContentBlock block : contentBlocks) {
-            if (block.text() != null) {
-                textResponse.append(block.text());
-            }
-
-            if (block.toolUse() != null) {
-                ToolUseBlock toolUseBlock = block.toolUse();
-
-                // If the response is a tool call, return the tool name and inputs
-                String toolName = toolUseBlock.name();
-                Document toolInputs = toolUseBlock.input();
-
-                Map<String, Object> toolInputsMap = toDocumentMap(toolUseBlock);
-
-                try {
-                    System.out.println(
-                            "Model requested tool call: " + toolName + " with inputs: " + toolInputs.toString());
-
-                    return new ModelResponse(null, new ModelToolCall(toolName, toolInputsMap));
-                } catch (Exception e) {
-                    throw ApplicationFailure.newNonRetryableFailureWithCause("Error parsing tool inputs",
-                            "InvalidToolInputs", e, toolInputs.toString());
-                }
-            }
-        }
-
-        if (textResponse.length() > 0) {
-            System.out.println("Model response text: " + textResponse.toString());
-            return new ModelResponse(textResponse.toString(), null);
-        }
-
-        return new ModelResponse(null, null);
-    }
-
-    private static Map<String, Object> toDocumentMap(ToolUseBlock toolUseBlock) {
-        Map<String, Object> objectMap = new java.util.HashMap<>();
-        Map<String, Document> docMap = toolUseBlock
-                .input().asMap();
-        for (Map.Entry<String, Document> entry : docMap
-                .entrySet()) {
-            objectMap.put(entry.getKey(), entry.getValue().toString());
-        }
-        return objectMap;
     }
 
     /**
