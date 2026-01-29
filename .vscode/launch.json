@@ -152,6 +152,24 @@
         },
         {
             "type": "java",
+            "name": "Exercise 7 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentDecisionsWorker",
+            "projectName": "agent-decisions",
+            "cwd": "${workspaceFolder}/7-agent-decisions/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentDecisionsClient",
+            "projectName": "agent-decisions",
+            "cwd": "${workspaceFolder}/7-agent-decisions/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
             "name": "Exercise 8 - Worker",
             "request": "launch",
             "mainClass": "bitovi.AgentToAgentWorker",

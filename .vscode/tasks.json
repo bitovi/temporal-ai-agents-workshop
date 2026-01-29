@@ -153,6 +153,20 @@
       "detail": "Runs mvn compile"
     },
     {
+      "label": "Exercise 7 Maven Build",
+      "type": "shell",
+      "command": "mvn compile",
+      "options": {
+        "cwd": "${workspaceFolder}/7-agent-decisions/java"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn compile"
+    },
+    {
       "label": "Exercise 8 Maven Build",
       "type": "shell",
       "command": "mvn compile",
