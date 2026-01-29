@@ -1,5 +1,6 @@
 package bitovi;
 
+import java.io.InputStream;
 import java.time.LocalDateTime;
 
 import bitovi.common.Config;
@@ -36,11 +37,17 @@ public class AgentDecisionsClient {
 		WorkflowClient.start(workflow::execute, new WorkflowInput(null));
 		
 		System.out.println("Workflow started with ID: " + workflowId);
-		
+
+		// Load Word Problem Text
+		String wordProblem;
+		try (InputStream wordProblemStream = AgentDecisionsClient.class.getClassLoader().getResourceAsStream("word-problems/baseball-tickets.txt")) {
+			wordProblem = new String(wordProblemStream.readAllBytes()).trim();
+		}
+
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 			"TestUser",
-			"Hello, agent!",
+			wordProblem,
 			LocalDateTime.now().toString()
 		);
 		workflow.receiveMessage(testMessage);
@@ -48,7 +55,7 @@ public class AgentDecisionsClient {
 		System.out.println("Sent message signal");
 		
 		// Wait briefly to allow workflow to process
-		Thread.sleep(2000);
+		Thread.sleep(20000);
 		
 		// Send exit signal
 		workflow.requestExit();
@@ -62,6 +69,7 @@ public class AgentDecisionsClient {
 		System.out.println("Usage metrics:");
 		System.out.println("  Input tokens: " + result.usage().inputTokens());
 		System.out.println("  Output tokens: " + result.usage().outputTokens());
+		System.out.println("  Reasoning tokens: " + result.usage().reasoningTokens());
 		System.out.println("  Total tokens: " + result.usage().totalTokens());
 	}
 }
