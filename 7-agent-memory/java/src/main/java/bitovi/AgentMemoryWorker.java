@@ -1,7 +1,7 @@
 package bitovi;
 
 import bitovi.common.TemporalClient;
-import bitovi.workflow.AgentDecisionsWorkflowImpl;
+import bitovi.workflow.AgentMemoryWorkflowImpl;
 import bitovi.common.Config;
 import bitovi.activities.ActivitiesImpl;
 
@@ -9,7 +9,7 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
-public class AgentDecisionsWorker {
+public class AgentMemoryWorker {
 	public static void main(String[] args) {
 
 		try {
@@ -21,12 +21,12 @@ public class AgentDecisionsWorker {
 			WorkerFactory factory = WorkerFactory.newInstance(temporalClient);
 			Worker worker = factory.newWorker(taskQueue);
 
-			worker.registerWorkflowImplementationTypes(AgentDecisionsWorkflowImpl.class);
+			worker.registerWorkflowImplementationTypes(AgentMemoryWorkflowImpl.class);
 			worker.registerActivitiesImplementations(new ActivitiesImpl());
 
 			factory.start();
 
-			System.out.println("Exercise 7 Temporal Worker started. Press Ctrl+C to exit.");
+		System.out.println("Exercise 7 Temporal Worker started. Press Ctrl+C to exit.");
 
 			// Keep the worker running
 			Thread.currentThread().join();

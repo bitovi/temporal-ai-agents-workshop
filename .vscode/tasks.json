@@ -143,7 +143,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/6-agent-memory/java"
+        "cwd": "${workspaceFolder}/6-agent-decisions/java"
       },
       "group": {
         "kind": "build",
@@ -157,7 +157,7 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/7-agent-decisions/java"
+        "cwd": "${workspaceFolder}/7-agent-memory/java"
       },
       "group": {
         "kind": "build",

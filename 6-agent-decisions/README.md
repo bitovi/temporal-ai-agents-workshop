@@ -1,4 +1,4 @@
-# Exercise 7 - Agent Decisions
+# Exercise 6 - Agent Decisions
 
 ## Goals
 

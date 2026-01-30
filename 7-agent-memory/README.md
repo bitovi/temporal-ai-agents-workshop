@@ -1,4 +1,4 @@
-# Exercise 6 - Agent Memory
+# Exercise 7 - Agent Memory
 
 When working with AI Agents, especially with Temporal, we can design agents that can potentially run for extended periods of time, even indefinitely. This capability opens up exciting possibilities for creating agents that can remember past interactions, learn from them, and adapt their behavior over time.
 
