@@ -40,7 +40,7 @@ public class AgentMemoryClient {
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 			"TestUser",
-			"Hello, agent!",
+			"Hello, agent! What do you remember about me?",
 			LocalDateTime.now().toString()
 		);
 		workflow.receiveMessage(testMessage);
@@ -48,7 +48,7 @@ public class AgentMemoryClient {
 		System.out.println("Sent message signal");
 		
 		// Wait briefly to allow workflow to process
-		Thread.sleep(2000);
+		Thread.sleep(20000);
 		
 		// Send exit signal
 		workflow.requestExit();

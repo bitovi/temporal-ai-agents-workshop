@@ -134,6 +134,24 @@
         },
         {
             "type": "java",
+            "name": "Create Memory",
+            "request": "launch",
+            "mainClass": "bitovi.CreateMemory",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/6-agent-memory/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Delete Memory",
+            "request": "launch",
+            "mainClass": "bitovi.DeleteMemory",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/6-agent-memory/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
+        },
+        {
+            "type": "java",
             "name": "List Memory Records",
             "request": "launch",
             "mainClass": "bitovi.ListMemoryRecords",

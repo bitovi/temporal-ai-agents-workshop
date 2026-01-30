@@ -21,19 +21,25 @@ import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryReco
 import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.SearchCriteria;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.CreateMemoryRequest;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.CreateMemoryResponse;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.DeleteMemoryRequest;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.DeleteMemoryResponse;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.EpisodicMemoryStrategyInput;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.EpisodicReflectionConfigurationInput;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.GetMemoryRequest;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.Memory;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyInput;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.SemanticMemoryStrategyInput;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.SummaryMemoryStrategyInput;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.UserPreferenceMemoryStrategyInput;
 
 public class AgentCoreMemory {
 
     private static Config config = new Config();
-
     private static String USER_ACTOR_ID = config.getProperty("USER_ACTOR_ID");
-
-    private static String MEMORY_ID = "memory_dy2bk-G5fQBo4USF";
-
-    private static String SESSION_ID = "agent-workflow-ca19bc68-5bd9-457d-b81a-52931370dce7";
+    private static String MEMORY_ID = config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_ID");
 
     public static Memory getMemory() {
         try (BedrockAgentCoreControlClient bedrockAgentCoreControlClient = AWS
@@ -94,13 +100,13 @@ public class AgentCoreMemory {
         }
     }
 
-    public static ListEventsResponse listEvents() {
+    public static ListEventsResponse listEvents(String sessionId) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
 
             ListEventsRequest request = ListEventsRequest.builder()
                 .memoryId(MEMORY_ID)
                 .actorId(USER_ACTOR_ID)
-                .sessionId(SESSION_ID)
+                .sessionId(sessionId)
                 .build();
 
             ListEventsResponse response = bedrockAgentCoreClient.listEvents(request);
@@ -148,5 +154,110 @@ public class AgentCoreMemory {
             return response;
         }
 
+    }
+
+    public static CreateMemoryResponse createMemory() {
+        try (BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()) {
+
+            CreateMemoryRequest request = CreateMemoryRequest.builder()
+                .name("Riot_Bitovi_Temporal_AI_Workshop_Memory")
+                .description("This is a temporary resource for the Temporal AI Agents Workshop (Part 2) delivered by Bitovi.")
+                .eventExpiryDuration(30) // Events expire after 30 days
+                .memoryStrategies(
+                    MemoryStrategyInput.builder()
+                        .episodicMemoryStrategy(EpisodicMemoryStrategyInput.builder()
+                            .name("Episodic")
+                            .description("Stores temporal sequences of events")
+                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                            .reflectionConfiguration(EpisodicReflectionConfigurationInput.builder()
+                                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                                .build())
+                            .build())
+                        .build(),
+                    MemoryStrategyInput.builder()
+                        .userPreferenceMemoryStrategy(UserPreferenceMemoryStrategyInput.builder()
+                            .name("Preference")
+                            .description("Tracks user preferences and choices")
+                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                            .build())
+                        .build(),
+                    MemoryStrategyInput.builder()
+                        .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
+                            .name("Semantic")
+                            .description("Stores factual information and concepts")
+                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                            .build())
+                        .build(),
+                    MemoryStrategyInput.builder()
+                        .summaryMemoryStrategy(SummaryMemoryStrategyInput.builder()
+                            .name("Summary")
+                            .description("Maintains summarized conversation history")
+                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                            .build())
+                        .build()
+                )
+                .build();
+
+            System.out.println("Creating memory with request:");
+            System.out.println("  Name: " + request.name());
+            System.out.println("  Description: " + request.description());
+            System.out.println("  Event Expiry Duration: " + request.eventExpiryDuration() + " days");
+            System.out.println("  Number of strategies: " + request.memoryStrategies().size());
+
+            CreateMemoryResponse response = controlClient.createMemory(request);
+            return response;
+        } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ValidationException e) {
+            System.err.println("\n=== Validation Error Creating Memory ===");
+            System.err.println("Error Message: " + e.getMessage());
+            System.err.println("Status Code: " + e.statusCode());
+            System.err.println("Request ID: " + e.requestId());
+            System.err.println("Service: " + e.awsErrorDetails().serviceName());
+            System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
+            System.err.println("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
+            if (e.awsErrorDetails().sdkHttpResponse() != null) {
+                System.err.println("HTTP Status: " + e.awsErrorDetails().sdkHttpResponse().statusCode());
+            }
+            System.err.println("======================================\n");
+            throw e;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public static DeleteMemoryResponse deleteMemory(String memoryId) {
+        try (BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()) {
+
+            System.out.println("Deleting memory with ID: " + memoryId);
+
+            DeleteMemoryRequest request = DeleteMemoryRequest.builder()
+                .memoryId(memoryId)
+                .build();
+
+            DeleteMemoryResponse response = controlClient.deleteMemory(request);
+            return response;
+        } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ResourceNotFoundException e) {
+            System.err.println("\n=== Resource Not Found Error Deleting Memory ===");
+            System.err.println("Memory ID: " + memoryId);
+            System.err.println("Error Message: " + e.getMessage());
+            System.err.println("Status Code: " + e.statusCode());
+            System.err.println("Request ID: " + e.requestId());
+            System.err.println("Service: " + e.awsErrorDetails().serviceName());
+            System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
+            System.err.println("================================================\n");
+            throw e;
+        } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ValidationException e) {
+            System.err.println("\n=== Validation Error Deleting Memory ===");
+            System.err.println("Memory ID: " + memoryId);
+            System.err.println("Error Message: " + e.getMessage());
+            System.err.println("Status Code: " + e.statusCode());
+            System.err.println("Request ID: " + e.requestId());
+            System.err.println("Service: " + e.awsErrorDetails().serviceName());
+            System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
+            System.err.println("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
+            System.err.println("============================================\n");
+            throw e;
+        } catch (Exception e) {
+            throw e;
+        }
     }
 }

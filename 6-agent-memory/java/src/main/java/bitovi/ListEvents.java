@@ -15,10 +15,13 @@ import java.util.List;
 
 public class ListEvents {
 
+	// copy workflow id from temporal ui
+	private static String SESSION_ID = "agent-workflow-87488ce5-6cce-4aad-b3cb-f92d44cd64f9";
+
 	public static void main(String[] args) throws Exception {
 		Config config = new Config();
 
-		ListEventsResponse response = AgentCoreMemory.listEvents();
+		ListEventsResponse response = AgentCoreMemory.listEvents(SESSION_ID);
 		
 		if (response.events().isEmpty()) {
 			System.out.println("Found 0 event(s)");
