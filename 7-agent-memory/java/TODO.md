@@ -1,41 +1,23 @@
-# Tool Calling Workflow
+# Agent Memory
 
-This exercise provides a simple implementation of a Tool Calling workflow using Java and Temporal.
+## Initial Example
+1. Update `.env` in root with your own username for `USER_ACTOR_ID`
+2. Run Task: Sync Environments
+3. Run Task: Docker Compose Down 
+4. Run Task: Docker Compose Up
+5. Launch: Exercise 7 - Worker
+6. Launch: Exercise 7 - Client
+7. Observe:
+    - Open the latest workflow in the [temporal ui](http://localhost:8233/)
+    - Click on the Thought Activity to see the question asked and answered
+    - In `AgentMemoryClient.java` we asked the agent what he knew about us. If you haven't interacted with the agent yet, it shouldn't have any LTM about you yet.
 
-First take a look at the `ToolCallingWorkflowImpl.java` file. The `execute` method is where the workflow logic is defined. The workflow uses a chat history to interact with an AI model, which can call tools based on the conversation context.
+## TODO
+1. Open the Chat Web UI: `http://localhost:3000/` and start a conversation. Tell it some of your personal preferences (favorite color, favorite coffee, etc.)
+2. (Optional) Navigate to the AWS console, find the memory resource and watch it extract LTM records async.
+3. After a few minutes, start a completely new conversation and ask the agent what it knows about you.
+4. Observe that the agent should be able "remember" things about you.
 
-You should run the provided Worker and Client first to see the default behavior.
+Search for `TODO_MEMORY` in the code:
 
-Run the workflow without modifications first by using the vscode launch configuration for 'Exercise 2 - Worker' and then 'Exercise 2 - Client'. This will start the Temporal worker and client, allowing you to see how the workflow executes with the provided chat history.
-
-Take a look at the Temporal Web UI to observe the Workflow executions. You can access it at:
-<http://localhost:8233/namespaces/default/workflows>
-
-Once you have run the default implementation, you can start modifying the code to customize the Tool Calling workflow.
-
-Below are some steps to guide you through the process, but also look for the `TODO_TOOLS` comments in the code to find areas that you might want to modify or enhance.
-
-Using the provided `WeatherTool.java` as an example, create your own tool implementation in the `DefineYourOwnTool.java` file. The TODOs in that file will provide guidance on what to implement.
-
-You will also need to update the `AWS.java` file to register your new tool. Look for the comments in the `AWS.java` file that indicate where to add your tool.
-
-You will also need to update the `ActivitiesImpl.java` file to correctly handle the tool call. Look for the TODOs in that file for guidance on what to implement.
-
-Once you have implemented your tool, update the sample chat history in the `ToolCallingWorkflowImpl.java` file to include a question for the model that would require your new tool to be called. This will allow you to test your tool implementation within the workflow.
-
-
-Example of the Weather Tool Input Schema
-```json
-{
-    "type": "object",
-    "properties": {
-        "zipCode": {
-            "type": "string",
-            "description": "The zip code for which to get the weather information."
-        },
-    },
-    "required": ["zipCode"]
-}
-```
-
-The code in the WeatherTool.java is creating an object with this format.
+- TODO_MEMORY: Experiment by including memory records queried from different strategies (i.e. episodic, semantic, summary)

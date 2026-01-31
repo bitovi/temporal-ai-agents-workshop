@@ -40,6 +40,7 @@ public class AgentDecisionsClient {
 
 		// Load Word Problem Text
 		String wordProblem;
+		// TODO_DECISIONS: Experiment with different word problem prompts
 		try (InputStream wordProblemStream = AgentDecisionsClient.class.getClassLoader().getResourceAsStream("word-problems/baseball-tickets.txt")) {
 			wordProblem = new String(wordProblemStream.readAllBytes()).trim();
 		}

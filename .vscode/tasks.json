@@ -55,6 +55,16 @@
       "detail": "Stop and remove Docker Compose services and volumes"
     },
     {
+      "label": "Sync Environments",
+      "type": "shell",
+      "command": "./sync-env.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/"
+      },
+      "problemMatcher": [],
+      "detail": "Copies the root .env file into each exercise"
+    },
+    {
       "label": "Exercise 0 Maven Build",
       "type": "shell",
       "command": "mvn compile",
@@ -63,7 +73,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -77,7 +86,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -91,7 +99,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -105,7 +112,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -119,7 +125,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -133,7 +138,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -147,7 +151,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -161,7 +164,6 @@
       },
       "group": {
         "kind": "build",
-        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"

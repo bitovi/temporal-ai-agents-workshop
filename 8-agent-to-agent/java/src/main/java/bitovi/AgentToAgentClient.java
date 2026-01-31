@@ -40,6 +40,7 @@ public class AgentToAgentClient {
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 			"TestUser",
+			// TODO_A2A: Experiment with different question about books
 			"Are there any good books about sailing?",
 			LocalDateTime.now().toString()
 		);

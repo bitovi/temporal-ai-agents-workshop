@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script should take the `.env` file and copy it into the 0-5 sub project directories.
+# This script should take the `.env` file and copy it into the 0-8 sub project directories.
 
 if [ ! -f .env ]; then
   echo ".env file not found in the current directory."
@@ -7,7 +7,7 @@ if [ ! -f .env ]; then
 fi
 
 # Create list of directories to copy the .env file into
-dirs=(0-environment-setup 1-prompt-engineering 2-rag 3-tool-calling 4-mcp 5-agent-workflow 6-agent-memory 7-agent-decisions 8-agent-to-agent)
+dirs=(0-environment-setup 1-prompt-engineering 2-rag 3-tool-calling 4-mcp 5-agent-workflow 6-agent-decisions 7-agent-memory 8-agent-to-agent)
 
 # Clean up existing .env files in the target directories
 for dir in "${dirs[@]}"; do

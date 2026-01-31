@@ -143,7 +143,7 @@
         },
         {
             "type": "java",
-            "name": "List Events",
+            "name": "Exercise 7 - List Events",
             "request": "launch",
             "mainClass": "bitovi.ListEvents",
             "projectName": "agent-memory",
@@ -152,25 +152,7 @@
         },
         {
             "type": "java",
-            "name": "Create Memory",
-            "request": "launch",
-            "mainClass": "bitovi.CreateMemory",
-            "projectName": "agent-memory",
-            "cwd": "${workspaceFolder}/7-agent-memory/java/",
-            "preLaunchTask": "Exercise 7 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Delete Memory",
-            "request": "launch",
-            "mainClass": "bitovi.DeleteMemory",
-            "projectName": "agent-memory",
-            "cwd": "${workspaceFolder}/7-agent-memory/java/",
-            "preLaunchTask": "Exercise 7 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "List Memory Records",
+            "name": "Exercise 7 - List Memory Records",
             "request": "launch",
             "mainClass": "bitovi.ListMemoryRecords",
             "projectName": "agent-memory",
@@ -179,9 +161,27 @@
         },
         {
             "type": "java",
-            "name": "Retrieve Memory Records",
+            "name": "Exercise 7 - Retrieve Memory Records",
             "request": "launch",
             "mainClass": "bitovi.RetrieveMemoryRecords",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Create Memory",
+            "request": "launch",
+            "mainClass": "bitovi.CreateMemory",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Delete Memory",
+            "request": "launch",
+            "mainClass": "bitovi.DeleteMemory",
             "projectName": "agent-memory",
             "cwd": "${workspaceFolder}/7-agent-memory/java/",
             "preLaunchTask": "Exercise 7 Maven Build"
