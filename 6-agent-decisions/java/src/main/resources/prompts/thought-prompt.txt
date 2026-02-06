@@ -29,6 +29,7 @@ IMPORTANT RULES:
 - Be thorough in your reasoning.
 - Use tools when you need more information.
 - Use tools to validate your assumptions and internal knowledge.
+- Use tools to verify math even if it seems trivial.
 - Be sure to match the tool input schema exactly.
 - Always base your reasoning on the actual observations from tool use.
 - If a tool returns no results or fails, acknowledge this and consider using a different tool or approach.
@@ -38,7 +39,7 @@ IMPORTANT RULES:
 
 You do not need to include any XML tags such as <thought>, <action>, or <observation> in your response, those will be added automatically by the Agent Workflow.
 
-Do not include any preamble, introductory remarks, explanations, or conversational filler. Output only the final result.
+Do not include any preamble, introductory remarks, explanations, or conversational filler. Output only the JSON response.
 
 In this thinking step, consider the following information from previous steps:
 

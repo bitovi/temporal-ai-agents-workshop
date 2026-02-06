@@ -5,17 +5,17 @@ import java.util.IllegalFormatException;
 
 import bitovi.common.AWS;
 import bitovi.common.Config;
-
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock.Type;
+import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.InferenceConfiguration;
+import software.amazon.awssdk.services.bedrockruntime.model.Message;
 
 public class ActivitiesImpl implements Activities {
 	@Override
@@ -54,10 +54,24 @@ public class ActivitiesImpl implements Activities {
 					.build();
 
 			ConverseResponse response = bedrockRuntimeClient.converse(converseRequest);
-			String completion = response.output().message().content().get(0).text();
+
+			if (response.output().message().hasContent() == false) {
+				throw ApplicationFailure.newNonRetryableFailure(
+						"Received empty response from Bedrock",
+						"EmptyBedrockResponse");
+			}
+
+			StringBuilder sb = new StringBuilder();
+			for (ContentBlock block : response.output().message().content()) {
+				if (block.type() == Type.TEXT) {
+					sb.append(block.text());
+				}
+			}
+
+			String completion = sb.toString();
 			System.out.println("LLM Response: " + completion);
 
-			return "LLM Response (Claude): " + completion;
+			return completion;
 		} catch (IllegalFormatException e) {
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to format prompt: " + e.getMessage(),

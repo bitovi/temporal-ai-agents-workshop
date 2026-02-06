@@ -1,8 +1,7 @@
 package bitovi;
 
-import bitovi.common.TemporalClient;
 import bitovi.common.Config;
-
+import bitovi.common.TemporalClient;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 

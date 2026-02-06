@@ -1,9 +1,8 @@
 package bitovi.activities;
 
-import bitovi.common.Config;
-
 import org.json.JSONObject;
 
+import bitovi.common.Config;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
@@ -11,11 +10,11 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 
 public class BedrockImpl implements Bedrock {
 	@Override
@@ -32,13 +31,17 @@ public class BedrockImpl implements Bedrock {
 
 		StaticCredentialsProvider credentialsProvider;
 
+		validateAWSFormat(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN);
+
 		try {
 			if (AWS_SESSION_TOKEN == null || AWS_SESSION_TOKEN.isEmpty()) {
+				System.out.println("Using long-term AWS credentials.");
 				credentialsProvider = StaticCredentialsProvider.create(
 						AwsBasicCredentials.create(
 								AWS_ACCESS_KEY_ID,
 								AWS_SECRET_ACCESS_KEY));
 			} else {
+				System.out.println("Using temporary AWS credentials.");
 				credentialsProvider = StaticCredentialsProvider.create(
 						AwsSessionCredentials.create(
 								AWS_ACCESS_KEY_ID,
@@ -46,6 +49,7 @@ public class BedrockImpl implements Bedrock {
 								AWS_SESSION_TOKEN));
 			}
 		} catch (Exception e) {
+			System.err.println("Error creating AWS credentials: " + e.getMessage());
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to create AWS credentials: " + e.getMessage(),
 					"AWSCredentialsError");
@@ -101,5 +105,12 @@ public class BedrockImpl implements Bedrock {
 		}
 
 		return "Bedrock connection successful.";
+	}
+
+	private void validateAWSFormat(String AWS_ACCESS_KEY_ID, String AWS_SECRET_ACCESS_KEY, String AWS_SESSION_TOKEN) {
+		if (AWS_ACCESS_KEY_ID.startsWith("\"") || AWS_SECRET_ACCESS_KEY.startsWith("\"") ||
+				(AWS_SESSION_TOKEN != null && AWS_SESSION_TOKEN.startsWith("\""))) {
+			System.err.println("Warning: AWS credentials in .env file should not have quotes around the values.");
+		}
 	}
 }

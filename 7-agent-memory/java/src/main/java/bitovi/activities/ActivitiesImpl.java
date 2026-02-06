@@ -40,10 +40,11 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrat
 
 public class ActivitiesImpl implements Activities {
 
-    private static Config config = new Config();
+	private static Config config = new Config();
 
 	@Override
-	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords) throws ApplicationFailure {
+	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords)
+			throws ApplicationFailure {
 		try {
 			System.out.println("thoughtActivity called with context size: " + context.size());
 
@@ -64,12 +65,12 @@ public class ActivitiesImpl implements Activities {
 			// Get available tools as XML string
 			String availableActions = ToolRegistry.getToolsAsXmlString();
 
-
 			// Format prompt with placeholders
 			String systemPrompt = promptTemplate
 					.replace("{currentDate}", currentDate)
 					.replace("{previousSteps}", String.join("\n", truncatedContext))
-					// TODO_MEMORY: Experiment by including memory records queried from different strategies (i.e. episodic, semantic, summary)
+					// TODO_MEMORY: Experiment by including memory records queried from different
+					// strategies (i.e. episodic, semantic, summary)
 					.replace("{userPreferences}", String.join("\n", memoryRecords))
 					.replace("{availableActions}", availableActions);
 
@@ -82,7 +83,7 @@ public class ActivitiesImpl implements Activities {
 			ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
 					systemPrompt,
 					// Must start with a user message
-					List.of(new ChatMessage("user", "perform THOUGHT")),
+					List.of(new ChatMessage("user", systemPrompt)),
 					null, // No tool config needed for thought
 					modelId);
 
@@ -235,7 +236,7 @@ public class ActivitiesImpl implements Activities {
 			ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
 					systemPrompt,
 					// must start with a user message
-					List.of(new ChatMessage("user", "perform OBSERVATION")),
+					List.of(new ChatMessage("user", systemPrompt)),
 					null,
 					modelId);
 
@@ -284,7 +285,7 @@ public class ActivitiesImpl implements Activities {
 
 			ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
 					systemPrompt,
-					List.of(new ChatMessage("user", "perform COMPACTION")),
+					List.of(new ChatMessage("user", systemPrompt)),
 					null,
 					modelId);
 
@@ -295,17 +296,16 @@ public class ActivitiesImpl implements Activities {
 
 			// Build result: Create SUMMARY entry + last 3 entries from original context
 			List<ContextEntry> newContext = new ArrayList<>();
-			
+
 			// Create SUMMARY entry with compacted content
 			ContextEntry summaryEntry = new ContextEntry(
-				Instant.now(),
-				Role.ASSISTANT,
-				compactedSummary,
-				ContextEntryType.SUMMARY,
-				null,
-				null,
-				null
-			);
+					Instant.now(),
+					Role.ASSISTANT,
+					compactedSummary,
+					ContextEntryType.SUMMARY,
+					null,
+					null,
+					null);
 			newContext.add(summaryEntry);
 
 			// Add last N entries from original context
@@ -377,11 +377,9 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure {
-
 		try {
 			AgentCoreMemory.createEvent(entries);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			System.err.println("Error in persistMemoryActivity: " + e.getMessage());
 			throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
 					"PersistMemoryActivityError");
@@ -389,7 +387,8 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType) throws ApplicationFailure {
+	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType)
+			throws ApplicationFailure {
 		try {
 			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyType);
 			if (response.memoryRecordSummaries().isEmpty()) {
@@ -400,15 +399,16 @@ public class ActivitiesImpl implements Activities {
 			for (MemoryRecordSummary memoryRecordSummary : response.memoryRecordSummaries()) {
 				MemoryStrategyType memoryStrategyType = AgentCoreMemory.getMemoryStrategyType(memoryRecordSummary);
 				MemoryContent memoryContent = memoryRecordSummary.content();
-				if (memoryContent.type() != MemoryContent.Type.TEXT) { continue; }
+				if (memoryContent.type() != MemoryContent.Type.TEXT) {
+					continue;
+				}
 				String text = memoryContent.text();
 
 				String typeTag = memoryStrategyType.toString().toLowerCase().replace("_", "-");
 				memoryRecords.add(String.format("<%s>%s</%s>", typeTag, text, typeTag));
 			}
 			return new RetrieveMemoryRecordsResult(memoryRecords);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			System.err.println("Error in retrieveMemoryRecordsActivity: " + e.getMessage());
 			throw ApplicationFailure.newFailure("retrieveMemoryRecordsActivity failed: " + e.getMessage(),
 					"RetrieveMemoryRecordsActivityError");

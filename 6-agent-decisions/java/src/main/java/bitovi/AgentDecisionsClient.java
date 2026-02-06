@@ -35,37 +35,37 @@ public class AgentDecisionsClient {
 
 		// Start workflow asynchronously with empty input
 		WorkflowClient.start(workflow::execute, new WorkflowInput(null));
-		
+
 		System.out.println("Workflow started with ID: " + workflowId);
 
 		// Load Word Problem Text
 		String wordProblem;
 		// TODO_DECISIONS: Experiment with different word problem prompts
-		try (InputStream wordProblemStream = AgentDecisionsClient.class.getClassLoader().getResourceAsStream("word-problems/baseball-tickets.txt")) {
+		try (InputStream wordProblemStream = AgentDecisionsClient.class.getClassLoader()
+				.getResourceAsStream("word-problems/math-problem.txt")) {
 			wordProblem = new String(wordProblemStream.readAllBytes()).trim();
 		}
 
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
-			"TestUser",
-			wordProblem,
-			LocalDateTime.now().toString()
-		);
+				"TestUser",
+				wordProblem,
+				LocalDateTime.now().toString());
 		workflow.receiveMessage(testMessage);
-		
+
 		System.out.println("Sent message signal");
-		
+
 		// Wait briefly to allow workflow to process
 		Thread.sleep(20000);
-		
+
 		// Send exit signal
 		workflow.requestExit();
-		
+
 		System.out.println("Sent exit signal");
-		
+
 		// Get result
 		WorkflowResult result = WorkflowStub.fromTyped(workflow).getResult(WorkflowResult.class);
-		
+
 		System.out.println("Workflow completed!");
 		System.out.println("Usage metrics:");
 		System.out.println("  Input tokens: " + result.usage().inputTokens());
