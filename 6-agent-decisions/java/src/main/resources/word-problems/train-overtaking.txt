@@ -1,0 +1,3 @@
+A freight train starts from Los Angeles and heads for Chicago at 40 mph. Two hours
+later, a passenger train leaves the same station for Chicago traveling 60mph. How long
+before the passenger train overtakes the freight train?

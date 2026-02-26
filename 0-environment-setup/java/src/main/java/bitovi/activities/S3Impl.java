@@ -18,6 +18,7 @@ public class S3Impl implements S3 {
 		String AWS_SECRET_ACCESS_KEY = config.getProperty("AWS_SECRET_ACCESS_KEY");
 		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 		String AWS_BUCKET_NAME = config.getProperty("AWS_S3_BUCKET_NAME");
+		String AWS_S3_REGION = config.getProperty("AWS_S3_REGION");
 
 		try {
 			StaticCredentialsProvider credentialsProvider;
@@ -37,7 +38,7 @@ public class S3Impl implements S3 {
 
 			S3Client s3client = S3Client.builder()
 					.credentialsProvider(credentialsProvider)
-					.region(Region.of(config.getProperty("AWS_REGION")))
+					.region(Region.of(AWS_S3_REGION))
 					.build();
 
 			s3client.headBucket(b -> b.bucket(AWS_BUCKET_NAME));

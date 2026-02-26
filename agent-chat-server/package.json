@@ -1,0 +1,27 @@
+{
+  "name": "agent-chat-server",
+  "version": "1.0.0",
+  "description": "Express-based agent chat server with Temporal integration",
+  "main": "lib/server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node lib/server.js",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "@temporalio/client": "^1.13.2",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.7.0",
+    "@tsconfig/node22": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

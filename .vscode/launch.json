@@ -93,7 +93,8 @@
             "request": "launch",
             "mainClass": "bitovi.AgentWorkflowWorker",
             "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/java/"
+            "cwd": "${workspaceFolder}/5-agent-workflow/java/",
+            "preLaunchTask": "Exercise 5 Maven Build"
         },
         {
             "type": "java",
@@ -108,18 +109,100 @@
             "type": "java",
             "name": "Exercise 6 - Worker",
             "request": "launch",
-            "mainClass": "bitovi.AgentMemoryWorker",
-            "projectName": "agent-memory",
-            "cwd": "${workspaceFolder}/6-agent-memory/java/"
+            "mainClass": "bitovi.AgentDecisionsWorker",
+            "projectName": "agent-decisions",
+            "cwd": "${workspaceFolder}/6-agent-decisions/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
         },
         {
             "type": "java",
             "name": "Exercise 6 - Client",
             "request": "launch",
+            "mainClass": "bitovi.AgentDecisionsClient",
+            "projectName": "agent-decisions",
+            "cwd": "${workspaceFolder}/6-agent-decisions/java/",
+            "preLaunchTask": "Exercise 6 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentMemoryWorker",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Client",
+            "request": "launch",
             "mainClass": "bitovi.AgentMemoryClient",
             "projectName": "agent-memory",
-            "cwd": "${workspaceFolder}/6-agent-memory/java/",
-            "preLaunchTask": "Exercise 6 Maven Build"
-        }
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - List Events",
+            "request": "launch",
+            "mainClass": "bitovi.ListEvents",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - List Memory Records",
+            "request": "launch",
+            "mainClass": "bitovi.ListMemoryRecords",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Retrieve Memory Records",
+            "request": "launch",
+            "mainClass": "bitovi.RetrieveMemoryRecords",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Create Memory",
+            "request": "launch",
+            "mainClass": "bitovi.CreateMemory",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 7 - Delete Memory",
+            "request": "launch",
+            "mainClass": "bitovi.DeleteMemory",
+            "projectName": "agent-memory",
+            "cwd": "${workspaceFolder}/7-agent-memory/java/",
+            "preLaunchTask": "Exercise 7 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 8 - Worker",
+            "request": "launch",
+            "mainClass": "bitovi.AgentToAgentWorker",
+            "projectName": "agent-to-agent",
+            "cwd": "${workspaceFolder}/8-agent-to-agent/java/",
+            "preLaunchTask": "Exercise 8 Maven Build"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 8 - Client",
+            "request": "launch",
+            "mainClass": "bitovi.AgentToAgentClient",
+            "projectName": "agent-to-agent",
+            "cwd": "${workspaceFolder}/8-agent-to-agent/java/",
+            "preLaunchTask": "Exercise 8 Maven Build"
+        },
     ]
 }
