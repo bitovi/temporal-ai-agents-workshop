@@ -4,15 +4,12 @@
 
 The goal of this exercise is to understand how different agent decision strategies can be implemented and how they affect the behavior of an LLM-based Agent.
 
-- Reasoning and Acting Agent Architecture - How to structure an agent that can both reason about a problem and take actions (e.g., calling tools, asking clarifying questions) to solve it.
-
-- Plan and Execute Agent Architecture - How to structure an agent that first generates a complete plan for solving a problem, and then executes that plan step by step.
-
-- Model Provider Reasoning Effort - How much reasoning does the model provider (OpenAI, Anthropic, Bedrock, etc) do before returning a text or tool response.
+- **Reasoning and Acting Agent Architecture:** Structure agents to both reason about problems and take actions (e.g., calling tools, asking clarifying questions) to solve them.
+- **Plan and Execute Agent Architecture:** Structure agents to generate a complete plan before executing it step by step.
+- **Model Provider Reasoning Effort:** Explore how much reasoning the model provider (OpenAI, Anthropic, Bedrock, etc.) does before returning a response.
+- **Techniques for Optimizing Decision Making:** Learn methods to improve agent consistency, reliability, and performance.
 
 ## What you need to know
-
-TODO
 
 ### How it works
 
@@ -144,8 +141,47 @@ This can be used in combination with the 'thought' step of the ReAct agent archi
 
 For other steps, such as 'observation' or context 'compact' steps, we may want to have less reasoning, simply because it is not necessary, and would just add latency to the agent's response time and API costs.
 
-#### Baysian Classifiers
+#### Techniques for Optimizing Decision Making
+
+##### Baysian Classifiers
 
 Depending on the specific Agent use-case, sometimes the best answer is to remove some of the decision making from the LLM entirely, and instead use more traditional programming techniques to make decisions.
 
 For example, if we have a specific set of tools that the agent can call, and we want to determine which tool to call based on the user's query, we could use a Bayesian Classifier to classify the user's query into one of several categories, and then map those categories to specific tools. This can be more efficient and cost effective than having the model determine which tool to call, especially if the categories are well defined and the mapping to tools is straightforward.
+
+##### Rule-Based Decisions
+
+Sometimes it can be useful to direct an agent’s decision-making process by defining explicit rules.
+
+For example, a large bank building a financial AI agent might rely on rule-based decision making to ensure regulatory compliance and auditability. Deterministic rules can also serve as “guardrails” to protect against hallucinations or erratic behaviors in complex environments. For instance: 
+`if (applicant.creditScore < 400) { requestManualReview(); }`
+
+A sophisticated AI agent may take a hybrid approach using rules for high-frequency, structured tasks (like refund approvals) while leveraging LLM inference for unstructured, adaptive problem-solving.
+
+##### Optimization Algorithms
+
+LLMs typically generate responses by predicting the most likely next token at each step — a process known as probabilistic generation. To achieve better reasoning and results, we often need more strategic selection techniques that look beyond immediate next steps and optimize for the overall outcome.
+
+**Best-of-N:** Run the prompt multiple times (e.g., 10), then use a separate 'Reward Model' or 'Validator' to score and select the best response. This brute-force approach is highly effective for coding or math tasks.
+
+**Monte Carlo Tree Search (MCTS):** For complex, multi-step tasks, MCTS allows the agent to 'look ahead' at the consequences of actions before committing, similar to how AlphaGo evaluates chess moves.
+
+**Beam Search:** By keeping the top 3 or 5 paths open simultaneously, beam search helps avoid the 'Greedy Algorithm' trap, optimizing for the final outcome rather than just the immediate next step.
+
+##### Reinforcement Learning
+
+Reinforcement Learning (RL) enables agents to improve by learning from experience and remembering past outcomes.
+
+When an agent makes a mistake—such as hallucinating a tool's capability or failing a multi-step task—a negative reward signal forces it to adjust its internal reasoning policy. Over time, this turns every failure into a training data point.
+
+In enterprise settings, RL allows your AI to become a 'digital worker' that learns specific edge cases and refines its logic, rather than remaining at its initial performance level.
+
+##### Multi-Agent Coordination
+
+Single agents often hit reasoning walls, such as hallucination loops or difficulties with complex, multi-step planning. To overcome this, we treat AI as a digital team.
+
+**Collaborative modes:** Specialized agents (e.g., researcher, writer, critic) debate and verify each other’s work, ensuring higher accuracy.
+
+**Competitive modes:** Agents are pitted against each other to find flaws or edge cases, using game-theory dynamics to reach the most resilient decision possible.
+
+By balancing cooperative and competitive forces, we move from simple automation to proactive, collective intelligence.
