@@ -1,7 +1,16 @@
 **/*/target/
 **/*/bin/
 **/*/config.properties
+**/*.class
+**/*.log
+**/*.tmp
+**/*.swp
+**/*.bak
+**/*.jar
 config.properties
 .DS_Store
 node_modules
 .env
+*.pem
+*.key
+*.crt

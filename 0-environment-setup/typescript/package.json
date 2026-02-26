@@ -1,0 +1,34 @@
+{
+    "name": "environment-setup",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "client": "ts-node src/client.ts",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "worker": "ts-node src/worker.ts",
+        "build": "tsc --noEmit"
+    },
+    "keywords": [],
+    "author": "Mark Repka",
+    "license": "ISC",
+    "dependencies": {
+        "@aws-sdk/client-bedrock-runtime": "^3.861.0",
+        "@aws-sdk/client-s3": "^3.859.0",
+        "@qdrant/js-client-rest": "^1.15.0",
+        "@temporalio/activity": "^1.12.1",
+        "@temporalio/client": "^1.12.1",
+        "@temporalio/worker": "^1.12.1",
+        "@temporalio/workflow": "^1.12.1",
+        "dotenv": "^17.2.1",
+        "openai": "^5.12.0",
+        "postgres": "^3.4.7",
+        "uuid": "^11.1.0",
+        "zod": "^3.25.76"
+    },
+    "devDependencies": {
+        "@tsconfig/node18": "^18.2.4",
+        "prettier": "^3.6.2",
+        "ts-node": "^10.9.2"
+    }
+}

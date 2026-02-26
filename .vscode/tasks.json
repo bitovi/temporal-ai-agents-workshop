@@ -55,15 +55,24 @@
       "detail": "Stop and remove Docker Compose services and volumes"
     },
     {
+      "label": "Sync Environments",
+      "type": "shell",
+      "command": "./sync-env.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/"
+      },
+      "problemMatcher": [],
+      "detail": "Copies the root .env file into each exercise"
+    },
+    {
       "label": "Exercise 0 Maven Build",
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/0-environment-setup"
+        "cwd": "${workspaceFolder}/0-environment-setup/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -73,11 +82,10 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/1-prompt-engineering"
+        "cwd": "${workspaceFolder}/1-prompt-engineering/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -87,11 +95,10 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/2-rag"
+        "cwd": "${workspaceFolder}/2-rag/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -101,11 +108,10 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/3-tool-calling"
+        "cwd": "${workspaceFolder}/3-tool-calling/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -115,11 +121,10 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/4-mcp"
+        "cwd": "${workspaceFolder}/4-mcp/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"
@@ -129,11 +134,50 @@
       "type": "shell",
       "command": "mvn compile",
       "options": {
-        "cwd": "${workspaceFolder}/5-agent-workflow"
+        "cwd": "${workspaceFolder}/5-agent-workflow/java"
       },
       "group": {
-          "kind": "build",
-          "isDefault": true
+        "kind": "build",
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn compile"
+    },
+    {
+      "label": "Exercise 6 Maven Build",
+      "type": "shell",
+      "command": "mvn compile",
+      "options": {
+        "cwd": "${workspaceFolder}/6-agent-decisions/java"
+      },
+      "group": {
+        "kind": "build",
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn compile"
+    },
+    {
+      "label": "Exercise 7 Maven Build",
+      "type": "shell",
+      "command": "mvn compile",
+      "options": {
+        "cwd": "${workspaceFolder}/7-agent-memory/java"
+      },
+      "group": {
+        "kind": "build",
+      },
+      "problemMatcher": [],
+      "detail": "Runs mvn compile"
+    },
+    {
+      "label": "Exercise 8 Maven Build",
+      "type": "shell",
+      "command": "mvn compile",
+      "options": {
+        "cwd": "${workspaceFolder}/8-agent-to-agent/java"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": [],
       "detail": "Runs mvn compile"

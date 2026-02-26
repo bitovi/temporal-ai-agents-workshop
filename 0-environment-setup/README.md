@@ -23,7 +23,7 @@ There are a few external systems being used by the exercises in this repo:
 1. AWS S3 - used for document storage
 1. Postgres - used for structured data storage
 
-To correctly connect to these, copy the `config.properties-example` file to `config.properties` and replace the `TODO` property.
+To correctly connect to these, copy the `.env.example` file to `.env` and replace the `TODO` property.
 
 ## Local Systems / Mocks
 
@@ -50,6 +50,6 @@ After making code changes, be sure to restart the worker:
 
 ## Solution
 
-When you have the `config.properties` set up correctly and launch `Exercise 0 - Worker` and then `Exercise 0 - Client` you should be able to visit the [Temporal UI](http://localhost:8233) and see the workflow executed successfully:
+When you have the `.env` set up correctly and launch `Exercise 0 - Worker` and then `Exercise 0 - Client` you should be able to visit the [Temporal UI](http://localhost:8233) and see the workflow executed successfully:
 
 ![image](https://github.com/user-attachments/assets/4d497e90-f245-4108-8f72-03ca1c9602e7)
