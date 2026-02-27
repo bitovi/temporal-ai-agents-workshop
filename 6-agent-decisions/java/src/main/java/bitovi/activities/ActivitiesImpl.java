@@ -63,4 +63,10 @@ public class ActivitiesImpl implements Activities {
 			throw new RuntimeException("Failed to load prompt template: " + resourcePath, e);
 		}
 	}
+
+	@Override
+	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
+		// TODO: Implement token counting based on the Context
+		return 1;
+	}
 }

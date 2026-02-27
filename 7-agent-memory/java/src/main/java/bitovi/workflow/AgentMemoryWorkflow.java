@@ -3,6 +3,7 @@ package bitovi.workflow;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.WorkflowInput;
 import bitovi.workflow.types.WorkflowResult;
+import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -18,6 +19,9 @@ public interface AgentMemoryWorkflow {
 	@SignalMethod(name = "exit")
 	void requestExit();
 
-	@SignalMethod(name = "compact")
-	void requestCompaction();
+	@SignalMethod(name = "continueAsNew")
+	void requestContinueAsNew();
+
+	@QueryMethod(name = "getLastAnswer")
+	String getAnswer();
 }

@@ -35,5 +35,8 @@ public interface Activities {
 	void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure;
 
 	@ActivityMethod
+	Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure;	
+
+	@ActivityMethod
 	RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType) throws ApplicationFailure;
 }

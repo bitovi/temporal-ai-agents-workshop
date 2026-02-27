@@ -27,4 +27,7 @@ public interface Activities {
 
 	@ActivityMethod
 	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
+
+	@ActivityMethod
+	Integer getTokenUsage(List<String> context) throws ApplicationFailure;
 }

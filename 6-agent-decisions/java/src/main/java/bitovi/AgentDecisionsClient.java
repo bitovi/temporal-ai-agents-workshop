@@ -55,10 +55,15 @@ public class AgentDecisionsClient {
 
 		System.out.println("Sent message signal");
 
-		// Wait briefly to allow workflow to process
-		Thread.sleep(20000);
+		// Because the Workflow is designed to run forever and wait for signals
+		// we can poll to see if a final result has been produced.
+		String finalAnswerReceived = null;
+		while (finalAnswerReceived == null) {
+			Thread.sleep(5000);
+			finalAnswerReceived = workflow.getAnswer();
+		}
 
-		// Send exit signal
+		// Send exit signal to end the workflow execution and get the final usage
 		workflow.requestExit();
 
 		System.out.println("Sent exit signal");
@@ -72,5 +77,8 @@ public class AgentDecisionsClient {
 		System.out.println("  Output tokens: " + result.usage().outputTokens());
 		System.out.println("  Reasoning tokens: " + result.usage().reasoningTokens());
 		System.out.println("  Total tokens: " + result.usage().totalTokens());
+
+		System.out.println("");
+		System.out.println("Final answer: " + finalAnswerReceived);
 	}
 }

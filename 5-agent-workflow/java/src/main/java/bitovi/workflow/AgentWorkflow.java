@@ -18,6 +18,6 @@ public interface AgentWorkflow {
 	@SignalMethod(name = "exit")
 	void requestExit();
 
-	@SignalMethod(name = "compact")
-	void requestCompaction();
+	@SignalMethod(name = "continueAsNew")
+	void requestContinueAsNew();
 }

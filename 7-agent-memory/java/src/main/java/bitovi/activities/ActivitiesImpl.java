@@ -414,4 +414,11 @@ public class ActivitiesImpl implements Activities {
 					"RetrieveMemoryRecordsActivityError");
 		}
 	}
+
+	@Override
+	public Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure {
+		// TODO: Implement actual token counting logic, possibly by calling a tokenizer
+		// or estimating based on word count
+		return 1;
+	}
 }

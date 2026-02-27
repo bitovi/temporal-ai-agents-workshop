@@ -4,7 +4,7 @@
 
 The goal of this exercise is to understand how different agent decision strategies can be implemented and how they affect the behavior of an LLM-based Agent.
 
-- **Reasoning and Acting Agent Architecture:** Structure agents to both reason about problems and take actions (e.g., calling tools, asking clarifying questions) to solve them.
+- **Reasoning and Acting (ReAct) Agent Architecture:** Structure agents to both reason about problems and take actions (e.g., calling tools, asking clarifying questions) to solve them.
 - **Plan and Execute Agent Architecture:** Structure agents to generate a complete plan before executing it step by step.
 - **Model Provider Reasoning Effort:** Explore how much reasoning the model provider (OpenAI, Anthropic, Bedrock, etc.) does before returning a response.
 - **Techniques for Optimizing Decision Making:** Learn methods to improve agent consistency, reliability, and performance.
@@ -17,9 +17,9 @@ Take a look at a few different strategies for agent decision making, and how the
 
 #### Reasoning and Acting Agent Architecture
 
-As we saw in Exercise 5, we can build an agent workflow that can run multiple iterations of reasoning and acting, allow the model to call tools, collect information, ask clarifying questions, and then generate a final response.
+As we saw in Exercise 5, we can build an agent workflow that can run multiple iterations of a reasoning and acting loop, allowing the model to call tools, collect information, ask clarifying questions, and then generate a final response.
 
-The 'thought' step of this 'thought' 'action' 'observation' loop is where the model can reason about the problem, plan steps to solve it, and determine what actions are needed to work towards a solution.
+In this architecture the 'thought' step of our loop loop is where the model can reason about the problem, plan steps to solve it, and determine what actions are needed to work towards a solution. The other steps of the loop are more focused on executing those actions and collecting information, without needing as much reasoning effort from the model. In fact, this can be a useful way to optimize for cost and speed, by using the most powerful reasoning capabilities and largest models only in the 'thought' step, and then using smaller models with little to no reasoning effort in the other steps.
 
 With Temporal Workflows, Activities, and Signals we can build a flexible agent architecture that can handle complex interactions, maintain state across potentially infinite iterations.
 
