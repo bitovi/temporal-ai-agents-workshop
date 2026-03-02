@@ -25,10 +25,21 @@ With Temporal Workflows, Activities, and Signals we can build a flexible agent a
 
 #### Plan and Execute Agent Architecture
 
-Another common agent architecture is the 'plan and execute' architecture, where the model first generates a complete plan for how to solve the problem, and then executes that plan step by step. This can be useful for tasks that require a lot of planning and coordination, but it can also be less flexible than the 'reasoning and acting' architecture, as it may not allow for as much adaptability and responsiveness to new information or changing circumstances.
+Another common agent architecture is the 'plan and execute' architecture.
+The core loop is: Plan, Execute (step-by-step), Evaluate, and then optionally loop/re-Plan as needed.
+This is a similar approach to ReAct, however in this version the Planning step attempts to create the entire list of tasks that will be required to solve the problem upfront.
+
+Plan and Execute is an architecture where we separate the 'thinking' steps from the 'doing' steps.
+The LLM acts as a sort of compiler — looking at the complex question, breaking it down into steps of tool calls, and then letting the executor take it from there.
+It is up to the Plan step to perform the strategic thinking, and it is up to the Execute step to think only about each individual task.
+This means we can use our most powerful reasoning model for the planning step, while the tool calls and result parsing in the execution steps can be handled by a fast, cheap model.
+
+In ReAct, the LLM sees the whole context of the entire problem, including all the previous steps, each time it decides what to do next.
+With Plan-and-Execute, we can often reduce the amount of LLM context needed because each execution step is narrowly focused on its own task rather than the full problem.
+If steps do not have dependencies on each other, they can even be executed in parallel.
 
 The core difference is who decides what to do next. In your ReAct loop, the `thoughtActivity` decides the next action on every iteration with a one-step-at-a-time approach.
-In Plan-and-Execute, a `planActivity` generates the full sequence of steps upfront, and then the workflow just iterates through them mechanically.
+In Plan-and-Execute, a `planActivity` generates the full sequence of steps upfront, and then the workflow iterates through them, executing each one with a narrow focus.
 
 ```ts
 type PlanExecuteStep = "IDLE" | "PLANNING" | "EXECUTING" | "RESPONDING";
@@ -77,9 +88,9 @@ interface Activities {
 }
 ```
 
-The Workflow itself is where the structural difference really shows. In our existing ReAct Workflow, the loop is driven by the LLMs decisions each iteration. In Plan-and-Execute, the LLM runs once to plan, then execution is just tool calls, then the LLM runs once more to synthesize. For a 5-step task, ReAct might make 10+ LLM calls while Plan-and-Execute makes 2-3.
-
-The actual execution loop is normal deterministic code, just iterating over the plan steps:
+The Workflow itself is where the structural difference really shows.
+In our existing ReAct Workflow, the loop is driven by the LLM's decisions each iteration.
+In Plan-and-Execute, the LLM runs once to plan, then execution steps each focus narrowly on their own task, and the LLM runs once more to synthesize.
 
 ```ts
 let plan = await planActivity(context, availableTools);
@@ -127,9 +138,11 @@ for (const planStep of plan.steps) {
 const answer = await respondActivity(context, plan, results);
 ```
 
-The LLM gets called fewer times. In ReAct, the LLM runs on every loop iteration (thought, observation, thought, observation...). In Plan-and-Execute, the LLM runs once to plan, then execution is just tool calls, then the LLM runs once more to synthesize. For a 5-step task, ReAct might make 10+ LLM calls while Plan-and-Execute makes 2-3.
+Plan-and-Execute aims to use LLMs more efficiently. 
+The planning step gets the full reasoning power of a large model, but each execution step operates with a minimal prompt focused on a single task — making those calls faster and cheaper.
+The plan also helps prevent drift, keeping the agent on track toward the original goal rather than getting sidetracked by intermediate results.
 
-Trade offs exist between these architectures. ReAct is more flexible and can adapt to new information on the fly while Plan-and-Execute can be more efficient and better for tasks that require a lot of upfront planning. The best choice depends on the specific use-case and requirements of the agent being built.
+Trade-offs exist between these architectures. ReAct is more flexible and can adapt to new information on the fly, while Plan-and-Execute can be more efficient and better for tasks that benefit from upfront decomposition. The best choice depends on the specific use-case and requirements of the agent being built.
 
 #### Model Provider Reasoning Effort
 
