@@ -4,8 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "worker": "ts-node src/worker.ts",
-    "client:react": "ts-node src/client-react.ts",
-    "client:plan": "ts-node src/client-plan.ts",
+    "client": "ts-node src/client.ts",
     "build": "tsc --noEmit",
     "temporal": "temporal server start-dev"
   },
