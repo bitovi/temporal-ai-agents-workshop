@@ -148,7 +148,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 					.map(ContextEntry::toXmlString)
 					.collect(Collectors.joining("\n"));
 			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
-					MemoryStrategyType.USER_PREFERENCE);
+					List.of(MemoryStrategyType.USER_PREFERENCE));
 			List<String> memoryRecords = retrieveResult.memoryRecords();
 
 			// Get thought from AI based on context and retrieved memories

@@ -5,6 +5,12 @@ import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.DeleteMemoryResponse;
 
+/**
+ * A handy utility for deleting an existing AWS Bedrock Agent Core Memory instance.
+ * Make sure {@code AWS_BEDROCK_AGENTCORE_MEMORY_ID} is set in your {@code .env} file,
+ * then run this using the "DeleteMemory" run configuration to permanently remove
+ * the memory resource and all stored records associated with it.
+ */
 public class DeleteMemory {
 
     public static void main(String[] args) throws Exception {

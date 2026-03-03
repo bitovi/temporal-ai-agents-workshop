@@ -1,6 +1,8 @@
 package bitovi;
 
 
+import java.util.List;
+
 import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
@@ -8,12 +10,28 @@ import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
+/**
+ * A handy utility for browsing the distilled memory records stored in
+ * AWS Bedrock Agent Core Memory. Run this using the "ListMemoryRecords" run
+ * configuration to see what the agent has learned and retained about the user
+ * across all sessions, grouped by strategy type.
+ *
+ * Uncomment the desired {@link MemoryStrategyType} values to filter by strategy
+ * before running.
+ */
 public class ListMemoryRecords {
 
 	public static void main(String[] args) throws Exception {
 		Config config = new Config();
 
-		ListMemoryRecordsResponse response = AgentCoreMemory.listMemoryRecords();
+		var strategyTypes = List.of(
+			// MemoryStrategyType.EPISODIC,
+			MemoryStrategyType.USER_PREFERENCE
+			// MemoryStrategyType.SEMANTIC,
+			// MemoryStrategyType.SUMMARIZATION
+		);
+
+		ListMemoryRecordsResponse response = AgentCoreMemory.listMemoryRecords(strategyTypes);
 		
 		
 		if (response.memoryRecordSummaries().isEmpty()) {

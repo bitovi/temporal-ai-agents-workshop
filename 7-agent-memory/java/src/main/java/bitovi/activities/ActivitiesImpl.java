@@ -387,10 +387,10 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, MemoryStrategyType strategyType)
+	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, List<MemoryStrategyType> strategyTypes)
 			throws ApplicationFailure {
 		try {
-			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyType);
+			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyTypes);
 			if (response.memoryRecordSummaries().isEmpty()) {
 				return new RetrieveMemoryRecordsResult(List.of()); // empty
 			}

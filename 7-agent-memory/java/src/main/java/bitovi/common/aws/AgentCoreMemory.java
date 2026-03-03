@@ -115,20 +115,12 @@ public class AgentCoreMemory {
     }
 
 
-    public static ListMemoryRecordsResponse listMemoryRecords() {
+    public static ListMemoryRecordsResponse listMemoryRecords(List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
             List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
-            // Only retrieve records for certain strategy types.
-            var allowedTypes = List.of(
-                // MemoryStrategyType.EPISODIC
-                MemoryStrategyType.USER_PREFERENCE,
-                MemoryStrategyType.SEMANTIC
-                // MemoryStrategyType.SUMMARIZATION
-            );
-
             for (var strategy : getMemory().strategies()) {
-                if (!allowedTypes.contains(strategy.type())) continue;
+                if (!strategyTypes.contains(strategy.type())) continue;
                 String namespace = "/strategies/" + strategy.strategyId() + "/actors/" + USER_ACTOR_ID;
 
                 ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
@@ -146,30 +138,37 @@ public class AgentCoreMemory {
         }
     }
 
-    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, MemoryStrategyType strategyType) {
+    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
-            var memoryStrategyId = getMemory().strategies().stream()
-                .filter(strat -> strat.type() == strategyType)
-                .findFirst()
-                .orElseThrow()
-                .strategyId();
+            List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
-            SearchCriteria searchCriteria = SearchCriteria.builder()
-                    .memoryStrategyId(memoryStrategyId)
-                    .searchQuery(query)
+            for (MemoryStrategyType strategyType : strategyTypes) {
+                var memoryStrategyId = getMemory().strategies().stream()
+                    .filter(strat -> strat.type() == strategyType)
+                    .findFirst()
+                    .orElseThrow()
+                    .strategyId();
+
+                SearchCriteria searchCriteria = SearchCriteria.builder()
+                        .memoryStrategyId(memoryStrategyId)
+                        .searchQuery(query)
+                        .build();
+
+                RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
+                        .memoryId(MEMORY_ID)
+                        .maxResults(4)
+                        .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
+                        .searchCriteria(searchCriteria)
+                        .build();
+
+                RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
+                allRecords.addAll(response.memoryRecordSummaries());
+            }
+
+            return RetrieveMemoryRecordsResponse.builder()
+                    .memoryRecordSummaries(allRecords)
                     .build();
-
-            RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
-                    .memoryId(MEMORY_ID)
-                    .maxResults(4)
-                    .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
-                    .searchCriteria(searchCriteria)
-                    .build();
-
-            RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
-            return response;
         }
-
     }
 
     public static CreateMemoryResponse createMemory() {
