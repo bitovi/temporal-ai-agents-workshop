@@ -117,16 +117,32 @@ public class AgentCoreMemory {
 
     public static ListMemoryRecordsResponse listMemoryRecords() {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
+            List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
+            // Only retrieve records for certain strategy types.
+            var allowedTypes = List.of(
+                // MemoryStrategyType.EPISODIC
+                MemoryStrategyType.USER_PREFERENCE,
+                MemoryStrategyType.SEMANTIC
+                // MemoryStrategyType.SUMMARIZATION
+            );
 
-            ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
-                .memoryId(MEMORY_ID)
-                .namespace("/")
+            for (var strategy : getMemory().strategies()) {
+                if (!allowedTypes.contains(strategy.type())) continue;
+                String namespace = "/strategies/" + strategy.strategyId() + "/actors/" + USER_ACTOR_ID;
+
+                ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
+                    .memoryId(MEMORY_ID)
+                    .namespace(namespace)
+                    .build();
+
+                ListMemoryRecordsResponse response = bedrockAgentCoreClient.listMemoryRecords(request);
+                allRecords.addAll(response.memoryRecordSummaries());
+            }
+
+            return ListMemoryRecordsResponse.builder()
+                .memoryRecordSummaries(allRecords)
                 .build();
-
-
-            ListMemoryRecordsResponse response = bedrockAgentCoreClient.listMemoryRecords(request);
-            return response;
         }
     }
 
