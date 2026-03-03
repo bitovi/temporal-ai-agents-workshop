@@ -33,11 +33,16 @@ There are a few external systems being used by the exercises in this repo:
 
 ## Local Systems / Mocks
 
-All other systems will be run locally using `docker compose`.
+All other systems will be run locally using the **Docker Compose Up** task.
 
 1. Temporal - orchestration layer for AI workflows
-1. Qdrant - being used as a vector database for storing embeddings for use in Retrieval Augmented Generation
-1. An MCP Server - used to test the Model Context Protocol in exercise 4
+1. Qdrant - vector database for storing embeddings for use in Retrieval Augmented Generation
+1. Postgres - relational database for structured data storage
+1. Agent Chat Server - web UI for interacting with the AI agent
+1. Mock MCP Server - used to test the Model Context Protocol in exercise 4
+1. Book Agent Server - used for agent-to-agent communication in exercise 8
+
+To stop and clean up the running services, use the **Docker Compose Down** task.
 
 ## VSCode Launch Configurations
 
