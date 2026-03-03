@@ -13,10 +13,19 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * A handy utility for peeking at the raw conversation history stored in
+ * AWS Bedrock Agent Core Memory. Run this to see every message
+ * that has been exchanged during the session so far, printed out in
+ * chronological order.
+ *
+ * Just paste a Temporal workflow ID into {@code SESSION_ID} and run it using
+ * the "ListEvents" run configuration!
+ */
 public class ListEvents {
 
 	// copy workflow id from temporal ui
-	private static String SESSION_ID = "agent-workflow-87488ce5-6cce-4aad-b3cb-f92d44cd64f9";
+	private static String SESSION_ID = "agent-workflow-6aeb9f22-dd2f-4f76-acc8-429368a4617f";
 
 	public static void main(String[] args) throws Exception {
 		Config config = new Config();

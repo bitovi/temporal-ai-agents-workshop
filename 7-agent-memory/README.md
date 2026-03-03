@@ -82,7 +82,7 @@ For infinitely long conversations, modern agent architectures employ additional 
 
 **Graph Memory (Mem0g)** captures complex relational structures between conversational elements (entities as nodes, relationships as edges). Excellent for multi-hop reasoning and temporal queries. Uses Neo4j or similar graph database to model facts like: (User, lives_in, Austin).
 
-**High-level design for production systems:**
+### High-level Design for Production Systems
 
 - **Working memory (WM):** small rolling window (e.g., last 12-20 turns) + the current scratchpad/tool traces. Used directly in prompts. Hard cap in tokens.
 - **Episodic memory (EM):** append-only chronological events (user/agent messages, tool outcomes, decisions) chunked and immutable. Think log segments with indices.
@@ -190,7 +190,7 @@ public void persistMemoryActivity(List<ContextEntry> entries) {
 
 Under the hood, each `ContextEntry` is converted to a `Conversational` payload with its XML string representation and role (USER or ASSISTANT). AgentCore Memory then asynchronously processes these events through its configured strategies -- extracting semantic facts, identifying user preferences, and generating session summaries. This processing typically takes about a minute and requires no additional code.
 
-The `sessionId` for memory events is set to the Temporal workflow ID, which means each workflow execution maps to a distinct memory session. When the workflow does `continueAsNew`, the new execution gets a new workflow ID and therefore a new session -- but the extracted long-term memories persist across sessions under the same `actorId`.
+The `sessionId` for memory events is set to the Temporal workflow ID, which remains stable across `continueAsNew` calls (only the _run ID_ changes). This means a single long-running conversation keeps the same memory session even through `continueAsNew` boundaries, and the extracted long-term memories persist across sessions under the same `actorId`.
 
 ### The Cold Start Pattern
 
@@ -216,16 +216,6 @@ When building the prompt for the thought activity, you are allocating a fixed to
 
 The implementation uses `ModelUtils.truncateContextToTokenLimit` to ensure the conversation history fits, and limits memory retrieval to 4 results. In a production system, you would want to be more deliberate about this allocation -- perhaps reserving a fixed token budget for each source and dynamically adjusting based on what is available and relevant.
 
-## An AI Agent's Perspective on Memory
-
-As an AI agent myself, I can speak to this topic from direct experience.
-
-My context window is my entire working memory. I have no persistent memory across conversations -- every new session starts completely blank. Within a session, I am entirely dependent on the conversation history staying within my context window. When our earlier conversation in this session hit the context limit, I lost direct access to everything we had discussed and had to rely on a compressed summary to continue. That is exactly the compaction pattern from Exercise 5, except it happened to me rather than to a system I was analyzing.
-
-What your Exercise 7 architecture gives an agent that I lack: the ability to start a new session and still know that Mark prefers TypeScript for understanding code, or that we have already covered Exercises 5, 6, 7, and 8 in detail. Without long-term memory, every conversation is a fresh start. With it, the agent can build a relationship over time -- remembering preferences, learning from past interactions, and avoiding redundant work.
-
-One important caution: retrieved memories and current conversation entries look identical to the LLM once they are in the context window. The model has no reliable way to distinguish between "I remember this from long-term memory" and "the user said this five minutes ago." Everything in the context carries equal authority. This means stale or incorrect memories can silently influence agent behavior. The consolidation logic (ADD/UPDATE/DELETE/SKIP) helps keep long-term memory accurate, but there will always be a window where outdated information persists -- and the agent will treat it as truth.
-
 ## AWS Bedrock AgentCore Memory
 
 AgentCore Memory collects memory events during agent interactions and processes them into structured long-term memories using different configurable strategies. These strategies define how to extract and store important information, organizing them by namespaces based on actorId and sessionId. When developing with AgentCore Memory the process is mostly automatic. After the events are collected, the memory processing pipeline analyzes the conversations, extracts relevant facts and summaries using AI models, and stores them in a structured way.
@@ -238,7 +228,7 @@ AgentCore Memory can be used with any Agent solution, including completely custo
 
 The memory resource is the central container. It encapsulates both raw events (STM) and processed long-term memories (LTM).
 
-- **memoryId** -- A unique identifier for the memory resource. Mandatory for persisting and loading stored memory across different sessions for a specific user, enabling personalization.
+- **memoryId** -- A unique identifier for the memory resource. Required for all read and write operations against AgentCore Memory.
 - **actorId** -- Identifies the entity associated with the memory (e.g., user, agent, project). Used with sessionId to enforce hierarchical namespaces and precise retrieval of relevant context.
 - **sessionId** -- Groups related memory events together during a single interaction. Essential for tracking the chronological narrative flow within a short-term conversation. In our implementation, this maps to the Temporal workflow ID.
 - **Event (raw)** -- An immutable record of an individual interaction (user prompt, agent reply, tool output). Constitutes the Short-Term Memory. These are stored chronologically in the memory resource.
@@ -248,22 +238,45 @@ The memory resource is the central container. It encapsulates both raw events (S
 
 Our implementation configures four strategies when creating the memory resource:
 
-```python
-# defining Memory Strategies
-strategies = [{
-    "semanticMemoryStrategy": {
-        "name": "semantic-facts",
-        "namespaces": ["/customer/{actorId}/facts"],
-    },
-    "summaryMemoryStrategy": {
-        "name": "conversation-summary",
-        "namespaces": ["/customer/{actorId}/{sessionId}/summary"],
-    },
-    "userPreferenceMemoryStrategy": {
-        "name": "user-preferences",
-        "namespace": ["/customer/{actorId}/preferences"],
-    }
-]
+```java
+CreateMemoryRequest request = CreateMemoryRequest.builder()
+    .name("Riot_Bitovi_Temporal_AI_Workshop_Memory")
+    .description("This is a temporary resource for the Temporal AI Agents Workshop (Part 2) delivered by Bitovi.")
+    .eventExpiryDuration(30) // Events expire after 30 days
+    .memoryStrategies(
+        MemoryStrategyInput.builder()
+            .episodicMemoryStrategy(EpisodicMemoryStrategyInput.builder()
+                .name("Episodic")
+                .description("Stores temporal sequences of events")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                .reflectionConfiguration(EpisodicReflectionConfigurationInput.builder()
+                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                    .build())
+                .build())
+            .build(),
+        MemoryStrategyInput.builder()
+            .userPreferenceMemoryStrategy(UserPreferenceMemoryStrategyInput.builder()
+                .name("Preference")
+                .description("Tracks user preferences and choices")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                .build())
+            .build(),
+        MemoryStrategyInput.builder()
+            .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
+                .name("Semantic")
+                .description("Stores factual information and concepts")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                .build())
+            .build(),
+        MemoryStrategyInput.builder()
+            .summaryMemoryStrategy(SummaryMemoryStrategyInput.builder()
+                .name("Summary")
+                .description("Maintains summarized conversation history")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                .build())
+            .build()
+    )
+    .build();
 ```
 
 Bedrock AgentCore also offers Custom memory strategies that let you choose a specific LLM and override the prompt for extraction and consolidation to your specific domain or use case. For example, you might want to append to the semantic memory prompt so that it only extracts specific types of facts or memories.
@@ -286,29 +299,6 @@ Behind the scenes, the pipeline uses AI-powered extraction with foundation model
 
 Important: For semantic and user preference memory strategies, only USER and ASSISTANT role messages are processed for long-term memory extraction. Messages with other role types are skipped. For the summary strategy, all roles are processed.
 
-### Testing Memory with the AWS CLI
-
-```plain
-aws bedrock-agentcore create-event \
-  --memory-id "your-memory-id" \
-  --actor-id "test-user" \
-  --session-id "test-session-1" \
-  --event-timestamp "2024-01-15T10:00:00Z" \
-  --payload '[{
-    "conversational": {
-      "content": {"text": "I prefer Italian restaurants with outdoor seating"},
-      "role": "USER"
-    }
-  }]'
-```
-
-```shell
-# List records by namespace
-aws bedrock-agentcore list-memory-records \
-  --memory-id "your-memory-id" \
-  --namespace "/" # lists all records that match the namespace prefix
-```
-
 ## Production Considerations
 
 ### Privacy and Data Lifecycle
@@ -324,6 +314,15 @@ Our implementation sets `eventExpiryDuration(30)` -- raw events expire after 30 
 What happens when long-term memory says "favorite color is blue" but the user just said "actually it's green"? The consolidation logic handles this through UPDATE and DELETE operations -- but this processing is asynchronous (about 1 minute). During that window, the agent may have stale information in its retrieved memories that contradicts the current conversation.
 
 In practice, the LLM usually handles this well because the current conversation context takes precedence in the prompt. But it is worth being aware that there is no hard guarantee -- the model treats all context equally, and a strongly worded memory record could occasionally override a casual correction in the current conversation.
+
+One practical mitigation is how we inject retrieved memories into the prompt. Rather than inserting raw memory text alongside the conversation history, our implementation wraps each record in typed XML tags that correspond to its strategy -- for example:
+
+```xml
+<user-preference>User prefers TypeScript over Java</user-preference>
+<semantic>User is a software engineer based in Austin</semantic>
+```
+
+These tags appear in the `{userPreferences}` placeholder in the thought prompt, which is a **separate section** from `{previousSteps}` (the live conversation history). This structural separation gives the LLM a clear signal about the provenance of each piece of information.
 
 ### Cost Implications
 

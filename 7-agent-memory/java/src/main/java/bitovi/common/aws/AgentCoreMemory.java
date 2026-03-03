@@ -115,45 +115,60 @@ public class AgentCoreMemory {
     }
 
 
-    public static ListMemoryRecordsResponse listMemoryRecords() {
+    public static ListMemoryRecordsResponse listMemoryRecords(List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
+            List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
+            for (var strategy : getMemory().strategies()) {
+                if (!strategyTypes.contains(strategy.type())) continue;
+                String namespace = "/strategies/" + strategy.strategyId() + "/actors/" + USER_ACTOR_ID;
 
-            ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
-                .memoryId(MEMORY_ID)
-                .namespace("/")
+                ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
+                    .memoryId(MEMORY_ID)
+                    .namespace(namespace)
+                    .build();
+
+                ListMemoryRecordsResponse response = bedrockAgentCoreClient.listMemoryRecords(request);
+                allRecords.addAll(response.memoryRecordSummaries());
+            }
+
+            return ListMemoryRecordsResponse.builder()
+                .memoryRecordSummaries(allRecords)
                 .build();
-
-
-            ListMemoryRecordsResponse response = bedrockAgentCoreClient.listMemoryRecords(request);
-            return response;
         }
     }
 
-    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, MemoryStrategyType strategyType) {
+    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
-            var memoryStrategyId = getMemory().strategies().stream()
-                .filter(strat -> strat.type() == strategyType)
-                .findFirst()
-                .orElseThrow()
-                .strategyId();
+            List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
-            SearchCriteria searchCriteria = SearchCriteria.builder()
-                    .memoryStrategyId(memoryStrategyId)
-                    .searchQuery(query)
+            for (MemoryStrategyType strategyType : strategyTypes) {
+                var memoryStrategyId = getMemory().strategies().stream()
+                    .filter(strat -> strat.type() == strategyType)
+                    .findFirst()
+                    .orElseThrow()
+                    .strategyId();
+
+                SearchCriteria searchCriteria = SearchCriteria.builder()
+                        .memoryStrategyId(memoryStrategyId)
+                        .searchQuery(query)
+                        .build();
+
+                RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
+                        .memoryId(MEMORY_ID)
+                        .maxResults(4)
+                        .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
+                        .searchCriteria(searchCriteria)
+                        .build();
+
+                RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
+                allRecords.addAll(response.memoryRecordSummaries());
+            }
+
+            return RetrieveMemoryRecordsResponse.builder()
+                    .memoryRecordSummaries(allRecords)
                     .build();
-
-            RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
-                    .memoryId(MEMORY_ID)
-                    .maxResults(4)
-                    .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
-                    .searchCriteria(searchCriteria)
-                    .build();
-
-            RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
-            return response;
         }
-
     }
 
     public static CreateMemoryResponse createMemory() {
