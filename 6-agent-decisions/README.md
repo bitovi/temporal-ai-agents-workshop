@@ -23,6 +23,34 @@ In this architecture the 'thought' step of our loop loop is where the model can 
 
 With Temporal Workflows, Activities, and Signals we can build a flexible agent architecture that can handle complex interactions, maintain state across potentially infinite iterations.
 
+```ts
+interface ThoughtResult {
+  reasoning: string;
+  action?: Action;
+  answer?: string;
+}
+
+interface Action {
+  name: string;
+  input: Record<string, any>;
+}
+```
+
+The Activities in our ReAct Agent Workflow look like this:
+
+```ts
+interface Activities {
+  // Takes the context of the conversation, available tools, thinks about the first action
+  thoughtActivity(context: string[], availableTools: Tool[]): ThoughtResult;
+
+  // Takes the tool and input, executes the action
+  actionActivity(toolName: string, input: ActionInput): string;
+
+  // Takes the observation from the action and updates the context
+  observationActivity(context: string[], result: string): string;
+}
+```
+
 #### Plan and Execute Agent Architecture
 
 Another common agent architecture is the 'plan and execute' architecture, where the model first generates a complete plan for how to solve the problem, and then executes that plan step by step. This can be useful for tasks that require a lot of planning and coordination, but it can also be less flexible than the 'reasoning and acting' architecture, as it may not allow for as much adaptability and responsiveness to new information or changing circumstances.
@@ -60,7 +88,7 @@ interface Activities {
   // NEW: generates the full plan from the user's query + available tools
   planActivity(context: string[], availableTools: Tool[]): Plan;
 
-  // SAME as the existing actionActivity
+  // The same as our existing `action` activity we use in ReAct Agent
   actionActivity(toolName: string, input: ActionInput): string;
 
   // NEW: after all steps run, synthesize a final answer
@@ -77,7 +105,10 @@ interface Activities {
 }
 ```
 
-The Workflow itself is where the structural difference really shows. In our existing ReAct Workflow, the loop is driven by the LLMs decisions each iteration. In Plan-and-Execute, the LLM runs once to plan, then execution is just tool calls, then the LLM runs once more to synthesize. For a 5-step task, ReAct might make 10+ LLM calls while Plan-and-Execute makes 2-3.
+The Workflow itself is where the structural difference really shows. In our existing ReAct Workflow, the loop is driven by the LLMs decisions each iteration, with each iteration getting the entire result of the previous steps.
+
+In Plan-and-Execute, the LLM runs once to plan, then execution is just tool calls, maybe with a very light LLM call to format output, then the LLM runs once more at the end to generate a final result.
+For a 5-step task, ReAct might make 10+ LLM calls while Plan-and-Execute might only make 2-3, and with a much smaller number of tokens used.
 
 The actual execution loop is normal deterministic code, just iterating over the plan steps:
 
@@ -141,6 +172,33 @@ This can be used in combination with the 'thought' step of the ReAct agent archi
 
 For other steps, such as 'observation' or context 'compact' steps, we may want to have less reasoning, simply because it is not necessary, and would just add latency to the agent's response time and API costs.
 
+AWS Bedrock:
+
+```java
+Document reasoningConfig = Document.mapBuilder()
+        .putDocument("reasoningConfig", Document.mapBuilder()
+                .putString("type", "enabled")
+                // TODO_DECISIONS: Experiment with changing the max reasoning effort (low, medium, high)
+                .putString("maxReasoningEffort", "low")
+                .build())
+        .build();
+requestBuilder.additionalModelRequestFields(reasoningConfig);
+```
+
+OpenAI:
+
+```java
+ChatCompletionRequest request = new ChatCompletionRequest.Builder()
+        .model("gpt-5.1") // Must be a reasoning model
+        .messages(List.of(new ChatCompletionResponseMessage.Builder()
+                .role("user")
+                .content("Explain the theory of relativity in simple terms.")
+                .build()))
+        // Set the reasoning effort parameter
+        .reasoningEffort(ReasoningEffort.HIGH) // Or LOW, MEDIUM, XHIGH, etc.
+        .build();
+```
+
 #### Techniques for Optimizing Decision Making
 
 ##### Baysian Classifiers
@@ -153,7 +211,7 @@ For example, if we have a specific set of tools that the agent can call, and we 
 
 Sometimes it can be useful to direct an agent’s decision-making process by defining explicit rules.
 
-For example, a large bank building a financial AI agent might rely on rule-based decision making to ensure regulatory compliance and auditability. Deterministic rules can also serve as “guardrails” to protect against hallucinations or erratic behaviors in complex environments. For instance: 
+For example, a large bank building a financial AI agent might rely on rule-based decision making to ensure regulatory compliance and auditability. Deterministic rules can also serve as “guardrails” to protect against hallucinations or erratic behaviors in complex environments. For instance:
 `if (applicant.creditScore < 400) { requestManualReview(); }`
 
 A sophisticated AI agent may take a hybrid approach using rules for high-frequency, structured tasks (like refund approvals) while leveraging LLM inference for unstructured, adaptive problem-solving.
