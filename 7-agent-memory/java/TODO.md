@@ -21,7 +21,7 @@ Notice how in `AgentMemoryClient.java` we asked the agent what it knew about us.
 
 Now let's interact with the agent to build up some Long-Term Memory and observe how it persists across conversations.
 
-1. Open the Chat Web UI: `http://localhost:3000/` and start a conversation. Tell it some of your personal preferences (favorite color, favorite coffee, etc.)
+1. Open the [Chat Web UI](http://localhost:3000/) and start a conversation. Tell it some of your personal preferences (favorite color, favorite coffee, etc.)
 2. (Optional) Navigate to the AWS console, find the memory resource and watch it extract LTM records async.
 3. After a few minutes, start a completely new conversation and ask the agent what it knows about you.
 4. Observe that the agent should be able to "remember" things about you.
