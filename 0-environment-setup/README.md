@@ -15,6 +15,14 @@ The goal of this exercise is to ensure your local development envrionment is suc
 1. VSCode (you can use another IDE, but we have launch configurations set up for VSCode)
 1. AWS Access Keys (see below)
 
+## Environment Variables
+
+Copy the `.env.example` file to `.env` and fill in the `todo` values.
+
+Each exercise has its own copy of the `.env` file.
+After creating or updating the root `.env` file, run the **Sync Environments** task in VSCode to copy it into all of the exercise directories.
+**You need to do this each time you make changes to the root `.env` file.**
+
 ## External Systems
 
 There are a few external systems being used by the exercises in this repo:
@@ -23,17 +31,18 @@ There are a few external systems being used by the exercises in this repo:
 1. AWS S3 - used for document storage
 1. Postgres - used for structured data storage
 
-To correctly connect to these, copy the `.env.example` file to `.env` and replace the `TODO` property.
-
 ## Local Systems / Mocks
 
-All other systems will be run locally using `docker compose`.
+All other systems will be run locally using the **Docker Compose Up** task.
 
 1. Temporal - orchestration layer for AI workflows
-1. Qdrant - being used as a vector database for storing embeddings for use in Retrieval Augmented Generation
-1. An MCP Server - used to test the Model Context Protocol in exercise 4
+1. Qdrant - vector database for storing embeddings for use in Retrieval Augmented Generation
+1. Postgres - relational database for structured data storage
+1. Agent Chat Server - web UI for interacting with the AI agent
+1. Mock MCP Server - used to test the Model Context Protocol in exercise 4
+1. Book Agent Server - used for agent-to-agent communication in exercise 8
 
-These will start automatically when you launch `Exercise 0 - Worker` (see below).
+To stop and clean up the running services, use the **Docker Compose Down** task.
 
 ## VSCode Launch Configurations
 
@@ -50,6 +59,12 @@ After making code changes, be sure to restart the worker:
 
 ## Solution
 
-When you have the `.env` set up correctly and launch `Exercise 0 - Worker` and then `Exercise 0 - Client` you should be able to visit the [Temporal UI](http://localhost:8233) and see the workflow executed successfully:
+To recap, here are all the steps needed to verify your environment is set up correctly:
+
+1. Set up your `.env` file and run the **Sync Environments** task
+1. Start the local services with the **Docker Compose Up** task
+1. Launch `Exercise 0 - Worker`
+1. Launch `Exercise 0 - Client`
+1. Visit the [Temporal UI](http://localhost:8233) and verify the workflow executed successfully:
 
 ![image](https://github.com/user-attachments/assets/4d497e90-f245-4108-8f72-03ca1c9602e7)
