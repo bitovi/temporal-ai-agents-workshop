@@ -147,8 +147,14 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			String query = context.stream()
 					.map(ContextEntry::toXmlString)
 					.collect(Collectors.joining("\n"));
-			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
-					List.of(MemoryStrategyType.USER_PREFERENCE));
+			// TODO_MEMORY: Uncomment MemoryStrategyType.EPISODIC and SUMMARIZATION to enable richer memory context (Part D)
+			List<MemoryStrategyType> memoryStrategies = List.of(
+					// MemoryStrategyType.EPISODIC,
+					MemoryStrategyType.USER_PREFERENCE,
+					MemoryStrategyType.SEMANTIC
+					// MemoryStrategyType.SUMMARIZATION
+				);
+			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query, memoryStrategies);
 			List<String> memoryRecords = retrieveResult.memoryRecords();
 
 			// Get thought from AI based on context and retrieved memories

@@ -121,7 +121,7 @@ The key change from Exercise 5 is what happens at the start of the THINKING step
    - Returns relevant memory records (user preferences, facts, etc.)
 5. thoughtActivity receives BOTH the working context AND retrieved memories
    - Context goes into {previousSteps} in the prompt
-   - Memories go into {userPreferences} in the prompt
+   - Memories go into {memoryRecords} in the prompt
 6. LLM reasons with the full augmented context
 7. If answer: persist to memory, transition to IDLE
 8. If action: execute tool, observe, loop back to THINKING
@@ -136,7 +136,7 @@ if (reactStep == ReactStep.THINKING) {
         .map(ContextEntry::toXmlString)
         .collect(Collectors.joining("\n"));
     RetrieveMemoryRecordsResult retrieveResult =
-        activities.retrieveMemoryRecordsActivity(query, MemoryStrategyType.USER_PREFERENCE);
+        activities.retrieveMemoryRecordsActivity(query, List.of(MemoryStrategyType.USER_PREFERENCE));
     List<String> memoryRecords = retrieveResult.memoryRecords();
 
     // Step 2: Think with augmented context
@@ -160,21 +160,22 @@ The `retrieveMemoryRecordsActivity` calls AgentCore Memory's semantic search API
 
 ```java
 public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(
-    String query, MemoryStrategyType strategyType) {
+    String query, List<MemoryStrategyType> strategyTypes) {
 
     RetrieveMemoryRecordsResponse response =
-        AgentCoreMemory.retrieveMemoryRecords(query, strategyType);
+        AgentCoreMemory.retrieveMemoryRecords(query, strategyTypes);
 
     // Format each record with XML tags indicating the strategy type
     for (MemoryRecordSummary summary : response.memoryRecordSummaries()) {
-        String typeTag = strategyType.toString().toLowerCase().replace("_", "-");
+        MemoryStrategyType memoryStrategyType = AgentCoreMemory.getMemoryStrategyType(summary);
+        String typeTag = memoryStrategyType.toString().toLowerCase().replace("_", "-");
         memoryRecords.add(String.format("<%s>%s</%s>", typeTag, text, typeTag));
     }
     return new RetrieveMemoryRecordsResult(memoryRecords);
 }
 ```
 
-The retrieved records are wrapped in XML tags (e.g., `<user-preference>Favorite color is blue</user-preference>`) and injected into the thought prompt's `{userPreferences}` placeholder. The LLM sees these alongside the conversation history and can use them in its reasoning.
+The retrieved records are wrapped in XML tags (e.g., `<user-preference>Favorite color is blue</user-preference>`) and injected into the thought prompt's `{memoryRecords}` placeholder. The LLM sees these alongside the conversation history and can use them in its reasoning.
 
 The current implementation queries only USER_PREFERENCE strategy. The TODO exercise encourages experimenting with other strategies (episodic, semantic, summary) to see how different types of memory affect the agent's responses.
 
@@ -322,7 +323,7 @@ One practical mitigation is how we inject retrieved memories into the prompt. Ra
 <semantic>User is a software engineer based in Austin</semantic>
 ```
 
-These tags appear in the `{userPreferences}` placeholder in the thought prompt, which is a **separate section** from `{previousSteps}` (the live conversation history). This structural separation gives the LLM a clear signal about the provenance of each piece of information.
+These tags appear in the `{memoryRecords}` placeholder in the thought prompt, which is a **separate section** from `{previousSteps}` (the live conversation history). This structural separation gives the LLM a clear signal about the provenance of each piece of information.
 
 ### Cost Implications
 

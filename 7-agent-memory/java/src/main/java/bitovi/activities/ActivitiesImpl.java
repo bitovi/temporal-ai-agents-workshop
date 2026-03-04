@@ -69,9 +69,7 @@ public class ActivitiesImpl implements Activities {
 			String systemPrompt = promptTemplate
 					.replace("{currentDate}", currentDate)
 					.replace("{previousSteps}", String.join("\n", truncatedContext))
-					// TODO_MEMORY: Experiment by including memory records queried from different
-					// strategies (i.e. episodic, semantic, summary)
-					.replace("{userPreferences}", String.join("\n", memoryRecords))
+					.replace("{memoryRecords}", String.join("\n", memoryRecords))
 					.replace("{availableActions}", availableActions);
 
 			System.out.println("[THOUGHT] systemPrompt: " + systemPrompt);

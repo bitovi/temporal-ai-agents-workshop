@@ -46,11 +46,11 @@ In this thinking step, consider the following information from previous steps:
 {previousSteps}
 </previous-steps>
 
-In this thinking step, consider the following user preferences which have been extracted from previous sessions:
+In this thinking step, consider the following memory records which have been extracted from previous sessions:
 
-<user-preferences>
-{userPreferences}
-</user-preferences>
+<memory-records>
+{memoryRecords}
+</memory-records>
 
 Based on that information, provide your thought process and decide on the next action.
 

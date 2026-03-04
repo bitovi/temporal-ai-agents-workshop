@@ -156,7 +156,7 @@ public class AgentCoreMemory {
 
                 RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
                         .memoryId(MEMORY_ID)
-                        .maxResults(4)
+                        .maxResults(10)
                         .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
                         .searchCriteria(searchCriteria)
                         .build();

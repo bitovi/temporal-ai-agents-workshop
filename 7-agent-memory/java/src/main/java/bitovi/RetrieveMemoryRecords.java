@@ -26,8 +26,8 @@ public class RetrieveMemoryRecords {
 
 		var strategyTypes = List.of(
 			// MemoryStrategyType.EPISODIC,
-			MemoryStrategyType.USER_PREFERENCE
-			// MemoryStrategyType.SEMANTIC,
+			MemoryStrategyType.USER_PREFERENCE,
+			MemoryStrategyType.SEMANTIC
 			// MemoryStrategyType.SUMMARIZATION
 		);
 
