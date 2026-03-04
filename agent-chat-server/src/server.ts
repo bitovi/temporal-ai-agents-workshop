@@ -86,6 +86,12 @@ app.post("/api/conversations/:id/message", async (req, res) => {
       date: new Date().toISOString(),
     });
 
+    eventEmitter.emit("bot-event", {
+      type: "user_message",
+      message: message,
+      timestamp: Date.now(),
+    });
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
