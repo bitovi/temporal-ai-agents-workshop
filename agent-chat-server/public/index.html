@@ -3,20 +3,49 @@
 <head>
 <title>Agent Workflow</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-  .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: Arial, sans-serif; padding: 16px; background: #f5f5f5; box-sizing: border-box; display: flex; flex-direction: column; }
+  .container { max-width: 600px; width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; display: flex; flex-direction: column; min-height: 0; }
   input, select, button { padding: 8px 12px; margin: 5px 0; font-size: 14px; }
   select, input[type="text"] { width: 100%; box-sizing: border-box; }
   button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
   button:hover { background: #0056b3; }
   button.danger { background: #dc3545; }
   button.danger:hover { background: #c82333; }
-  #events { margin-top: 20px; padding: 10px; background: #f9f9f9; border-left: 3px solid #007bff; max-height: 300px; overflow-y: auto; }
-  .event { padding: 8px; margin: 5px 0; background: white; border-radius: 3px; font-size: 13px; }
-  .event.error { background: #ffe6e6; color: #c00; }
-  .event.answer { background: #e6f3ff; }
-  .event.user_message { background: #f0f7f0; color: #2a5a2a; }
+  #events-section { margin-top: 20px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #events-header { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #888; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
+  #events { padding: 10px; background: #f9f9f9; border-left: 3px solid #007bff; flex: 1; overflow-y: auto; min-height: 0; }
+  #events-empty { color: #aaa; font-size: 13px; text-align: center; padding: 24px 16px; line-height: 1.6; }
+  .event { padding: 7px 9px; margin: 5px 0; background: white; border-radius: 4px; font-size: 13px; }
+  .event-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+  }
+  .event.error { background: #fff0f0; }
+  .event.error .event-label { color: #c00; }
+  .event.answer { background: #edf7ed; }
+  .event.answer .event-label { color: #1e6b1e; }
+  .event.user_message { background: #e8f4ff; }
+  .event.user_message .event-label { color: #005baa; }
+  .event.system, .event.compact { background: #fffbe6; }
+  .event.system .event-label, .event.compact .event-label { color: #7a5c00; }
+  .event.connected { background: #fffbe6; }
+  .event.connected .event-label { color: #7a5c00; }
+  .event-message { white-space: pre-wrap; word-break: break-word; }
   .status { padding: 10px; margin: 10px 0; border-radius: 4px; background: #e8f5e9; }
+  textarea#messageInput { width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px; font-family: Arial, sans-serif; font-size: 14px; padding: 8px 12px; margin: 5px 0; }
+  .event.answer .event-message { line-height: 1.5; white-space: normal; }
+  .event.answer .event-message p { margin: 0 0 0.5em; }
+  .event.answer .event-message p:last-child { margin-bottom: 0; }
+  .event.answer .event-message ul, .event.answer .event-message ol { margin: 0 0 0.5em 1.2em; padding: 0; }
+  .event.answer .event-message code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .event.answer .event-message pre { background: #f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto; }
+  .event.answer .event-message pre code { background: none; padding: 0; }
 </style>
 </head>
 <body>
@@ -26,21 +55,14 @@
   
   <div>
     <label><strong>Conversation:</strong></label>
-    <select id="conversationSelect" onchange="switchConversation()">
-      <option value="">Select or create conversation</option>
-    </select>
+    <div id="conversationId" style="font-family: monospace; font-size: 13px; color: #555; padding: 6px 0;">No active conversation</div>
     <button onclick="createConversation()" style="width: 100%; margin-top: 8px;">New Conversation</button>
   </div>
 
   <div id="messagePanel" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
     <div>
-      <label><strong>Name:</strong></label>
-      <input type="text" id="nameInput" placeholder="Your name" value="user@example.com">
-    </div>
-    
-    <div>
       <label><strong>Message:</strong></label>
-      <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
+      <textarea id="messageInput" placeholder="Type your message… (Enter to send, Shift+Enter for new line)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
     </div>
     
     <div>
@@ -50,7 +72,12 @@
     </div>
   </div>
 
-  <div id="events"></div>
+  <div id="events-section">
+    <div id="events-header">Activity</div>
+    <div id="events">
+      <div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent's steps here.</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -81,23 +108,45 @@ function flushEventBuffer() {
   const eventsDiv = document.getElementById('events');
   eventBuffer.forEach(data => {
     const div = document.createElement('div');
-    div.className = 'event';
-    if (data.type === 'error') div.className += ' error';
-    if (data.type === 'answer') div.className += ' answer';
-    if (data.type === 'user_message') div.className += ' user_message';
-    
-    // Format timestamp
-    const showTimestamp = false; // flip to show timestamp
-    let timePrefix = '';
-    if (showTimestamp) {
-      const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '';
-      const timePrefix = time ? `[${time}] ` : '';
+    const typeClass = data.type.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    div.className = `event ${typeClass}`;
+
+    const emojiMap = {
+      thought: '🧠',
+      action: '⚡',
+      observation: '🔍',
+      answer: '🤖',
+      error: '❌',
+      user_message: '💬',
+      system: '⚙️',
+      compact: '📦',
+      connected: '🔌',
+    };
+    const emoji = emojiMap[data.type.toLowerCase()] || '';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'event-label';
+    // Title-case the label (e.g. "user_message" → "User Message")
+    const labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    labelEl.textContent = labelText + (emoji ? ' ' + emoji : '');
+
+    const msgEl = document.createElement('div');
+    msgEl.className = 'event-message';
+    if (data.type.toLowerCase() === 'answer' && typeof marked !== 'undefined') {
+      msgEl.innerHTML = marked.parse(data.message);
+    } else {
+      msgEl.textContent = data.message;
     }
-    
-    div.textContent = `${timePrefix}[${data.type.toUpperCase()}] ${data.message}`;
+
+    div.appendChild(labelEl);
+    div.appendChild(msgEl);
     eventsDiv.appendChild(div);
   });
   
+  // Remove empty state placeholder on first real event
+  const emptyEl = document.getElementById('events-empty');
+  if (emptyEl) emptyEl.remove();
+
   eventsDiv.scrollTop = eventsDiv.scrollHeight;
   eventBuffer = [];
 }
@@ -116,39 +165,20 @@ eventSource.onmessage = function(event) {
 };
 
 async function createConversation() {
+  if (currentConversationId) {
+    await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
+  }
+  // Cancel any pending buffer flush so stale events don't bleed into the new conversation
+  if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
+  eventBuffer = [];
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
   currentConversationId = data.conversationId;
-  updateConversationSelect();
+  document.getElementById('conversationId').textContent = currentConversationId;
   document.getElementById('messagePanel').style.display = 'block';
-  document.getElementById('events').innerHTML = '';
-}
-
-async function updateConversationSelect() {
-  const res = await fetch('/api/conversations');
-  const data = await res.json();
-  const select = document.getElementById('conversationSelect');
-  select.innerHTML = '<option value="">Select conversation</option>';
-  data.conversations.forEach(id => {
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = id.substring(0, 8) + '...';
-    select.appendChild(option);
-  });
-  if (currentConversationId) {
-    select.value = currentConversationId;
-  }
-}
-
-function switchConversation() {
-  const select = document.getElementById('conversationSelect');
-  currentConversationId = select.value;
-  if (currentConversationId) {
-    document.getElementById('messagePanel').style.display = 'block';
-    document.getElementById('events').innerHTML = '';
-  } else {
-    document.getElementById('messagePanel').style.display = 'none';
-  }
+  const evDiv = document.getElementById('events');
+  evDiv.innerHTML = '<div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent\'s steps here.</div>';
+  document.getElementById('messageInput').focus();
 }
 
 async function sendMessage() {
@@ -157,11 +187,11 @@ async function sendMessage() {
     return;
   }
   
-  const name = document.getElementById('nameInput').value.trim();
+  const name = 'user@example.com';
   const message = document.getElementById('messageInput').value.trim();
   
-  if (!name || !message) {
-    alert('Please fill in name and message');
+  if (!message) {
+    alert('Please enter a message');
     return;
   }
 
@@ -172,6 +202,7 @@ async function sendMessage() {
   });
 
   document.getElementById('messageInput').value = '';
+  document.getElementById('messageInput').focus();
 }
 
 async function exitConversation() {
@@ -181,24 +212,29 @@ async function exitConversation() {
   const data = await res.json();
   
   currentConversationId = null;
+  document.getElementById('conversationId').textContent = 'No active conversation';
   document.getElementById('messagePanel').style.display = 'none';
-  updateConversationSelect();
-  document.getElementById('events').innerHTML += '<div class="event" style="background: #fff3cd;">Conversation ended. Usage: ' + JSON.stringify(data.usage) + '</div>';
+  const endDiv = document.createElement('div');
+  endDiv.className = 'event system';
+  const endLabel = document.createElement('span');
+  endLabel.className = 'event-label';
+  endLabel.textContent = 'Conversation Ended';
+  const endMsg = document.createElement('div');
+  endMsg.className = 'event-message';
+  endMsg.textContent = 'Usage: ' + JSON.stringify(data.usage);
+  endDiv.appendChild(endLabel);
+  endDiv.appendChild(endMsg);
+  document.getElementById('events').appendChild(endDiv);
 }
 
 async function compactConversation() {
   if (!currentConversationId) return;
   
-  const res = await fetch(`/api/conversations/${currentConversationId}/compact`, { method: 'POST' });
-  const data = await res.json();
-  
-  if (data.success) {
-    document.getElementById('events').innerHTML += '<div class="event" style="background: #e8f4f8;">Context compacted and workflow restarted</div>';
-  }
+  await fetch(`/api/conversations/${currentConversationId}/compact`, { method: 'POST' });
 }
 
-// Load conversations on startup
-updateConversationSelect();
+
 </script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>
