@@ -12,6 +12,10 @@
   button:hover { background: #0056b3; }
   button.danger { background: #dc3545; }
   button.danger:hover { background: #c82333; }
+  button.secondary { background: #6c757d; }
+  button.secondary:hover { background: #545b62; }
+  .conversation-row { display: flex; align-items: center; gap: 8px; }
+  .conversation-row #conversationId { flex: 1; }
   #events-section { margin-top: 20px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #events-header { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #888; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
   #events { padding: 10px; background: #f9f9f9; border-left: 3px solid #007bff; flex: 1; overflow-y: auto; min-height: 0; }
@@ -55,7 +59,12 @@
   
   <div>
     <label><strong>Conversation:</strong></label>
-    <div id="conversationId" style="font-family: monospace; font-size: 13px; color: #555; padding: 6px 0;">No active conversation</div>
+    <div class="conversation-row">
+      <div id="conversationId" style="font-family: monospace; font-size: 13px; color: #555; padding: 6px 0;">No active conversation</div>
+      <a id="temporalUiLink" href="#" target="_blank" style="display: none;">
+        <button class="secondary" type="button" title="Open in Temporal UI" style="white-space: nowrap; font-size: 12px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 5px;"><img src="http://localhost:8233/favicon.ico" style="width: 14px; height: 14px; vertical-align: middle;" /> Temporal UI</button>
+      </a>
+    </div>
     <button onclick="createConversation()" style="width: 100%; margin-top: 8px;">New Conversation</button>
   </div>
 
@@ -82,6 +91,20 @@
 
 <script>
 let currentConversationId = null;
+
+function setConversationId(id) {
+  currentConversationId = id;
+  const el = document.getElementById('conversationId');
+  const link = document.getElementById('temporalUiLink');
+  if (id) {
+    el.textContent = id;
+    link.href = `http://localhost:8233/namespaces/default/workflows/${encodeURIComponent('agent-workflow-' + id)}`;
+    link.style.display = 'inline';
+  } else {
+    el.textContent = 'No active conversation';
+    link.style.display = 'none';
+  }
+}
 const eventSource = new EventSource('/events');
 let eventBuffer = [];
 let bufferTimer = null;
@@ -173,8 +196,7 @@ async function createConversation() {
   eventBuffer = [];
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
-  currentConversationId = data.conversationId;
-  document.getElementById('conversationId').textContent = currentConversationId;
+  setConversationId(data.conversationId);
   document.getElementById('messagePanel').style.display = 'block';
   const evDiv = document.getElementById('events');
   evDiv.innerHTML = '<div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent\'s steps here.</div>';
@@ -211,8 +233,7 @@ async function exitConversation() {
   const res = await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
   const data = await res.json();
   
-  currentConversationId = null;
-  document.getElementById('conversationId').textContent = 'No active conversation';
+  setConversationId(null);
   document.getElementById('messagePanel').style.display = 'none';
   const endDiv = document.createElement('div');
   endDiv.className = 'event system';
