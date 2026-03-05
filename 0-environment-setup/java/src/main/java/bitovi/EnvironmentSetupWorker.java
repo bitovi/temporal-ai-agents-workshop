@@ -1,7 +1,10 @@
 package bitovi;
 
 import bitovi.common.TemporalClient;
+import bitovi.activities.AgentChatServerImpl;
 import bitovi.activities.BedrockImpl;
+import bitovi.activities.BookAgentServerImpl;
+import bitovi.activities.MockMcpServerImpl;
 import bitovi.activities.PostgresImpl;
 import bitovi.activities.QdrantImpl;
 import bitovi.activities.S3Impl;
@@ -28,6 +31,9 @@ public class EnvironmentSetupWorker {
 			worker.registerActivitiesImplementations(new PostgresImpl());
 			worker.registerActivitiesImplementations(new QdrantImpl());
 			worker.registerActivitiesImplementations(new S3Impl());
+			worker.registerActivitiesImplementations(new MockMcpServerImpl());
+			worker.registerActivitiesImplementations(new AgentChatServerImpl());
+			worker.registerActivitiesImplementations(new BookAgentServerImpl());
 
 			factory.start();
 

@@ -10,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 
 import org.json.JSONObject;
 
+import bitovi.common.Config;
+
 /**
  * EventClient sends events to the agent-chat-server via HTTP POST requests.
  * This enables real-time updates to be sent to the web UI through Server-Sent Events (SSE).
@@ -18,7 +20,7 @@ import org.json.JSONObject;
  * to prevent activity errors from blocking workflow execution.
  */
 public class EventClient {
-	private static final String SERVER_URL = System.getenv().getOrDefault("SERVER_URL", "http://localhost:3000");
+	private static final String SERVER_URL = new Config().getProperty("AGENT_CHAT_SERVER_BASE_URL");
 	private static final String EMIT_EVENT_ENDPOINT = SERVER_URL + "/api/emit-event";
 	private static final int TIMEOUT_MS = 5000;
 	private static long sequenceCounter = 0;

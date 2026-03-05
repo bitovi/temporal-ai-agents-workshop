@@ -30,8 +30,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
+import bitovi.common.Config;
+
 public class BookAgentTool {
-    private static final String BOOK_AGENT_URL = "http://localhost:4000";
+    private static final String BOOK_AGENT_URL = new Config().getProperty("BOOK_AGENT_SERVER_BASE_URL");
     private static final String AGENT_CARD_URL = BOOK_AGENT_URL + "/.well-known/agent-card.json";
     private static final int TIMEOUT_SECONDS = 60;
     
