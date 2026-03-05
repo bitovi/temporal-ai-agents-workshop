@@ -1,23 +1,24 @@
 services:
   temporal-dev-server:
     container_name: temporal-dev-server
-    image: debian:stable
-    command: >
-      bash -c '\
-        apt update && \
-        apt install -y curl && \
-        curl -sSf https://temporal.download/cli.sh | sh && \
-        PATH="\$PATH:/root/.temporalio/bin" >> ~/.bashrc && \
-        source ~/.bashrc && \
-        temporal server start-dev --namespace default --ip 0.0.0.0
-      '
+    image: temporalio/temporal:latest
+    command:
+      ["server", "start-dev", "--ip", "0.0.0.0", "--namespace", "default"]
     ports:
       - 7233:7233
       - 8233:8233
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8233/ || exit 1"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8233",
+        ]
       interval: 10s
       timeout: 30s
       retries: 3
@@ -60,7 +61,11 @@ services:
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD-SHELL", "apt update && apt install -y curl && curl --fail http://localhost:6333/readyz || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "apt update && apt install -y curl && curl --fail http://localhost:6333/readyz || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -69,7 +74,7 @@ services:
     image: postgres:14-bookworm
     command: postgres -c 'max_connections=200'
     networks:
-      - docker-network    
+      - docker-network
     ports:
       - 5432:5432
     restart: always
@@ -93,7 +98,7 @@ services:
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD-SHELL", "apk add curl && curl --fail http://localhost:8090/readyz || exit 1"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:8090/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -104,8 +109,8 @@ services:
       context: ./book-agent-server
       dockerfile: Dockerfile
     ports:
-      - 4000:4000  # HTTP/JSON-RPC
-      - 4001:4001  # gRPC
+      - 4000:4000 # HTTP/JSON-RPC
+      - 4001:4001 # gRPC
     environment:
       - HTTP_PORT=4000
       - GRPC_PORT=4001
@@ -118,7 +123,11 @@ services:
     networks:
       - docker-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4000/.well-known/agent-card.json || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:4000/.well-known/agent-card.json || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

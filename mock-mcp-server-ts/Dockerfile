@@ -4,6 +4,9 @@ FROM node:24-alpine
 # Set the working directory inside the container
 WORKDIR /app
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Copy package.json and package-lock.json (if available)
 COPY package*.json ./
 
