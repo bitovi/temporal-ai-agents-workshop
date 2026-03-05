@@ -7,6 +7,6 @@ import java.util.List;
  * and dependencies.
  */
 public record PlanStep(
-                Integer id, String tool_name, ActionInput tool_input, String result_type,
-                List<Integer> dependsOn) {
+        Integer id, String tool_name, ActionInput tool_input,
+        List<Integer> dependsOn) {
 }

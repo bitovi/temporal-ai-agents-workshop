@@ -1,5 +1,5 @@
 package bitovi.activities.types;
 
 public record PlanStepResult(
-                Integer id, String result_type, String result) {
+        Integer id, String tool_name, ActionInput tool_input, String result, Boolean error) {
 }

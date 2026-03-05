@@ -73,8 +73,9 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String executeResponse(List<PlanStep> steps, List<PlanStepResult> results) throws ApplicationFailure {
-		return ExecuteResponse.execute(steps, results);
+	public String executeResponse(List<String> context) throws ApplicationFailure {
+		String promptTemplate = loadPromptTemplate("/prompts/response-prompt.txt");
+		return ExecuteResponse.execute(promptTemplate, context);
 	}
 
 	/**

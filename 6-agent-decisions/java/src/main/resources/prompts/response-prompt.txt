@@ -1,0 +1,5 @@
+Based on the context of this conversation with a user, and the results of various tool calls, answer the original question that the user asked.
+
+<context>
+{previousSteps}
+</context>

@@ -6,12 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+
 import bitovi.activities.Activities;
 import bitovi.activities.types.PlanResponse;
 import bitovi.activities.types.PlanStep;
 import bitovi.activities.types.PlanStepResult;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.PlanWorkflowResult;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Async;
@@ -31,10 +34,9 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 	public PlanWorkflowResult execute(MessagePayload msg) {
 
 		List<String> context = new ArrayList<>();
-		// List<UsageMetadata> usage = new ArrayList<>();
 
 		// Add initial message to context
-		context.add(msg.message());
+		context.add("User:" + msg.message());
 
 		// Generate the Plan
 		PlanResponse plan = activities.planActivity(context);
@@ -107,7 +109,18 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 
 			// Update resultMap and failed lists
 			for (PlanStepResult result : results) {
-				if (result != null) {
+				if (result == null) {
+					return new PlanWorkflowResult("Plan execution failed", new UsageMetadata(0, 0, 0, 0));
+				}
+
+				if (result.error()) {
+					failed.add(result.id());
+				}
+
+				if (!result.error()) {
+					context.add("Step " + result.id() + ", Tool: " + result.tool_name() + ", Input: "
+							+ new JSONObject(result.tool_input().parameters()).toString() + ", Result: "
+							+ result.result());
 					resultMap.put(result.id(), result);
 				}
 			}
@@ -115,12 +128,13 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 			// If there are failed steps, we're done.
 			// TODO: Eventually we should re-plan instead of just failing.
 			if (!failed.isEmpty()) {
-				return new PlanWorkflowResult("Plan execution failed", null);
+				return new PlanWorkflowResult("Plan execution failed for steps: " + failed.toString(),
+						new UsageMetadata(0, 0, 0, 0));
 			}
 		}
 
 		// Generate final response
-		String finalResponse = activities.executeResponse(plan.steps(), new ArrayList<>(resultMap.values()));
-		return new PlanWorkflowResult(finalResponse, null);
+		String finalResponse = activities.executeResponse(context);
+		return new PlanWorkflowResult(finalResponse, new UsageMetadata(0, 0, 0, 0));
 	}
 }

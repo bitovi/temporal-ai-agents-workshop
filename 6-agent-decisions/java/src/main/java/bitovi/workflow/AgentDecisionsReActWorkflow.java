@@ -10,7 +10,7 @@ import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface()
 public interface AgentDecisionsReActWorkflow {
-	@WorkflowMethod(name = "agentWorkflow")
+	@WorkflowMethod(name = "agentReActWorkflow")
 	WorkflowResult execute(WorkflowInput input);
 
 	@SignalMethod(name = "message")

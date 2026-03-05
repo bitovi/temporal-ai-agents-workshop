@@ -83,7 +83,6 @@ public class PlanActivity {
           step.getInt("id"),
           step.getString("tool_name"),
           new ActionInput(step.getJSONObject("tool_input").toMap()),
-          null, // Placeholder for result type, can be extended in the future
           step.getJSONArray("dependsOn").toList().stream().map(Object::toString).map(Integer::parseInt).toList()));
     }
 

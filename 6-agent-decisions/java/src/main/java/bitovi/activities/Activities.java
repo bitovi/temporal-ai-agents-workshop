@@ -47,5 +47,5 @@ public interface Activities {
 	PlanStepResult executePlanStep(PlanStep step, List<PlanStepResult> dependsOn) throws ApplicationFailure;
 
 	@ActivityMethod
-	String executeResponse(List<PlanStep> steps, List<PlanStepResult> results) throws ApplicationFailure;
+	String executeResponse(List<String> context) throws ApplicationFailure;
 }
