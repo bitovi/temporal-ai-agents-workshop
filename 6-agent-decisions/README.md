@@ -191,7 +191,6 @@ AWS Bedrock:
 Document reasoningConfig = Document.mapBuilder()
         .putDocument("reasoningConfig", Document.mapBuilder()
                 .putString("type", "enabled")
-                // TODO_DECISIONS: Experiment with changing the max reasoning effort (low, medium, high)
                 .putString("maxReasoningEffort", "low")
                 .build())
         .build();

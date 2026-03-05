@@ -2,19 +2,16 @@ package bitovi.workflow;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-import org.slf4j.Logger;
+import org.json.JSONObject;
 
 import bitovi.activities.Activities;
-import bitovi.activities.PlanAndExecuteActivities;
+import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.CompactResponse;
-import bitovi.activities.types.CompleteDependency;
-import bitovi.activities.types.ExecutableStep;
+import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
-import bitovi.activities.types.PlanResponse;
-import bitovi.activities.types.PlanStep;
+import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContinueAsNewState;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.UsageMetadata;
@@ -24,18 +21,14 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 
-public class PlanAndExecuteWorkflowImpl implements PlanAndExecuteWorkflow {
+public class AgentDecisionsReActWorkflowImpl implements AgentDecisionsReActWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
 			.setStartToCloseTimeout(Duration.ofSeconds(120))
 			.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
 			.build();
 
-	private static final Logger logger = Workflow.getLogger(PlanAndExecuteWorkflowImpl.class);
-
-	private final PlanAndExecuteActivities activities = Workflow.newActivityStub(PlanAndExecuteActivities.class,
-			defaultActivityOptions);
-	private final Activities common = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
+	private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
 
 	private static final int COMPACTION_CONTEXT_TOKEN_THRESHOLD = 100000;
 
@@ -49,19 +42,19 @@ public class PlanAndExecuteWorkflowImpl implements PlanAndExecuteWorkflow {
 	@Override
 	public void receiveMessage(MessagePayload payload) {
 		pendingMsgs.add(payload);
-		Workflow.getLogger(AgentDecisionsWorkflowImpl.class).info("Received message from: " + payload.name());
+		Workflow.getLogger(AgentDecisionsReActWorkflow.class).info("Received message from: " + payload.name());
 	}
 
 	@Override
 	public void requestExit() {
 		userRequestedExit = true;
-		Workflow.getLogger(AgentDecisionsWorkflowImpl.class).info("Exit requested");
+		Workflow.getLogger(AgentDecisionsReActWorkflow.class).info("Exit requested");
 	}
 
 	@Override
 	public void requestContinueAsNew() {
 		userRequestedContinueAsNew = true;
-		Workflow.getLogger(AgentDecisionsWorkflowImpl.class).info("ContinueAsNew requested");
+		Workflow.getLogger(AgentDecisionsReActWorkflow.class).info("ContinueAsNew requested");
 	}
 
 	@Override
@@ -102,11 +95,11 @@ public class PlanAndExecuteWorkflowImpl implements PlanAndExecuteWorkflow {
 			boolean shouldContinueAsNew = (userRequestedContinueAsNew || Workflow.getInfo().isContinueAsNewSuggested());
 
 			// Check if context token usage exceeds threshold
-			Integer contextLength = common.getTokenUsage(context);
-			Workflow.getLogger(AgentDecisionsWorkflowImpl.class).info("Current context token usage: " + contextLength);
+			Integer contextLength = activities.getTokenUsage(context);
+			Workflow.getLogger(AgentDecisionsReActWorkflow.class).info("Current context token usage: " + contextLength);
 
 			if (shouldContinueAsNew || (contextLength != null && contextLength > COMPACTION_CONTEXT_TOKEN_THRESHOLD)) {
-				CompactResponse compactResponse = common.compactActivity(context);
+				CompactResponse compactResponse = activities.compactActivity(context);
 
 				// Track usage
 				if (compactResponse.usage() != null) {
@@ -142,56 +135,74 @@ public class PlanAndExecuteWorkflowImpl implements PlanAndExecuteWorkflow {
 				pendingMsgs.clear();
 
 				// Persist the user messages
-				common.persistActivity(messagesToPersist);
+				activities.persistActivity(messagesToPersist);
 			}
 
-			// Plan and Execute Steps
-			PlanResponse planResponse = activities.planActivity(context);
+			// Start ReAct (Reasoning and Acting) Steps
+			ThoughtResponse thoughtResponse = activities.thoughtActivity(context);
 
-			HashMap<String, PlanStep> taskMap = new HashMap<>();
-			HashMap<String, String> taskResults = new HashMap<>();
+			// Track usage
+			if (thoughtResponse.usage() != null) {
+				usage.add(thoughtResponse.usage());
+			}
 
-			// Start the Executor Steps
-			ArrayList<PlanStep> steps = planResponse.steps();
-			steps.forEach(action -> {
-				taskMap.put(action.id(), action);
-			});
+			if (thoughtResponse.type().equals("answer")) {
+				// Answer type - add to context and wait for next message
+				String answerContext = String.format("<answer>\n%s\n</answer>", thoughtResponse.answer());
+				context.add(answerContext);
 
-			// 1. Loop over all the tasks, collecting ones that have no dependencies or
-			// whose dependencies have been met
+				// Persist assistant message
+				List<PersistMessage> assistantMessages = List.of(
+						new PersistMessage("assistant", thoughtResponse.answer(), null, null));
+				activities.persistActivity(assistantMessages);
 
-			ArrayList<ExecutableStep> executableSteps = new ArrayList<>();
+				// Store the most recent answer in a static variable to be retrieved by the
+				// client after exit
+				answer = thoughtResponse.answer();
 
-			steps.forEach(action -> {
-				logger.info("Processing action: " + action.id());
-				ArrayList<CompleteDependency> dependencies = new ArrayList<>();
+				// Once the agent has generated an answer, we wait for the next user message or
+				// other signal request before continuing
+				Workflow.await(() -> !pendingMsgs.isEmpty() || userRequestedExit || userRequestedContinueAsNew);
+			}
 
-				action.dependsOn().forEach(id -> {
-					if (!taskResults.containsKey(id)) {
-						logger.info("Dependency not met for action: " + action.id() + ", missing: " + id);
-						return;
-					}
+			if (thoughtResponse.type().equals("action")) {
+				// Action type - execute action and get observation
+				ActionDetail action = thoughtResponse.action();
 
-					PlanStep dependency = taskMap.get(id);
-					String dependencyResult = taskResults.get(id);
+				// Add thought to context
+				String thoughtContext = String.format("<thought>\n%s\n</thought>", thoughtResponse.thought());
+				context.add(thoughtContext);
 
-					logger.info("Dependency met for action: " + action.id() + ", dependency: " + id);
-					dependencies.add(new CompleteDependency(id, dependency.result_type(), dependencyResult));
-				});
+				// Serialize action input for context
+				String actionInputJson;
+				try {
+					actionInputJson = new JSONObject(action.input().parameters()).toString();
+				} catch (Exception e) {
+					actionInputJson = "{}";
+				}
 
-				executableSteps.add(new ExecutableStep(action.id(), action.tool_name(),
-						action.tool_input(), action.result_type(), dependencies));
-			});
+				// Add action to context
+				String actionContext = String.format(
+						"<action><reason>\n%s\n</reason><name>%s</name><input>%s</input></action>",
+						action.reason(), action.name(), actionInputJson);
+				context.add(actionContext);
 
-			// 2. Execute the tasks in parallel
-			logger.info("Collected " + executableSteps.size() + " to execute this loop");
-			executableSteps.forEach(step -> {
-				// Execute the step and then store the result
-				String result = activities.executeActivity(step);
-				taskResults.put(step.id(), result);
-			});
+				// Execute the action
+				String actionResult = activities.actionActivity(action.name(), action.input());
 
-			// 3. Collect the results and update the context
+				// Get observation
+				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
+
+				// Track usage
+				if (observationResponse.usage() != null) {
+					usage.add(observationResponse.usage());
+				}
+
+				// Add observation to context
+				String observationContext = String.format("<observation>\n%s\n</observation>",
+						observationResponse.observations());
+				context.add(observationContext);
+			}
 		}
 	}
 }

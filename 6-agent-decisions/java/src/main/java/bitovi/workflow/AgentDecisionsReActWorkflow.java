@@ -9,7 +9,7 @@ import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface()
-public interface AgentDecisionsWorkflow {
+public interface AgentDecisionsReActWorkflow {
 	@WorkflowMethod(name = "agentWorkflow")
 	WorkflowResult execute(WorkflowInput input);
 

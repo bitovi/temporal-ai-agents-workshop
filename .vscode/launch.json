@@ -43,7 +43,7 @@
             "projectName": "rag",
             "cwd": "${workspaceFolder}/2-rag/java/",
             "preLaunchTask": "Exercise 2 Maven Build"
-        },      
+        },
         {
             "type": "java",
             "name": "Exercise 2 - Client",
@@ -116,12 +116,23 @@
         },
         {
             "type": "java",
-            "name": "Exercise 6 - Client",
+            "name": "Exercise 6 - Client (Reasoning and Acting)",
             "request": "launch",
             "mainClass": "bitovi.AgentDecisionsClient",
             "projectName": "agent-decisions",
             "cwd": "${workspaceFolder}/6-agent-decisions/java/",
-            "preLaunchTask": "Exercise 6 Maven Build"
+            "preLaunchTask": "Exercise 6 Maven Build",
+            "args": "reasoning-and-acting"
+        },
+        {
+            "type": "java",
+            "name": "Exercise 6 - Client (Plan and Execute)",
+            "request": "launch",
+            "mainClass": "bitovi.AgentDecisionsClient",
+            "projectName": "agent-decisions",
+            "cwd": "${workspaceFolder}/6-agent-decisions/java/",
+            "preLaunchTask": "Exercise 6 Maven Build",
+            "args": "plan-and-execute"
         },
         {
             "type": "java",

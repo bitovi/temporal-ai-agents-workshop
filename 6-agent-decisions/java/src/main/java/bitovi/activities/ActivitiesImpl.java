@@ -6,10 +6,21 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import bitovi.activities.plan.ExecutePlanStep;
+import bitovi.activities.plan.ExecuteResponse;
+import bitovi.activities.plan.PlanActivity;
+import bitovi.activities.react.Action;
+import bitovi.activities.react.Compact;
+import bitovi.activities.react.Observation;
+import bitovi.activities.react.Persist;
+import bitovi.activities.react.Thought;
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.PlanResponse;
+import bitovi.activities.types.PlanStep;
+import bitovi.activities.types.PlanStepResult;
 import bitovi.activities.types.ThoughtResponse;
 import io.temporal.failure.ApplicationFailure;
 
@@ -44,6 +55,28 @@ public class ActivitiesImpl implements Activities {
 		Persist.execute(messages);
 	}
 
+	@Override
+	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
+		// TODO: Implement token counting based on the Context
+		return 1;
+	}
+
+	@Override
+	public PlanResponse planActivity(List<String> context) throws ApplicationFailure {
+		String promptTemplate = loadPromptTemplate("/prompts/plan-prompt.txt");
+		return PlanActivity.execute(promptTemplate, context);
+	}
+
+	@Override
+	public PlanStepResult executePlanStep(PlanStep step, List<PlanStepResult> dependsOn) throws ApplicationFailure {
+		return ExecutePlanStep.execute(step, dependsOn);
+	}
+
+	@Override
+	public String executeResponse(List<PlanStep> steps, List<PlanStepResult> results) throws ApplicationFailure {
+		return ExecuteResponse.execute(steps, results);
+	}
+
 	/**
 	 * Load a prompt template from resources.
 	 * 
@@ -62,11 +95,5 @@ public class ActivitiesImpl implements Activities {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to load prompt template: " + resourcePath, e);
 		}
-	}
-
-	@Override
-	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
-		// TODO: Implement token counting based on the Context
-		return 1;
 	}
 }

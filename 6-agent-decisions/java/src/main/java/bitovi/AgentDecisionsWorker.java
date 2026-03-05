@@ -1,11 +1,10 @@
 package bitovi;
 
 import bitovi.activities.ActivitiesImpl;
-import bitovi.activities.PlanAndExecuteActivitiesImpl;
 import bitovi.common.Config;
 import bitovi.common.TemporalClient;
-import bitovi.workflow.AgentDecisionsWorkflowImpl;
-import bitovi.workflow.PlanAndExecuteWorkflowImpl;
+import bitovi.workflow.AgentDecisionsPlanWorkflowImpl;
+import bitovi.workflow.AgentDecisionsReActWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -22,11 +21,9 @@ public class AgentDecisionsWorker {
 			WorkerFactory factory = WorkerFactory.newInstance(temporalClient);
 			Worker worker = factory.newWorker(taskQueue);
 
-			worker.registerWorkflowImplementationTypes(AgentDecisionsWorkflowImpl.class);
+			worker.registerWorkflowImplementationTypes(AgentDecisionsReActWorkflowImpl.class);
+			worker.registerWorkflowImplementationTypes(AgentDecisionsPlanWorkflowImpl.class);
 			worker.registerActivitiesImplementations(new ActivitiesImpl());
-
-			worker.registerWorkflowImplementationTypes(PlanAndExecuteWorkflowImpl.class);
-			worker.registerActivitiesImplementations(new PlanAndExecuteActivitiesImpl());
 
 			factory.start();
 

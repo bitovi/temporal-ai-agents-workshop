@@ -25,9 +25,9 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
-import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 
 public class AWS {
 
@@ -164,7 +164,7 @@ public class AWS {
                 .putDocument("reasoningConfig", Document.mapBuilder()
                         .putString("type", "enabled")
                         // TODO_DECISIONS: Experiment with changing the max reasoning effort (low, medium, high)
-                        .putString("maxReasoningEffort", "low")
+                        .putString("maxReasoningEffort", "high")
                         .build())
                 .build();
         requestBuilder.additionalModelRequestFields(reasoningConfig);

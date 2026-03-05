@@ -6,6 +6,9 @@ import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
+import bitovi.activities.types.PlanResponse;
+import bitovi.activities.types.PlanStep;
+import bitovi.activities.types.PlanStepResult;
 import bitovi.activities.types.ThoughtResponse;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
@@ -13,6 +16,9 @@ import io.temporal.failure.ApplicationFailure;
 
 @ActivityInterface
 public interface Activities {
+	/**
+	 * Reasoning and Acting Activities
+	 */
 	@ActivityMethod
 	ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure;
 
@@ -30,4 +36,16 @@ public interface Activities {
 
 	@ActivityMethod
 	Integer getTokenUsage(List<String> context) throws ApplicationFailure;
+
+	/**
+	 * Planning and Executing Activities
+	 */
+	@ActivityMethod
+	PlanResponse planActivity(List<String> context) throws ApplicationFailure;
+
+	@ActivityMethod
+	PlanStepResult executePlanStep(PlanStep step, List<PlanStepResult> dependsOn) throws ApplicationFailure;
+
+	@ActivityMethod
+	String executeResponse(List<PlanStep> steps, List<PlanStepResult> results) throws ApplicationFailure;
 }

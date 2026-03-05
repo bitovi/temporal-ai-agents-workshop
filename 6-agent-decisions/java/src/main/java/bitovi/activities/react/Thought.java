@@ -1,4 +1,4 @@
-package bitovi.activities;
+package bitovi.activities.react;
 
 import java.time.LocalDate;
 import java.util.HashMap;
