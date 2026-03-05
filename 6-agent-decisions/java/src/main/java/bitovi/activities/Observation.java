@@ -15,6 +15,7 @@ public class Observation {
         try {
             System.out.println("observationActivity called with action result length: " +
                     actionResult.length());
+            EventClient.emitEvent("status", "Observing...");
                     
             // Truncate context
             List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);

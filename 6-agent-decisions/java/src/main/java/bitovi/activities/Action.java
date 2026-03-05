@@ -13,6 +13,7 @@ public class Action {
     public static String execute(String toolName, ActionInput input) {
         try {
             System.out.println("actionActivity called with tool: " + toolName);
+            EventClient.emitEvent("status", "Acting...");
 
             // Check if tool exists
             if (!ToolRegistry.hasToolNamed(toolName)) {

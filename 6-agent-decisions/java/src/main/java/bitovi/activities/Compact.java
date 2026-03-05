@@ -15,6 +15,7 @@ public class Compact {
     public static CompactResponse execute(String promptTemplate, List<String> context) {
         try {
             System.out.println("compactActivity called with context size: " + context.size());
+            EventClient.emitEvent("status", "Compacting...");
 
             // Truncate context
             List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);

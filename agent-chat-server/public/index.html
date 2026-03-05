@@ -50,6 +50,9 @@
   .event.answer .event-message code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
   .event.answer .event-message pre { background: #f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto; }
   .event.answer .event-message pre code { background: none; padding: 0; }
+  #status-hint { display: none; font-size: 12px; font-style: italic; color: #aaa; padding: 6px 9px; margin: 5px 0; background: white; border-radius: 4px; border-left: 2px dashed #ddd; }
+  #status-hint.active { display: block; animation: status-pulse 1.2s ease-in-out infinite; }
+  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 </style>
 </head>
 <body>
@@ -85,6 +88,7 @@
     <div id="events-header">Activity</div>
     <div id="events">
       <div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent's steps here.</div>
+      <div id="status-hint"></div>
     </div>
   </div>
 </div>
@@ -115,6 +119,7 @@ eventSource.onopen = function() {
 
 eventSource.onerror = function(e) {
   document.getElementById('status').textContent = '✗ Error connecting to event stream';
+  setStatusHint('');
 };
 
 function flushEventBuffer() {
@@ -129,6 +134,8 @@ function flushEventBuffer() {
   
   // Add all events to DOM
   const eventsDiv = document.getElementById('events');
+  // Re-append hint after new events so it stays last
+  const hintActive = statusHint.classList.contains('active');
   eventBuffer.forEach(data => {
     const div = document.createElement('div');
     const typeClass = data.type.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -170,13 +177,69 @@ function flushEventBuffer() {
   const emptyEl = document.getElementById('events-empty');
   if (emptyEl) emptyEl.remove();
 
+  if (hintActive) eventsDiv.appendChild(statusHint);
   eventsDiv.scrollTop = eventsDiv.scrollHeight;
   eventBuffer = [];
 }
 
+const statusHint = document.getElementById('status-hint');
+let pollTimer = null;
+
+function cancelPoll() {
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+}
+
+function schedulePoll() {
+  cancelPoll();
+  if (!statusHint.classList.contains('active') || !currentConversationId) return;
+  pollTimer = setTimeout(checkWorkflowStatus, 5000);
+}
+
+async function checkWorkflowStatus() {
+  pollTimer = null;
+  if (!currentConversationId || !statusHint.classList.contains('active')) return;
+  try {
+    const res = await fetch(`/api/conversations/${currentConversationId}/status`);
+    if (!res.ok) { setStatusHint(''); return; }
+    const data = await res.json();
+    if (!data.running) {
+      setStatusHint('');
+    } else {
+      schedulePoll(); // still running — check again in 5s
+    }
+  } catch (e) {
+    schedulePoll(); // network hiccup — retry
+  }
+}
+
+function setStatusHint(message) {
+  const eventsDiv = document.getElementById('events');
+  if (message) {
+    statusHint.textContent = message;
+    statusHint.classList.add('active');
+    // Keep it pinned as last child
+    eventsDiv.appendChild(statusHint);
+    eventsDiv.scrollTop = eventsDiv.scrollHeight;
+    schedulePoll();
+  } else {
+    cancelPoll();
+    statusHint.classList.remove('active');
+    statusHint.textContent = '';
+  }
+}
+
 eventSource.onmessage = function(event) {
   const data = JSON.parse(event.data);
-  
+
+  // Status events are ephemeral — show as a hint, don't buffer as a regular event
+  if (data.type === 'status') {
+    setStatusHint(data.message);
+    return;
+  }
+
+  // Any real event clears the status hint and resets the poll
+  setStatusHint('');
+
   // Add to buffer
   eventBuffer.push(data);
   
@@ -194,6 +257,7 @@ async function createConversation() {
   // Cancel any pending buffer flush so stale events don't bleed into the new conversation
   if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
   eventBuffer = [];
+  setStatusHint('');
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
   setConversationId(data.conversationId);
@@ -233,7 +297,8 @@ async function exitConversation() {
   const res = await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
   const data = await res.json();
   
-  setConversationId(null);
+  setStatusHint('');
+  currentConversationId = null;
   document.getElementById('messagePanel').style.display = 'none';
   const endDiv = document.createElement('div');
   endDiv.className = 'event system';

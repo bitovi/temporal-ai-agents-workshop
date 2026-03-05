@@ -47,6 +47,7 @@ public class ActivitiesImpl implements Activities {
 			throws ApplicationFailure {
 		try {
 			System.out.println("thoughtActivity called with context size: " + context.size());
+			EventClient.emitEvent("status", "Thinking...");
 
 			// Convert ContextEntry list to XML strings for LLM prompt
 			List<String> contextStrings = context.stream()
@@ -164,6 +165,7 @@ public class ActivitiesImpl implements Activities {
 	public String actionActivity(String toolName, ActionInput input) throws ApplicationFailure {
 		try {
 			System.out.println("actionActivity called with tool: " + toolName);
+			EventClient.emitEvent("status", "Acting...");
 
 			// Check if tool exists
 			if (!ToolRegistry.hasToolNamed(toolName)) {
@@ -210,6 +212,7 @@ public class ActivitiesImpl implements Activities {
 		try {
 			System.out.println("observationActivity called with action result length: " +
 					actionResult.length());
+			EventClient.emitEvent("status", "Observing...");
 
 			// Convert ContextEntry list to XML strings for LLM prompt
 			List<String> contextStrings = context.stream()
@@ -261,6 +264,7 @@ public class ActivitiesImpl implements Activities {
 	public CompactResponse compactActivity(List<ContextEntry> context) throws ApplicationFailure {
 		try {
 			System.out.println("compactActivity called with context size: " + context.size());
+			EventClient.emitEvent("status", "Compacting...");
 
 			// Convert ContextEntry list to XML strings for LLM prompt
 			List<String> contextStrings = context.stream()
