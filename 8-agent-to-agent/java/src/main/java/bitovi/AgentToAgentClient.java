@@ -49,7 +49,7 @@ public class AgentToAgentClient {
 		System.out.println("Sent message signal");
 		
 		// Wait briefly to allow workflow to process
-		Thread.sleep(20000);
+		Thread.sleep(30000);
 		
 		// Send exit signal
 		workflow.requestExit();
