@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import org.json.JSONObject;
 
 import bitovi.common.Config;
+import io.temporal.activity.Activity;
 
 /**
  * EventClient sends events to the agent-chat-server via HTTP POST requests.
@@ -33,9 +34,16 @@ public class EventClient {
 	 * @param additionalData Optional additional data to include in the event
 	 */
 	public static void emitEvent(String type, String message, Map<String, Object> additionalData) {
-		// Capture timestamp and sequence BEFORE async execution to maintain order
+		// Capture timestamp, sequence, and workflowId BEFORE async execution to maintain order
 		final long timestamp = System.currentTimeMillis();
 		final long sequence = getNextSequence();
+		String capturedWorkflowId = null;
+		try {
+			capturedWorkflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
+		} catch (Exception ignored) {
+			// Not in an activity context
+		}
+		final String workflowId = capturedWorkflowId;
 		
 		CompletableFuture.runAsync(() -> {
 			try {
@@ -45,6 +53,9 @@ public class EventClient {
 				eventData.put("message", message);
 				eventData.put("timestamp", timestamp);
 				eventData.put("sequence", sequence);
+				if (workflowId != null) {
+					eventData.put("workflowId", workflowId);
+				}
 				
 				if (additionalData != null) {
 					eventData.putAll(additionalData);

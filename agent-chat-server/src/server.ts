@@ -86,7 +86,7 @@ app.post("/api/conversations/:id/message", async (req, res) => {
       date: new Date().toISOString(),
     });
 
-    eventEmitter.emit("bot-event", {
+    eventEmitter.emit(`bot-event:${id}`, {
       type: "user_message",
       message: message,
       timestamp: Date.now(),
@@ -151,7 +151,15 @@ app.post("/api/conversations/:id/compact", async (req, res) => {
 // POST /api/emit-event - Receive events from worker activities
 app.post("/api/emit-event", (req, res) => {
   const eventData = req.body;
-  eventEmitter.emit("bot-event", eventData);
+  const workflowId = eventData.workflowId as string | undefined;
+  if (workflowId) {
+    // Extract conversationId from workflowId (format: "agent-workflow-<conversationId>")
+    const conversationId = workflowId.replace(/^agent-workflow-/, "");
+    eventEmitter.emit(`bot-event:${conversationId}`, eventData);
+  } else {
+    // Fallback: broadcast to all (legacy / no workflowId)
+    eventEmitter.emit("bot-event", eventData);
+  }
   res.json({ success: true });
 });
 
@@ -175,6 +183,31 @@ app.get("/events", (req, res) => {
 
   req.on("close", () => {
     eventEmitter.off("bot-event", listener);
+  });
+});
+
+// GET /events/:conversationId - Per-conversation SSE stream
+app.get("/events/:conversationId", (req, res) => {
+  const { conversationId } = req.params;
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+  });
+
+  res.write(
+    `data: ${JSON.stringify({ type: "connected", message: "SSE connected" })}\n\n`,
+  );
+
+  const listener = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  eventEmitter.on(`bot-event:${conversationId}`, listener);
+
+  req.on("close", () => {
+    eventEmitter.off(`bot-event:${conversationId}`, listener);
   });
 });
 

@@ -58,7 +58,7 @@
 <body>
 <div class="container">
   <h1>Agent Workflow</h1>
-  <div class="status" id="status">Connecting...</div>
+  <div class="status" id="status">Start a conversation to begin.</div>
   
   <div>
     <label><strong>Conversation:</strong></label>
@@ -95,6 +95,49 @@
 
 <script>
 let currentConversationId = null;
+let currentEventSource = null;
+
+function connectToConversationEvents(conversationId) {
+  // Close any existing SSE connection
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+
+  const es = new EventSource(`/events/${conversationId}`);
+  currentEventSource = es;
+
+  es.onopen = function() {
+    document.getElementById('status').textContent = '✓ Connected to event stream';
+  };
+
+  es.onerror = function(e) {
+    document.getElementById('status').textContent = '✗ Error connecting to event stream';
+    setStatusHint('');
+  };
+
+  es.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+
+    // Status events are ephemeral — show as a hint, don't buffer as a regular event
+    if (data.type === 'status') {
+      setStatusHint(data.message);
+      return;
+    }
+
+    // Any real event clears the status hint and resets the poll
+    setStatusHint('');
+
+    // Add to buffer
+    eventBuffer.push(data);
+    
+    // Clear existing timer
+    if (bufferTimer) clearTimeout(bufferTimer);
+    
+    // Set new timer to flush buffer after 100ms of no new events
+    bufferTimer = setTimeout(flushEventBuffer, 100);
+  };
+}
 
 function setConversationId(id) {
   currentConversationId = id;
@@ -109,18 +152,8 @@ function setConversationId(id) {
     link.style.display = 'none';
   }
 }
-const eventSource = new EventSource('/events');
 let eventBuffer = [];
 let bufferTimer = null;
-
-eventSource.onopen = function() {
-  document.getElementById('status').textContent = '✓ Connected to event stream';
-};
-
-eventSource.onerror = function(e) {
-  document.getElementById('status').textContent = '✗ Error connecting to event stream';
-  setStatusHint('');
-};
 
 function flushEventBuffer() {
   if (eventBuffer.length === 0) return;
@@ -228,28 +261,6 @@ function setStatusHint(message) {
   }
 }
 
-eventSource.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-
-  // Status events are ephemeral — show as a hint, don't buffer as a regular event
-  if (data.type === 'status') {
-    setStatusHint(data.message);
-    return;
-  }
-
-  // Any real event clears the status hint and resets the poll
-  setStatusHint('');
-
-  // Add to buffer
-  eventBuffer.push(data);
-  
-  // Clear existing timer
-  if (bufferTimer) clearTimeout(bufferTimer);
-  
-  // Set new timer to flush buffer after 100ms of no new events
-  bufferTimer = setTimeout(flushEventBuffer, 100);
-};
-
 async function createConversation() {
   if (currentConversationId) {
     await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
@@ -261,6 +272,7 @@ async function createConversation() {
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
   setConversationId(data.conversationId);
+  connectToConversationEvents(data.conversationId);
   document.getElementById('messagePanel').style.display = 'block';
   const evDiv = document.getElementById('events');
   evDiv.innerHTML = '<div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent\'s steps here.</div>';
@@ -297,6 +309,11 @@ async function exitConversation() {
   const res = await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
   const data = await res.json();
   
+  // Close the per-conversation SSE connection
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
   setStatusHint('');
   currentConversationId = null;
   document.getElementById('messagePanel').style.display = 'none';
