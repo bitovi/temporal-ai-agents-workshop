@@ -14,7 +14,6 @@ import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContinueAsNewState;
 import bitovi.workflow.types.MessagePayload;
-import bitovi.workflow.types.ReactStep;
 import bitovi.workflow.types.UsageMetadata;
 import bitovi.workflow.types.WorkflowInput;
 import bitovi.workflow.types.WorkflowResult;
@@ -32,6 +31,8 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 	private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
 
 	private static final int COMPACTION_CONTEXT_TOKEN_THRESHOLD = 100000;
+
+	private static String answer = null;
 
 	// Signal state
 	private final List<MessagePayload> pendingMsgs = new ArrayList<>();
@@ -55,6 +56,11 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 		userRequestedContinueAsNew = true;
 		Workflow.getLogger(AgentToAgentWorkflowImpl.class).info("Compaction requested");
 	}
+
+	@Override
+	public String getAnswer() {
+		return answer;
+	}	
 
 	@Override
 	public WorkflowResult execute(WorkflowInput input) {
@@ -149,6 +155,10 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 				List<PersistMessage> assistantMessages = List.of(
 						new PersistMessage("assistant", thoughtResponse.answer(), null, null));
 				activities.persistActivity(assistantMessages);
+
+				// Store the most recent answer in a static variable to be retrieved by the
+				// client after exit
+				answer = thoughtResponse.answer();
 
 				// Once the agent has generated an answer, we wait for the next user message or
 				// other signal request before continuing

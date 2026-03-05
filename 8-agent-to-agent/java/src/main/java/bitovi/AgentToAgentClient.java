@@ -34,35 +34,42 @@ public class AgentToAgentClient {
 
 		// Start workflow asynchronously with empty input
 		WorkflowClient.start(workflow::execute, new WorkflowInput(null));
-		
+
 		System.out.println("Workflow started with ID: " + workflowId);
-		
+
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
-			"TestUser",
-			// TODO_A2A: Experiment with different question about books
-			"Are there any good books about sailing?",
-			LocalDateTime.now().toString()
-		);
+				"TestUser",
+				// TODO_A2A: Experiment with different question about books
+				"Are there any good books about sailing?",
+				LocalDateTime.now().toString());
 		workflow.receiveMessage(testMessage);
-		
+
 		System.out.println("Sent message signal");
-		
-		// Wait briefly to allow workflow to process
-		Thread.sleep(30000);
-		
+
+		// Because the Workflow is designed to run forever and wait for signals
+		// we can poll to see if a final result has been produced.
+		String finalAnswerReceived = null;
+		while (finalAnswerReceived == null) {
+			Thread.sleep(1000);
+			finalAnswerReceived = workflow.getAnswer();
+		}
+
 		// Send exit signal
 		workflow.requestExit();
-		
+
 		System.out.println("Sent exit signal");
-		
+
 		// Get result
 		WorkflowResult result = WorkflowStub.fromTyped(workflow).getResult(WorkflowResult.class);
-		
+
 		System.out.println("Workflow completed!");
 		System.out.println("Usage metrics:");
 		System.out.println("  Input tokens: " + result.usage().inputTokens());
 		System.out.println("  Output tokens: " + result.usage().outputTokens());
 		System.out.println("  Total tokens: " + result.usage().totalTokens());
+
+		// Return the final answer
+		System.out.println("Final answer received from workflow: " + finalAnswerReceived);
 	}
 }

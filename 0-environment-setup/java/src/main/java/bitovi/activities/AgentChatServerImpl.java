@@ -1,12 +1,12 @@
 package bitovi.activities;
 
-import bitovi.common.Config;
-import io.temporal.failure.ApplicationFailure;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
+import bitovi.common.Config;
+import io.temporal.failure.ApplicationFailure;
 
 public class AgentChatServerImpl implements AgentChatServer {
 
@@ -25,13 +25,16 @@ public class AgentChatServerImpl implements AgentChatServer {
 			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
 			if (response.statusCode() < 200 || response.statusCode() >= 300) {
+				System.err.println("Agent Chat Server health check failed with status: " + response.statusCode());
 				throw ApplicationFailure.newNonRetryableFailure(
 						"Agent Chat Server health check failed with status: " + response.statusCode(),
 						"AgentChatServerError");
 			}
 		} catch (ApplicationFailure e) {
+			System.err.println(e.getMessage());
 			throw e;
 		} catch (Exception e) {
+			System.err.println("Error connecting to Agent Chat Server: " + e.getMessage());
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to connect to Agent Chat Server: " + e.getMessage(),
 					"AgentChatServerError");

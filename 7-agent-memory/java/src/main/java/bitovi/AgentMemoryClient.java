@@ -50,7 +50,7 @@ public class AgentMemoryClient {
 		// we can poll to see if a final result has been produced.
 		String finalAnswerReceived = null;
 		while (finalAnswerReceived == null) {
-			Thread.sleep(30000);
+			Thread.sleep(1000);
 			finalAnswerReceived = workflow.getAnswer();
 		}
 

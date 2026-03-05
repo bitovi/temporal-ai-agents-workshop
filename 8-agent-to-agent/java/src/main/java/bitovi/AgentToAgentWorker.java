@@ -1,10 +1,9 @@
 package bitovi;
 
+import bitovi.activities.ActivitiesImpl;
+import bitovi.common.Config;
 import bitovi.common.TemporalClient;
 import bitovi.workflow.AgentToAgentWorkflowImpl;
-import bitovi.common.Config;
-import bitovi.activities.ActivitiesImpl;
-
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;

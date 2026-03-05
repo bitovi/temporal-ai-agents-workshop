@@ -1,13 +1,11 @@
 package bitovi;
 
-import bitovi.common.TemporalClient;
-
 import java.io.FileNotFoundException;
 
 import javax.net.ssl.SSLException;
 
 import bitovi.common.Config;
-
+import bitovi.common.TemporalClient;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 
@@ -22,6 +20,7 @@ public class EnvironmentSetupClient {
 		String uuid = java.util.UUID.randomUUID().toString();
 		String workflowId = "environment-setup-workflow-" + uuid;
 
+		System.out.println("Starting Environment Setup Workflow with ID: " + workflowId);
 		WorkflowOptions workflowOptions = WorkflowOptions
 				.newBuilder()
 				.setTaskQueue(taskQueue)

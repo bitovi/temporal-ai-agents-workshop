@@ -32,6 +32,8 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 
 	private static final int COMPACTION_CONTEXT_TOKEN_THRESHOLD = 100000;
 
+	private static String answer = null;
+
 	// Signal state
 	private final List<MessagePayload> pendingMsgs = new ArrayList<>();
 	private boolean userRequestedExit = false;
@@ -53,6 +55,11 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 	public void requestContinueAsNew() {
 		userRequestedContinueAsNew = true;
 		Workflow.getLogger(AgentWorkflowImpl.class).info("Compaction requested");
+	}
+
+	@Override
+	public String getAnswer() {
+		return answer;
 	}
 
 	@Override
@@ -147,6 +154,10 @@ public class AgentWorkflowImpl implements AgentWorkflow {
 				List<PersistMessage> assistantMessages = List.of(
 						new PersistMessage("assistant", thoughtResponse.answer(), null, null));
 				activities.persistActivity(assistantMessages);
+
+				// Store the most recent answer in a static variable to be retrieved by the
+				// client after exit
+				answer = thoughtResponse.answer();
 
 				// Once the agent has generated an answer, we wait for the next user message or
 				// other signal request before continuing
