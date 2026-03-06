@@ -58,13 +58,14 @@ Search for `TODO_DECISIONS` in the code:
 
 - TODO_DECISIONS: Experiment with different word problem prompts
 
-In the `6-agent-decisions/java/src/main/resources/word-problems` directory there are a variety of different questions that you can experiment with.
-Try swapping out the existing prompt with a different one and see how it affects the agent's behavior.
+  In the `6-agent-decisions/java/src/main/resources/word-problems` directory there are a variety of different questions that you can experiment with.
 
-You can update the file name in `6-agent-decisions/java/src/main/java/bitovi/AgentDecisionsClient.java`.
+  Try swapping out the existing prompt with a different one and see how it affects the agent's behavior.
 
-You can swap between the Plan and Execute agent and the ReAct agent by changing the 'AGENT_TYPE' variable in the `.env` file. Try both on the different problems and see how each approach performs.
+  You can update the file name in `6-agent-decisions/java/src/main/java/bitovi/AgentDecisionsClient.java`.
+
+  You can swap between the Plan and Execute agent and the ReAct agent by selecting the corresponding 'Exercise 6 - Client' in the VSCode Launch options. Try both on the different problems and see how each approach performs.
 
 - TODO_DECISIONS: Experiment with changing the max reasoning effort (low, medium, high)
 
-What effect does this have on the agent's behavior? Does it use more reasoning tokens? Does it perform better or worse on the task?
+  What effect does this have on the agent's behavior? Does it use more reasoning tokens? Does it perform better or worse on the task?
