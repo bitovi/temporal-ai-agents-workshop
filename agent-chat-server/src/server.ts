@@ -116,22 +116,6 @@ app.post("/api/conversations/:id/exit", async (req, res) => {
   }
 });
 
-// GET /api/conversations/:id/status - Check if workflow is still running
-app.get("/api/conversations/:id/status", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const handle = workflowSessions.get(id);
-    if (!handle) {
-      return res.status(404).json({ running: false });
-    }
-    const desc = await handle.describe();
-    // WorkflowExecutionStatus.RUNNING === 1 in the protobuf enum
-    res.json({ running: desc.status === 1 });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
-});
-
 // POST /api/conversations/:id/compact - Trigger compaction
 app.post("/api/conversations/:id/compact", async (req, res) => {
   try {

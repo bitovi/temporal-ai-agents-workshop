@@ -125,8 +125,11 @@ function connectToConversationEvents(conversationId) {
       return;
     }
 
-    // Any real event clears the status hint and resets the poll
-    setStatusHint('');
+    // Action events do NOT clear the hint — "Acting..." follows right after and
+    // should remain visible while the tool runs. All other real events clear it.
+    if (data.type !== 'action') {
+      setStatusHint('');
+    }
 
     // Add to buffer
     eventBuffer.push(data);
@@ -216,34 +219,6 @@ function flushEventBuffer() {
 }
 
 const statusHint = document.getElementById('status-hint');
-let pollTimer = null;
-
-function cancelPoll() {
-  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
-}
-
-function schedulePoll() {
-  cancelPoll();
-  if (!statusHint.classList.contains('active') || !currentConversationId) return;
-  pollTimer = setTimeout(checkWorkflowStatus, 5000);
-}
-
-async function checkWorkflowStatus() {
-  pollTimer = null;
-  if (!currentConversationId || !statusHint.classList.contains('active')) return;
-  try {
-    const res = await fetch(`/api/conversations/${currentConversationId}/status`);
-    if (!res.ok) { setStatusHint(''); return; }
-    const data = await res.json();
-    if (!data.running) {
-      setStatusHint('');
-    } else {
-      schedulePoll(); // still running — check again in 5s
-    }
-  } catch (e) {
-    schedulePoll(); // network hiccup — retry
-  }
-}
 
 function setStatusHint(message) {
   const eventsDiv = document.getElementById('events');
@@ -253,9 +228,7 @@ function setStatusHint(message) {
     // Keep it pinned as last child
     eventsDiv.appendChild(statusHint);
     eventsDiv.scrollTop = eventsDiv.scrollHeight;
-    schedulePoll();
   } else {
-    cancelPoll();
     statusHint.classList.remove('active');
     statusHint.textContent = '';
   }
