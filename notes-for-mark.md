@@ -41,7 +41,7 @@ Quick notes for async handoff to Mark if neeed.
     - Here's the one I provisioned in the "sandbox" bitovi aws account: 
         - [memory resource](https://us-east-2.console.aws.amazon.com/bedrock-agentcore/memory/Riot_Bitovi_Temporal_AI_Workshop_Memory-cPS5wpCWII?region=us-east-2)
     - All the attendees should be able to use the same memory resource concurrently
-    - The LTM records are extracted into granular namespaces, so as long as each attendee has setup a unique `USER_ACTOR_ID` in the `.env` file, their agents should only have memories about them.
+    - The LTM records are extracted into granular namespaces, so as long as each attendee has setup a unique `USER_ID` in the `.env` file, their agents should only have memories about them.
     - For provisioning a memory resource for Riot attendees I made some utility launch configs:
         - "Exercise 7 - Create Memory"
         - "Exercise 7 - Delete Memory"

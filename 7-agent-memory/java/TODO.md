@@ -4,7 +4,7 @@
 
 First let's run the existing implementation of an agent with Long-Term Memory (LTM).
 
-1. Update `.env` in root with your own username for `USER_ACTOR_ID`
+1. Update `.env` in root with your own username for `USER_ID`
 2. Run Task: Sync Environments
 3. Run Task: Docker Compose Down 
 4. Run Task: Docker Compose Up
@@ -40,7 +40,7 @@ The goal here is to teach the agent about your personal preferences and domain-s
 6. Interact with the agent. Observe that the agent should be able to "remember" your personal preferences from a previous conversation.
 
 > **Note:** During this exercise, if you want to start fresh with no memories:
-> 1. Update `USER_ACTOR_ID` in your root `.env` file to a new unique value (e.g. `mhaynie1`, `mhaynie2`, ...).
+> 1. Update `USER_ID` in your root `.env` file to a new unique value (e.g. `mhaynie1`, `mhaynie2`, ...).
 > 2. Re-run the **Sync Environments** task.
 > 3. Restart the worker.
 > 4. Start a new conversation/workflow.

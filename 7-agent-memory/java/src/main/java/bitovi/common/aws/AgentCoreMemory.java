@@ -1,4 +1,5 @@
 package bitovi.common.aws;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,9 +38,9 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.UserPrefere
 
 public class AgentCoreMemory {
 
-    private static Config config = new Config();
-    private static String USER_ACTOR_ID = config.getProperty("USER_ACTOR_ID");
-    private static String MEMORY_ID = config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_ID");
+    private static final Config config = new Config();
+    private static final String USER_ID = config.getProperty("USER_ID");
+    private static final String MEMORY_ID = config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_ID");
 
     public static Memory getMemory() {
         try (BedrockAgentCoreControlClient bedrockAgentCoreControlClient = AWS
@@ -58,10 +59,10 @@ public class AgentCoreMemory {
 
     public static MemoryStrategyType getMemoryStrategyType(MemoryRecordSummary summary) {
         return getMemory().strategies().stream()
-            .filter(strat -> strat.strategyId().equals(summary.memoryStrategyId()))
-            .findFirst()
-            .orElseThrow()
-            .type();
+                .filter(strat -> strat.strategyId().equals(summary.memoryStrategyId()))
+                .findFirst()
+                .orElseThrow()
+                .type();
     }
 
     public static void createEvent(List<ContextEntry> entries) {
@@ -69,14 +70,14 @@ public class AgentCoreMemory {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
             // Create a Conversational payload for each ContextEntry
             List<PayloadType> payloads = entries.stream()
-                .map(entry -> {
-                    Conversational conversational = Conversational.builder()
-                        .content(Content.fromText(entry.toXmlString()))
-                        .role(entry.role())
-                        .build();
-                    return PayloadType.builder().conversational(conversational).build();
-                })
-                .collect(Collectors.toList());
+                    .map(entry -> {
+                        Conversational conversational = Conversational.builder()
+                                .content(Content.fromText(entry.toXmlString()))
+                                .role(entry.role())
+                                .build();
+                        return PayloadType.builder().conversational(conversational).build();
+                    })
+                    .collect(Collectors.toList());
 
             // Use timestamp from first entry
             Instant eventTimestamp = entries.isEmpty() ? Instant.now() : entries.get(0).timestamp();
@@ -84,7 +85,7 @@ public class AgentCoreMemory {
             CreateEventRequest request = CreateEventRequest.builder()
                     .memoryId(MEMORY_ID)
                     .sessionId(Activity.getExecutionContext().getInfo().getWorkflowId())
-                    .actorId(USER_ACTOR_ID)
+                    .actorId(USER_ID)
                     .payload(payloads)
                     .eventTimestamp(eventTimestamp)
                     .build();
@@ -104,50 +105,51 @@ public class AgentCoreMemory {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
 
             ListEventsRequest request = ListEventsRequest.builder()
-                .memoryId(MEMORY_ID)
-                .actorId(USER_ACTOR_ID)
-                .sessionId(sessionId)
-                .build();
+                    .memoryId(MEMORY_ID)
+                    .actorId(USER_ID)
+                    .sessionId(sessionId)
+                    .build();
 
             ListEventsResponse response = bedrockAgentCoreClient.listEvents(request);
             return response;
         }
     }
 
-
     public static ListMemoryRecordsResponse listMemoryRecords(List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
             List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
             for (var strategy : getMemory().strategies()) {
-                if (!strategyTypes.contains(strategy.type())) continue;
-                String namespace = "/strategies/" + strategy.strategyId() + "/actors/" + USER_ACTOR_ID;
+                if (!strategyTypes.contains(strategy.type()))
+                    continue;
+                String namespace = "/strategies/" + strategy.strategyId() + "/actors/" + USER_ID;
 
                 ListMemoryRecordsRequest request = ListMemoryRecordsRequest.builder()
-                    .memoryId(MEMORY_ID)
-                    .namespace(namespace)
-                    .build();
+                        .memoryId(MEMORY_ID)
+                        .namespace(namespace)
+                        .build();
 
                 ListMemoryRecordsResponse response = bedrockAgentCoreClient.listMemoryRecords(request);
                 allRecords.addAll(response.memoryRecordSummaries());
             }
 
             return ListMemoryRecordsResponse.builder()
-                .memoryRecordSummaries(allRecords)
-                .build();
+                    .memoryRecordSummaries(allRecords)
+                    .build();
         }
     }
 
-    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query, List<MemoryStrategyType> strategyTypes) {
+    public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query,
+            List<MemoryStrategyType> strategyTypes) {
         try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
             List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
             for (MemoryStrategyType strategyType : strategyTypes) {
                 var memoryStrategyId = getMemory().strategies().stream()
-                    .filter(strat -> strat.type() == strategyType)
-                    .findFirst()
-                    .orElseThrow()
-                    .strategyId();
+                        .filter(strat -> strat.type() == strategyType)
+                        .findFirst()
+                        .orElseThrow()
+                        .strategyId();
 
                 SearchCriteria searchCriteria = SearchCriteria.builder()
                         .memoryStrategyId(memoryStrategyId)
@@ -157,11 +159,12 @@ public class AgentCoreMemory {
                 RetrieveMemoryRecordsRequest retrieveMemoryRecordsRequest = RetrieveMemoryRecordsRequest.builder()
                         .memoryId(MEMORY_ID)
                         .maxResults(10)
-                        .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ACTOR_ID)
+                        .namespace("/strategies/" + memoryStrategyId + "/actors/" + USER_ID)
                         .searchCriteria(searchCriteria)
                         .build();
 
-                RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient.retrieveMemoryRecords(retrieveMemoryRecordsRequest);
+                RetrieveMemoryRecordsResponse response = bedrockAgentCoreClient
+                        .retrieveMemoryRecords(retrieveMemoryRecordsRequest);
                 allRecords.addAll(response.memoryRecordSummaries());
             }
 
@@ -175,43 +178,46 @@ public class AgentCoreMemory {
         try (BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()) {
 
             CreateMemoryRequest request = CreateMemoryRequest.builder()
-                .name("Riot_Bitovi_Temporal_AI_Workshop_Memory")
-                .description("This is a temporary resource for the Temporal AI Agents Workshop (Part 2) delivered by Bitovi.")
-                .eventExpiryDuration(30) // Events expire after 30 days
-                .memoryStrategies(
-                    MemoryStrategyInput.builder()
-                        .episodicMemoryStrategy(EpisodicMemoryStrategyInput.builder()
-                            .name("Episodic")
-                            .description("Stores temporal sequences of events")
-                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
-                            .reflectionConfiguration(EpisodicReflectionConfigurationInput.builder()
-                                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                                .build())
-                            .build())
-                        .build(),
-                    MemoryStrategyInput.builder()
-                        .userPreferenceMemoryStrategy(UserPreferenceMemoryStrategyInput.builder()
-                            .name("Preference")
-                            .description("Tracks user preferences and choices")
-                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                            .build())
-                        .build(),
-                    MemoryStrategyInput.builder()
-                        .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
-                            .name("Semantic")
-                            .description("Stores factual information and concepts")
-                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                            .build())
-                        .build(),
-                    MemoryStrategyInput.builder()
-                        .summaryMemoryStrategy(SummaryMemoryStrategyInput.builder()
-                            .name("Summary")
-                            .description("Maintains summarized conversation history")
-                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
-                            .build())
-                        .build()
-                )
-                .build();
+                    .name("Riot_Bitovi_Temporal_AI_Workshop_Memory")
+                    .description(
+                            "This is a temporary resource for the Temporal AI Agents Workshop (Part 2) delivered by Bitovi.")
+                    .eventExpiryDuration(30) // Events expire after 30 days
+                    .memoryStrategies(
+                            MemoryStrategyInput.builder()
+                                    .episodicMemoryStrategy(EpisodicMemoryStrategyInput.builder()
+                                            .name("Episodic")
+                                            .description("Stores temporal sequences of events")
+                                            .namespaces(List.of(
+                                                    "/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                                            .reflectionConfiguration(EpisodicReflectionConfigurationInput.builder()
+                                                    .namespaces(
+                                                            List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                                                    .build())
+                                            .build())
+                                    .build(),
+                            MemoryStrategyInput.builder()
+                                    .userPreferenceMemoryStrategy(UserPreferenceMemoryStrategyInput.builder()
+                                            .name("Preference")
+                                            .description("Tracks user preferences and choices")
+                                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                                            .build())
+                                    .build(),
+                            MemoryStrategyInput.builder()
+                                    .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
+                                            .name("Semantic")
+                                            .description("Stores factual information and concepts")
+                                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                                            .build())
+                                    .build(),
+                            MemoryStrategyInput.builder()
+                                    .summaryMemoryStrategy(SummaryMemoryStrategyInput.builder()
+                                            .name("Summary")
+                                            .description("Maintains summarized conversation history")
+                                            .namespaces(List.of(
+                                                    "/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                                            .build())
+                                    .build())
+                    .build();
 
             System.out.println("Creating memory with request:");
             System.out.println("  Name: " + request.name());
@@ -245,8 +251,8 @@ public class AgentCoreMemory {
             System.out.println("Deleting memory with ID: " + memoryId);
 
             DeleteMemoryRequest request = DeleteMemoryRequest.builder()
-                .memoryId(memoryId)
-                .build();
+                    .memoryId(memoryId)
+                    .build();
 
             DeleteMemoryResponse response = controlClient.deleteMemory(request);
             return response;
