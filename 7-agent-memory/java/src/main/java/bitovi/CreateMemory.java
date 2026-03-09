@@ -9,10 +9,6 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.CreateMemor
  * A handy utility for provisioning a new AWS Bedrock Agent Core Memory instance.
  * Run this using the "CreateMemory" run configuration to create the memory resource
  * that the agent will use to store and retrieve conversation history across sessions.
- *
- * After running, copy the printed Memory ID into your {@code .env} file as
- * {@code AWS_BEDROCK_AGENTCORE_MEMORY_ID}. Then run the "Sync Environments" task
- * and restart any running workers.
  */
 public class CreateMemory {
 

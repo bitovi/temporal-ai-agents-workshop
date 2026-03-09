@@ -2,7 +2,7 @@
 
 ## Why Memory Matters
 
-Every LLM has a finite context window -- a hard limit on how much information it can "see" at once. Without memory management, an agent faces two inevitable outcomes as conversations grow: either it loses information when older context is discarded, or it hits token limits and fails entirely.
+Every LLM has a finite context window, a hard limit on how much information it can "see" at once. Without memory management, an agent faces two inevitable outcomes as conversations grow: either it loses information when older context is discarded, or it hits token limits and fails entirely.
 
 This constraint is the fundamental tension that memory architecture exists to solve. A well-designed memory system lets an agent maintain continuity within a conversation, recall relevant information across sessions, and operate indefinitely without degradation.
 
@@ -26,9 +26,9 @@ By the end of this exercise, you should understand:
 
 This is the most important distinction in agent memory architecture. They are related but different:
 
-**Working context** is what the agent can see right now -- the current conversation history, tool results, and any retrieved information that has been injected into the prompt. In our implementation, this is the `List<ContextEntry>` maintained by the workflow. It lives in memory, it is bounded by the context window size, and it exists only for the lifetime of the current workflow execution.
+**Working context** is what the agent can see right now. The current conversation history, tool results, and any retrieved information that has been injected into the prompt. In our implementation, this is the `List<ContextEntry>` maintained by the workflow. It lives in memory, it is bounded by the context window size, and it exists only for the lifetime of the current workflow execution.
 
-**Persistent memory** is what the agent remembers across sessions -- durable knowledge stored externally in a database, vector store, or managed service like AgentCore Memory. It survives workflow restarts, compaction, and even `continueAsNew`. The agent cannot see it directly; it must be explicitly retrieved and injected into the working context.
+**Persistent memory** is what the agent remembers across sessions. Durable knowledge stored externally in a database, vector store, or managed service like AgentCore Memory. It survives workflow restarts, compaction, and even `continueAsNew`. The agent cannot see it directly; it must be explicitly retrieved and injected into the working context.
 
 The bridge between them is **memory retrieval**: at the start of each thinking step, the agent queries its persistent memory, and the most relevant records are injected into the working context alongside the conversation history. This is the "Pre-Retrieval (RAG)" pattern that makes long-term memory useful.
 
@@ -39,7 +39,7 @@ Short-term memory (STM) allows the agent to maintain continuity throughout a sin
 In practice, short-term memory is the rolling window of recent interactions that the agent carries in its working context. Key design decisions include:
 
 - **Window size.** How many recent turns to keep in the immediate context (e.g., the last 5-10 turns). Our implementation keeps all entries until compaction is triggered.
-- **Checkpointing.** Using a low-latency persistent store for the current session state. In a Temporal Workflow, this happens automatically through event history -- the state is checkpointed reliably after every Activity completion.
+- **Checkpointing.** Using a low-latency persistent store for the current session state. In a Temporal Workflow, this happens automatically through event history. The state is checkpointed reliably after every Activity completion.
 - **Time-to-Live (TTL).** For ephemeral or session-scoped memory items, implementing TTLs allows them to expire automatically when no longer relevant.
 
 ### Long-Term Memory Architecture
@@ -56,7 +56,7 @@ The foundation of scalable LTM is Retrieval-Augmented Generation (RAG) using a v
 
 These are complementary but distinct operations, and our codebase implements both.
 
-**Compaction** (covered in Exercise 5) is about keeping the current session's working context within token limits. When the context grows too large, the agent summarizes it and discards the originals. Compaction is lossy by design -- it trades detail for space. After compaction, the specific wording of earlier messages is gone, replaced by a compressed summary.
+**Compaction** is about keeping the current session's working context within token limits. When the context grows too large, the agent summarizes it and discards the originals. Compaction is lossy by design, it trades detail for space. After compaction, the specific wording of earlier messages is gone, replaced by a compressed summary.
 
 **Memory persistence** is about extracting durable knowledge _before_ that information would be compacted away or lost. Rather than summarizing everything into a single blob, persistence uses AI to identify specific facts, preferences, and patterns worth remembering long-term, and stores them in a structured external system.
 
@@ -66,13 +66,13 @@ The ordering matters: our workflow persists to memory after each answer (while t
 
 Modern memory systems use multiple specialized strategies. Understanding when to use each is important:
 
-**Semantic memory** stores discrete factual knowledge -- "The user lives in Austin," "The user is a software engineer." These are stable facts that don't change often. Best for: personal information, stated facts, domain knowledge that the agent learns from interactions.
+**Semantic memory** stores discrete factual knowledge. "The user lives in Austin," "The user is a software engineer." These are stable facts that don't change often. Best for: personal information, stated facts, domain knowledge that the agent learns from interactions.
 
-**User preference memory** captures behavioral patterns and choices -- "Prefers TypeScript over Java," "Likes outdoor dining." These are inferred from patterns across conversations. Best for: personalizing responses, anticipating needs, adapting tone and recommendations.
+**User preference memory** captures behavioral patterns and choices. "Prefers TypeScript over Java," "Likes outdoor dining." These are inferred from patterns across conversations. Best for: personalizing responses, anticipating needs, adapting tone and recommendations.
 
-**Episodic memory** stores narrative sequences of what happened -- the temporal flow of events with context about what was tried, what worked, and what was learned. Best for: learning from past problem-solving attempts, understanding how previous interactions unfolded, building procedural knowledge.
+**Episodic memory** stores narrative sequences of what happened. The time series flow of events with context about what was tried, what worked, and what was learned. Best for: learning from past problem-solving attempts, understanding how previous interactions unfolded, building procedural knowledge.
 
-**Summary memory** maintains compressed overviews of entire sessions -- global summaries of conversation topics and detailed delta summaries of specific discussion points. Best for: quickly re-establishing context from previous sessions without loading full history, providing high-level continuity.
+**Summary memory** maintains compressed overviews of entire sessions. Global summaries of conversation topics and detailed delta summaries of specific discussion points. Best for: quickly re-establishing context from previous sessions without loading full history, providing high-level continuity.
 
 A well-architected system uses multiple strategies simultaneously. Semantic facts and user preferences are queried based on relevance to the current conversation. Episodic memories provide deeper context for similar situations. Summaries offer broad continuity. The agent's memory retrieval step can query across all of these and inject the most relevant records into the working context.
 
@@ -82,19 +82,21 @@ For infinitely long conversations, modern agent architectures employ additional 
 
 **Graph Memory (Mem0g)** captures complex relational structures between conversational elements (entities as nodes, relationships as edges). Excellent for multi-hop reasoning and temporal queries. Uses Neo4j or similar graph database to model facts like: (User, lives_in, Austin).
 
+TODO: Write more about the specifics of how Mem0 works. Not just the Graph Memory.
+
 ### High-level Design for Production Systems
 
-- **Working memory (WM):** small rolling window (e.g., last 12-20 turns) + the current scratchpad/tool traces. Used directly in prompts. Hard cap in tokens.
-- **Episodic memory (EM):** append-only chronological events (user/agent messages, tool outcomes, decisions) chunked and immutable. Think log segments with indices.
-- **Semantic memory (SM):** de-duplicated facts, entities, preferences, skills, constraints, and long-lived objectives extracted from EM, stored as structured records + embeddings.
-- **Indexes:** hybrid retrieval (BM25/Full-Text + vector). Relevance = alpha * similarity + beta * recency + gamma * importance.
-- **Consolidation:** background/cron Temporal Workflows that distill EM to SM, refresh embeddings, decay stale items, and maintain hierarchical summaries.
+- **Working memory:** small rolling window (e.g., last 12-20 turns) + the current scratchpad/tool traces. Used directly in prompts. Hard cap in tokens.
+- **Episodic memory:** append-only chronological events (user/agent messages, tool outcomes, decisions) chunked and immutable. Think log segments with indices.
+- **Semantic memory:** de-duplicated facts, entities, preferences, skills, constraints, and long-lived objectives extracted from Episodic Memory, stored as structured records + embeddings.
+- **Indexes:** hybrid retrieval (BM25/Full-Text + vector). Relevance = alpha _ similarity + beta _ recency + gamma \* importance.
+- **Consolidation:** background/cron Temporal Workflows that distill Episodic Memory to Semantic Memory, refresh embeddings, decay stale items, and maintain hierarchical summaries.
 
 ### Dynamic Memory Management
 
-The biggest architectural improvement over simple summarization is replacing periodic compression with dynamic, intelligent memory management that can evolve over time. You can integrate these processes using Temporal Activities or separate background services.
+The biggest architectural improvement over simple summarization is replacing periodic compression with dynamic, intelligent memory management that can evolve over time. You can integrate these processes using Temporal Workflows or separate background services.
 
-1. **Dynamic Extraction (Mem0 Model):** Instead of summarizing everything, use the LLM to dynamically extract, evaluate, and consolidate salient information from ongoing conversations.
+1. **Dynamic Extraction (Mem0 Model):** Use the LLM to dynamically extract, evaluate, and consolidate salient information from ongoing conversations.
 
 2. **LLM-Driven Updates:** Implement a robust update phase (potentially triggered as an asynchronous Temporal Activity) where the LLM uses a function-calling interface to determine the fate of new memories:
    - ADD: Create a new memory if no semantically similar memory exists.
@@ -128,6 +130,8 @@ The key change from Exercise 5 is what happens at the start of the THINKING step
 ```
 
 In the workflow code, this looks like:
+
+TODO: Update this code block to reflect the actual implementation in the codebase
 
 ```java
 if (reactStep == ReactStep.THINKING) {
@@ -189,7 +193,7 @@ public void persistMemoryActivity(List<ContextEntry> entries) {
 }
 ```
 
-Under the hood, each `ContextEntry` is converted to a `Conversational` payload with its XML string representation and role (USER or ASSISTANT). AgentCore Memory then asynchronously processes these events through its configured strategies -- extracting semantic facts, identifying user preferences, and generating session summaries. This processing typically takes about a minute and requires no additional code.
+Under the hood, each `ContextEntry` is converted to a `Conversational` payload with its XML string representation and role (USER or ASSISTANT). AgentCore Memory then asynchronously processes these events through its configured strategies, extracting semantic facts, identifying user preferences, and generating session summaries. This processing typically takes about a minute and requires no additional code.
 
 The `sessionId` for memory events is set to the Temporal workflow ID, which remains stable across `continueAsNew` calls (only the _run ID_ changes). This means a single long-running conversation keeps the same memory session even through `continueAsNew` boundaries, and the extracted long-term memories persist across sessions under the same `actorId`.
 
@@ -211,11 +215,11 @@ This is what transforms an agent from a stateless tool into something that feels
 When building the prompt for the thought activity, you are allocating a fixed token budget across multiple sources:
 
 - **System instructions and tool definitions** (fixed cost, typically 500-2000 tokens)
-- **Retrieved memory records** (variable, controlled by `maxResults` -- our implementation limits to 4 records)
+- **Retrieved memory records** (variable, controlled by `maxResults` - our implementation limits to 4 records)
 - **Conversation history** (variable, grows with each turn)
 - **Reserve for the model's response** (must leave room for output)
 
-The implementation uses `ModelUtils.truncateContextToTokenLimit` to ensure the conversation history fits, and limits memory retrieval to 4 results. In a production system, you would want to be more deliberate about this allocation -- perhaps reserving a fixed token budget for each source and dynamically adjusting based on what is available and relevant.
+The implementation uses `ModelUtils.truncateContextToTokenLimit` to ensure the conversation history fits, and limits memory retrieval to 4 results. In a production system, you would want to be more deliberate about this allocation, perhaps reserving a fixed token budget for each source and dynamically adjusting based on what is available and relevant.
 
 ## AWS Bedrock AgentCore Memory
 
@@ -229,11 +233,11 @@ AgentCore Memory can be used with any Agent solution, including completely custo
 
 The memory resource is the central container. It encapsulates both raw events (STM) and processed long-term memories (LTM).
 
-- **memoryId** -- A unique identifier for the memory resource. Required for all read and write operations against AgentCore Memory.
-- **actorId** -- Identifies the entity associated with the memory (e.g., user, agent, project). Used with sessionId to enforce hierarchical namespaces and precise retrieval of relevant context.
-- **sessionId** -- Groups related memory events together during a single interaction. Essential for tracking the chronological narrative flow within a short-term conversation. In our implementation, this maps to the Temporal workflow ID.
-- **Event (raw)** -- An immutable record of an individual interaction (user prompt, agent reply, tool output). Constitutes the Short-Term Memory. These are stored chronologically in the memory resource.
-- **Session Summary Object** -- A durable, compressed, token-efficient distillation of an entire session, generated by an LLM upon session termination. Constitutes the primary artifact of Long-Term Memory, preserving context without exceeding the context window.
+- **memoryId** : A unique identifier for the memory resource. Required for all read and write operations against AgentCore Memory.
+- **actorId** : Identifies the entity associated with the memory (e.g., user, agent, project). Used with sessionId to enforce hierarchical namespaces and precise retrieval of relevant context.
+- **sessionId** : Groups related memory events together during a single interaction. Essential for tracking the chronological narrative flow within a short-term conversation. In our implementation, this maps to the Temporal workflow ID.
+- **Event (raw)** : An immutable record of an individual interaction (user prompt, agent reply, tool output). Constitutes the Short-Term Memory. These are stored chronologically in the memory resource.
+- **Session Summary Object** : A durable, compressed, token-efficient distillation of an entire session, generated by an LLM upon session termination. Constitutes the primary artifact of Long-Term Memory, preserving context without exceeding the context window.
 
 ### Memory Strategies Configuration
 
@@ -304,19 +308,21 @@ Important: For semantic and user preference memory strategies, only USER and ASS
 
 ### Privacy and Data Lifecycle
 
-Our implementation sets `eventExpiryDuration(30)` -- raw events expire after 30 days. But extracted long-term memories persist indefinitely. This creates important questions for production systems:
+Our implementation sets `eventExpiryDuration(30)`. Raw events expire after 30 days. But extracted long-term memories persist indefinitely. This creates important questions for production systems:
 
-- What data is being extracted? The AgentCore extraction prompts process USER and ASSISTANT messages, extracting facts and preferences. The consolidation prompts are designed to skip PII and harmful content, but this is LLM-based filtering -- not guaranteed.
+- What data is being extracted? The AgentCore extraction prompts process USER and ASSISTANT messages, extracting facts and preferences. The consolidation prompts are designed to skip PII and harmful content, but this is LLM-based filtering and is not guaranteed.
 - How long should memories live? Semantic facts ("lives in Austin") may be valid for years. Preferences ("prefers dark mode") can change. Episodic memories of specific interactions may become irrelevant.
 - User consent and right to deletion. AgentCore provides `deleteMemory` for removing entire memory resources, but granular record-level deletion of specific memories may be needed for compliance.
 
 ### Memory Conflicts and Staleness
 
-What happens when long-term memory says "favorite color is blue" but the user just said "actually it's green"? The consolidation logic handles this through UPDATE and DELETE operations -- but this processing is asynchronous (about 1 minute). During that window, the agent may have stale information in its retrieved memories that contradicts the current conversation.
+What happens when long-term memory says "favorite color is blue" but the user just said "actually it's green"? The consolidation logic handles this through UPDATE and DELETE operations. This processing is asynchronous and takes about a minute. During that window, the agent may have stale information in its retrieved memories that contradicts the current conversation.
 
-In practice, the LLM usually handles this well because the current conversation context takes precedence in the prompt. But it is worth being aware that there is no hard guarantee -- the model treats all context equally, and a strongly worded memory record could occasionally override a casual correction in the current conversation.
+In practice, the LLM usually handles this well because the current conversation context takes precedence in the prompt. But it is worth being aware that there is no hard guarantee of this. The model treats all context equally, and a strongly worded memory record could occasionally override a casual correction in the current conversation.
 
-One practical mitigation is how we inject retrieved memories into the prompt. Rather than inserting raw memory text alongside the conversation history, our implementation wraps each record in typed XML tags that correspond to its strategy -- for example:
+One practical mitigation is how we inject retrieved memories into the prompt. Rather than inserting raw memory text alongside the conversation history, our implementation wraps each record in typed XML tags that correspond to its strategy.
+
+For example:
 
 ```xml
 <user-preference>User prefers TypeScript over Java</user-preference>
@@ -332,7 +338,7 @@ Memory adds cost at two points:
 - **Persistence:** Every `persistMemoryActivity` call sends events to AgentCore, which triggers LLM-based extraction and embedding generation. At high message volume, this adds up.
 - **Retrieval:** Every `retrieveMemoryRecordsActivity` call performs an embedding of the query and a vector search. This happens at the start of every THINKING step.
 
-For cost optimization, consider: batching persistence (our implementation already does this -- it persists from USER_MESSAGE through ANSWER as a batch), limiting retrieval frequency (perhaps only on the first thinking step of each user message rather than every ReAct iteration), and using cheaper models for extraction where possible.
+For cost optimization, consider batching persistence, taking everything from the USER_MESSAGE up through the ANSWER at once, limiting retrieval frequency by only retrieving on the first thinking step of each user message rather than every ReAct iteration, and using cheaper models for extraction where possible.
 
 ### Memory in Multi-Agent Systems
 
