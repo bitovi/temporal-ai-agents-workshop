@@ -35,8 +35,9 @@ public class ToolRegistry {
      */
     public static List<Tool> getAllBedrockTools() {
         List<Tool> tools = new ArrayList<>();
-        tools.add(BraveSearchTool.getBedrockTool());
-        tools.add(FetchWebpageTool.getBedrockTool());
+        // Note: The actual tool definitions are currently commented out to narrow the example's focus on A2A communication.
+        // tools.add(BraveSearchTool.getBedrockTool());
+        // tools.add(FetchWebpageTool.getBedrockTool());
         tools.add(AgentRegistryTool.getBedrockTool());
         tools.add(A2ATool.getBedrockTool());
         return tools;
