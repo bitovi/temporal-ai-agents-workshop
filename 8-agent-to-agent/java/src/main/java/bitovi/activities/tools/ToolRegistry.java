@@ -18,10 +18,13 @@ public class ToolRegistry {
     private static final Map<String, BiFunction<String, Map<String, Object>, String>> toolExecutors = new HashMap<>();
     
     static {
-        // Register tool executors
+        // Register built-in tool executors
         toolExecutors.put("brave_search", BraveSearchTool::execute);
         toolExecutors.put("fetch_webpage", FetchWebpageTool::execute);
-        toolExecutors.put("support_agent", SupportAgentTool::execute);
+
+        // A2A agent discovery and communication
+        toolExecutors.put("search_agent_registry", AgentRegistryTool::execute);
+        toolExecutors.put("a2a_send_message", A2ATool::execute);
     }
 
     /**
@@ -34,7 +37,8 @@ public class ToolRegistry {
         List<Tool> tools = new ArrayList<>();
         tools.add(BraveSearchTool.getBedrockTool());
         tools.add(FetchWebpageTool.getBedrockTool());
-        tools.add(SupportAgentTool.getBedrockTool());
+        tools.add(AgentRegistryTool.getBedrockTool());
+        tools.add(A2ATool.getBedrockTool());
         return tools;
     }
 
