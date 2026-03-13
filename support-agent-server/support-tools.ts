@@ -127,6 +127,24 @@ export function getSupportTools(): Tool[] {
     },
     {
       toolSpec: {
+        name: 'request_information',
+        description: 'Ask the user for information needed to proceed (e.g., player ID, order details). This pauses the conversation until the user responds. Use this whenever you need input from the user before you can continue.',
+        inputSchema: {
+          json: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                description: 'The question to ask the user',
+              },
+            },
+            required: ['message'],
+          },
+        },
+      },
+    },
+    {
+      toolSpec: {
         name: 'process_refund',
         description: 'Process a refund for a specific charge. Only call this after identity has been verified via verify_identity.',
         inputSchema: {

@@ -39,13 +39,18 @@ const savedContexts = new Map<string, ConversationContext>();
 const SYSTEM_PROMPT = `You are a customer support agent for Pixel Forge Games. You assist players with billing issues,
 refunds, and account questions.
 
+IMPORTANT: NEVER respond with a plain text question. Whenever you need ANY information from the
+user (player ID, account details, clarification, etc.), you MUST use the request_information tool.
+This ensures the conversation pauses properly until the user responds.
+
 When a player reports a billing issue:
-1. Use lookup_account to find their account and check_billing_history to identify the problem
-2. Before taking any action, use request_verification to ask the player to verify their identity.
+1. If you don't have the player's ID, use request_information to ask for it
+2. Use lookup_account to find their account and check_billing_history to identify the problem
+3. Before taking any action, use request_verification to ask the player to verify their identity.
    You MUST call request_verification — never skip this step.
-3. Once you receive verification information in a follow-up message, use verify_identity to check it
-4. If verified and a duplicate charge is found, use process_refund to issue the refund
-5. Summarize the outcome clearly to the player
+4. Once you receive verification information in a follow-up message, use verify_identity to check it
+5. If verified and a duplicate charge is found, use process_refund to issue the refund
+6. Summarize the outcome clearly to the player
 
 Do NOT reveal the stored email or payment details when asking for verification — only ask the
 player to provide them. Do NOT process refunds before identity is verified.`;
@@ -198,9 +203,9 @@ class SupportAgentExecutor implements AgentExecutor {
             };
             eventBus.publish(toolWorkingStatus);
 
-            // ─── Sentinel: request_verification ───
-            if (toolUse.name === 'request_verification') {
-              console.log(`[ReAct] Sentinel hit: request_verification — pausing for input`);
+            // ─── Sentinel: request_information / request_verification ───
+            if (toolUse.name === 'request_information' || toolUse.name === 'request_verification') {
+              console.log(`[ReAct] Sentinel hit: ${toolUse.name} — pausing for input`);
 
               // Add synthetic tool result to close the open toolUse block
               context.addToolResult(toolUse.toolUseId, JSON.stringify({
