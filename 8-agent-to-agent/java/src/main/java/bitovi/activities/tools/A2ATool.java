@@ -171,7 +171,7 @@ public class A2ATool {
                                 latch.countDown();
 
                             } else if (state == TaskState.COMPLETED) {
-                                EventClient.emitEvent("a2a_completed", statusMsg);
+                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(statusMsg));
 
                                 Map<String, Object> result = new HashMap<>();
                                 result.put("status", "completed");
@@ -183,7 +183,7 @@ public class A2ATool {
                                 latch.countDown();
 
                             } else if (state == TaskState.FAILED) {
-                                EventClient.emitEvent("a2a_completed", "Task failed: " + statusMsg);
+                                EventClient.emitEvent("a2a_failed", statusMsg);
 
                                 Map<String, Object> result = new HashMap<>();
                                 result.put("status", "failed");
@@ -241,13 +241,14 @@ public class A2ATool {
 
                     } else if (event instanceof TaskEvent taskEvent) {
                         System.out.println("[A2ATool:" + agentName + "] TaskEvent received");
+                        io.a2a.spec.Task task = taskEvent.getTask();
+                        String stateStr = task.getStatus() != null ? task.getStatus().state().asString() : "completed";
+
                         if (resultJsonRef.get() == null) {
-                            io.a2a.spec.Task task = taskEvent.getTask();
                             String text = "";
                             if (task.getStatus() != null && task.getStatus().message() != null) {
                                 text = extractTextFromMessage(task.getStatus().message());
                             }
-                            String stateStr = task.getStatus() != null ? task.getStatus().state().asString() : "completed";
                             Map<String, Object> result = new HashMap<>();
                             result.put("status", stateStr);
                             result.put("message", text);
@@ -257,10 +258,12 @@ public class A2ATool {
                                 result.put("contextId", task.getContextId());
                                 EventClient.emitEvent("a2a_input_required", text,
                                         Map.of("taskId", task.getId(), "contextId", task.getContextId()));
+                            } else if ("working".equals(stateStr)) {
+                                EventClient.emitEvent("a2a_working", text);
                             } else if ("completed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_completed", text);
+                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(text));
                             } else if ("failed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_completed", "Task failed: " + text);
+                                EventClient.emitEvent("a2a_failed", text);
                             }
 
                             if (!collectedArtifacts.isEmpty()) {
@@ -268,7 +271,10 @@ public class A2ATool {
                             }
                             resultJsonRef.set(gson.toJson(result));
                         }
-                        latch.countDown();
+                        // Only count down latch for terminal states — not for 'working'
+                        if (!"working".equals(stateStr)) {
+                            latch.countDown();
+                        }
                     }
 
                 } catch (Exception e) {
@@ -337,6 +343,21 @@ public class A2ATool {
             }
             EventClient.emitEvent("a2a_discovery", card.name() + " — " + card.description(), data);
         }
+    }
+
+    /**
+     * Extract a short one-line summary suitable for the a2a_completed status badge.
+     */
+    private static String cleanCompletedSummary(String text) {
+        if (text == null || text.isEmpty()) return "Task completed";
+        String cleaned = text.replaceAll("(?si)<thinking>.*?</thinking>", "").trim();
+        cleaned = cleaned.replaceAll("(?i)^.*?(?:let'?s respond\\.?\\s*|here(?:'s| is) (?:my |the )?(?:final )?response[.:]?\\s*)", "").trim();
+        String[] sentences = cleaned.split("(?<=[.!?])\\s+", 2);
+        String first = sentences[0].trim();
+        if (first.length() > 120) {
+            first = first.substring(0, 117) + "...";
+        }
+        return first.isEmpty() ? "Task completed" : first;
     }
 
     @SuppressWarnings("unchecked")

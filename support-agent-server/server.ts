@@ -53,7 +53,56 @@ When a player reports a billing issue:
 6. Summarize the outcome clearly to the player
 
 Do NOT reveal the stored email or payment details when asking for verification — only ask the
-player to provide them. Do NOT process refunds before identity is verified.`;
+player to provide them. Do NOT process refunds before identity is verified.
+
+CRITICAL: Your final response to the user must contain ONLY the message intended for the customer.
+Do NOT include any internal reasoning, thinking, planning, or meta-commentary.
+Start your response directly with the customer-facing message.`;
+
+/**
+ * Strip chain-of-thought reasoning that Bedrock sometimes leaks into the final answer.
+ */
+function cleanFinalAnswer(text: string): string {
+  let cleaned = text;
+
+  // Strip <thinking>...</thinking> blocks
+  cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+
+  // Strip everything before preamble phrases that signal the end of internal reasoning
+  const preamblePatterns = [
+    /let['\u2019]s respond\.?\s*/i,
+    /here(?:'s| is) (?:my |the )?(?:final )?response[.:]?\s*/i,
+    /(?:my |the )?(?:final )?(?:response|answer) (?:is|would be|should be)[.:]?\s*/i,
+  ];
+  for (const pattern of preamblePatterns) {
+    const idx = cleaned.search(pattern);
+    if (idx !== -1) {
+      cleaned = cleaned.substring(idx).replace(pattern, '').trim();
+      break;
+    }
+  }
+
+  // If there's a greeting (Hi/Hello/Dear/Hey Name) after a block of meta-commentary,
+  // extract from the greeting onward
+  const greetingMatch = cleaned.match(
+    /(?:^|\n)((?:Hi|Hello|Dear|Hey)\s+\w[\s\S]*)/im
+  );
+  if (greetingMatch && greetingMatch.index !== undefined && greetingMatch.index > 80) {
+    cleaned = greetingMatch[1].trim();
+  }
+
+  // Strip leading lines that are clearly meta-commentary (e.g. "The conversation:...",
+  // "Now need to...", "Should output...", "Given guidelines...")
+  cleaned = cleaned.replace(
+    /^(?:(?:the (?:conversation|assistant|user)|now (?:need|let)|should (?:output|provide|respond)|given (?:guidelines|instructions|the)|also |note:|important:)[^\n]*\n?)+/im,
+    ''
+  ).trim();
+
+  // Strip leading emoji/symbol noise, horizontal rules, and separator lines
+  cleaned = cleaned.replace(/^[\s\u2705\u274C\u26A1\u{1F50D}\u{1F9E0}\u{1F4E4}\u2B05\u2699\u{1F512}\u{1F4C4}\u2713\u00D7*#\-\u2500\u2014=|]+\s*/gu, '').trim();
+
+  return cleaned || text.trim();
+}
 
 /**
  * Sanitize tool input for display — strip sensitive identity fields.
@@ -251,6 +300,41 @@ class SupportAgentExecutor implements AgentExecutor {
               const result = executeTool(toolUse.name, toolUse.input);
               console.log(`[ReAct] Tool result length: ${result.length} chars`);
 
+              // ─── Verification failure → emit failed status and terminate ───
+              if (toolUse.name === 'verify_identity') {
+                try {
+                  const verifyResult = JSON.parse(result);
+                  if (verifyResult.verified === false) {
+                    console.log(`[ReAct] Identity verification failed — terminating with failed state`);
+
+                    const failedStatus: TaskStatusUpdateEvent = {
+                      kind: 'status-update',
+                      taskId: requestContext.taskId,
+                      contextId,
+                      status: {
+                        state: 'failed',
+                        message: {
+                          kind: 'message',
+                          messageId: uuidv4(),
+                          role: 'agent',
+                          parts: [{
+                            kind: 'text',
+                            text: `Identity verification failed: ${verifyResult.reason || 'Provided credentials do not match our records.'}`,
+                          }],
+                        },
+                      },
+                      final: true,
+                    };
+                    eventBus.publish(failedStatus);
+                    savedContexts.delete(contextId);
+                    eventBus.finished();
+                    return;
+                  }
+                } catch (_parseErr) {
+                  // Non-JSON response — continue normally
+                }
+              }
+
               // Emit artifact for process_refund
               if (toolUse.name === 'process_refund') {
                 try {
@@ -305,6 +389,9 @@ class SupportAgentExecutor implements AgentExecutor {
       }
 
       console.log(`[SupportAgent] Final answer ready`);
+
+      // Strip any chain-of-thought reasoning that leaked into the final answer
+      finalAnswer = cleanFinalAnswer(finalAnswer);
 
       // Clean up saved context on completion
       savedContexts.delete(contextId);

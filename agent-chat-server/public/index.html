@@ -56,7 +56,7 @@
 
   /* A2A event styles */
   .event.a2a_discovery, .event.a2a_task_submitted, .event.a2a_task_resumed,
-  .event.a2a_working, .event.a2a_input_required, .event.a2a_artifact, .event.a2a_completed {
+  .event.a2a_working, .event.a2a_input_required, .event.a2a_artifact, .event.a2a_completed, .event.a2a_failed {
     margin-left: 24px; border-left: 3px solid #6c5ce7; background: #f8f7ff; font-size: 12px; padding: 5px 9px;
   }
   .event.a2a_discovery .event-label { color: #6c5ce7; }
@@ -69,6 +69,8 @@
   .event.a2a_artifact .event-label { color: #00b894; }
   .event.a2a_completed { background: #f0fff4; border-left-color: #00b894; }
   .event.a2a_completed .event-label { color: #00b894; }
+  .event.a2a_failed { background: #fff0f0; border-left-color: #d63031; }
+  .event.a2a_failed .event-label { color: #d63031; }
 
   .artifact-card { border: 1px solid #dfe6e9; border-radius: 6px; overflow: hidden; margin-top: 4px; }
   .artifact-header { background: #dfe6e9; padding: 6px 10px; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; }
@@ -216,13 +218,16 @@ function flushEventBuffer() {
       a2a_input_required: '🔒',
       a2a_artifact: '📄',
       a2a_completed: '✅',
+      a2a_failed: '❌',
     };
     const emoji = emojiMap[data.type.toLowerCase()] || '';
 
     const labelEl = document.createElement('span');
     labelEl.className = 'event-label';
     // Title-case the label (e.g. "user_message" → "User Message")
-    const labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    let labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    // Fix "A2a" → "A2A" for protocol name
+    labelText = labelText.replace(/\bA2a\b/g, 'A2A');
     labelEl.textContent = labelText + (emoji ? ' ' + emoji : '');
 
     const msgEl = document.createElement('div');
