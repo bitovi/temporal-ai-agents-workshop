@@ -1,7 +1,7 @@
 {
   "name": "support-agent-server",
   "version": "1.0.0",
-  "description": "Pixel Forge Games Support Agent Server using A2A SDK",
+  "description": "Riot Games Support Agent Server using A2A SDK",
   "main": "server.ts",
   "scripts": {
     "start": "ts-node server.ts",

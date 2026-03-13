@@ -91,7 +91,7 @@ public class SupportAgentTool {
      */
     private static String buildToolDescription(AgentCard card) {
         if (card == null) {
-            return "Contact the Pixel Forge Games support agent for billing inquiries, refunds, and account issues";
+            return "Contact the Riot Games support agent for billing inquiries, refunds, and account issues";
         }
 
         StringBuilder description = new StringBuilder(card.description());

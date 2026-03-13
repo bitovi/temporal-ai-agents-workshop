@@ -36,7 +36,7 @@ const HOST = process.env.HOST || 'localhost';
 // In-memory store for conversation contexts (keyed by contextId)
 const savedContexts = new Map<string, ConversationContext>();
 
-const SYSTEM_PROMPT = `You are a customer support agent for Pixel Forge Games. You assist players with billing issues,
+const SYSTEM_PROMPT = `You are a customer support agent for Riot Games. You assist players with billing issues,
 refunds, and account questions.
 
 IMPORTANT: NEVER respond with a plain text question. Whenever you need ANY information from the
@@ -67,8 +67,8 @@ function sanitizeInput(input: Record<string, any>): Record<string, any> {
 
 // 1. Agent Card
 const supportAgentCard: AgentCard = {
-  name: 'Pixel Forge Support Agent',
-  description: 'Handles billing inquiries, refunds, and account issues for Pixel Forge Games.',
+  name: 'Riot Games Support Agent',
+  description: 'Handles billing inquiries, refunds, and account issues for Riot Games.',
   protocolVersion: '0.3.0',
   version: '0.1.0',
   url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`,

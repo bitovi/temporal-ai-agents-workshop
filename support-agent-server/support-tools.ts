@@ -21,10 +21,10 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
   "#8821": {
     email: "mark@example.com",
     paymentLast4: "4242",
-    playerName: "PixelSlayer99",
+    playerName: "ValorantAce99",
     charges: [
-      { id: "CHG-1001", item: "Season 12 Battle Pass", amount: 9.99, date: "2026-03-01" },
-      { id: "CHG-1002", item: "Season 12 Battle Pass", amount: 9.99, date: "2026-03-01", duplicate: true },
+      { id: "CHG-1001", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01" },
+      { id: "CHG-1002", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01", duplicate: true },
     ]
   },
   "#9932": {

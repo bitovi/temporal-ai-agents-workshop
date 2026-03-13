@@ -4,7 +4,7 @@
 
 Replace the current Exercise 8 book-agent scenario with a new scenario that demonstrates real A2A capabilities: a user's **personal assistant agent** contacts a company's **support agent** to resolve a billing dispute. This makes A2A's differentiators tangible — opacity, multi-turn negotiation (`input-required`), agent discovery, artifacts, and task lifecycle — because the two agents are owned by different parties with different trust levels.
 
-The scenario: a user tells their personal assistant "I got charged twice for the Battle Pass in Pixel Warriors. Handle it." The personal assistant discovers Pixel Forge's support agent, opens a task, gets asked for identity verification (multi-turn `input-required`), and receives a refund receipt artifact on completion.
+The scenario: a user tells their personal assistant "I got charged twice for the Battle Pass in Valorant. Handle it." The personal assistant discovers Riot Games' support agent, opens a task, gets asked for identity verification (multi-turn `input-required`), and receives a refund receipt artifact on completion.
 
 ## Current State
 
@@ -92,7 +92,7 @@ When the support agent returns `input-required`, the activity finishes and retur
 
 ## Scenario Design
 
-**Pixel Forge Games** is a fictitious game company exposing a public **support agent** for billing/account issues. The user's **personal assistant agent** (Java/Temporal) acts on their behalf.
+**Riot Games** is a real game company exposing a public **support agent** for billing/account issues. The user's **personal assistant agent** (Java/Temporal) acts on their behalf.
 
 ### What This Demonstrates (vs Ex 3 / Ex 4)
 
@@ -111,7 +111,7 @@ When the support agent returns `input-required`, the activity finishes and retur
 
 ### Step 1: Create the Support Agent Server (TypeScript)
 
-Create `support-agent-server/` (sibling to `book-agent-server/`) implementing the Pixel Forge support agent.
+Create `support-agent-server/` (sibling to `book-agent-server/`) implementing the Riot Games support agent.
 
 **New files:**
 
@@ -127,8 +127,8 @@ Create `support-agent-server/` (sibling to `book-agent-server/`) implementing th
 **Agent card:**
 ```json
 {
-  "name": "Pixel Forge Support Agent",
-  "description": "Handles billing inquiries, refunds, and account issues for Pixel Forge Games.",
+  "name": "Riot Games Support Agent",
+  "description": "Handles billing inquiries, refunds, and account issues for Riot Games.",
   "protocolVersion": "0.3.0",
   "url": "http://support-agent-server:4000/a2a/jsonrpc",
   "additionalInterfaces": [
@@ -199,10 +199,10 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
   "#8821": {
     email: "mark@example.com",
     paymentLast4: "4242",
-    playerName: "PixelSlayer99",
+    playerName: "ValorantAce99",
     charges: [
-      { id: "CHG-1001", item: "Season 12 Battle Pass", amount: 9.99, date: "2026-03-01" },
-      { id: "CHG-1002", item: "Season 12 Battle Pass", amount: 9.99, date: "2026-03-01", duplicate: true },
+      { id: "CHG-1001", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01" },
+      { id: "CHG-1002", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01", duplicate: true },
     ]
   },
   "#9932": {
@@ -223,8 +223,8 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
   refundAmount: 9.99,
   currency: "USD",
   originalChargeId: "CHG-1002",
-  item: "Season 12 Battle Pass",
-  playerName: "PixelSlayer99",
+  item: "Episode 9 Battle Pass",
+  playerName: "ValorantAce99",
   estimatedDays: "3-5 business days",
   status: "processed"
 }
@@ -232,7 +232,7 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
 
 **System prompt:**
 ```
-You are a customer support agent for Pixel Forge Games. You assist players with billing issues,
+You are a customer support agent for Riot Games. You assist players with billing issues,
 refunds, and account questions.
 
 When a player reports a billing issue:
@@ -379,7 +379,7 @@ The chat UI (index.html) needs to recognize and render `a2a_*` event types. **No
 | Event Type | Visual Treatment | Extra fields |
 |---|---|---|
 | `a2a_discovery` | 🔍 Discovery badge with collapsible skill list | `name`, `description`, `skills[]` |
-| `a2a_task_submitted` | 📤 "Opened task with Pixel Forge Support" | `message` |
+| `a2a_task_submitted` | 📤 "Opened task with Riot Games Support" | `message` |
 | `a2a_task_resumed` | ↩️ "Resumed task" with taskId | `taskId` |
 | `a2a_working` | ⚙️ Indented working step | — (message field) |
 | `a2a_input_required` | 🔒 Amber "Identity verification required" | `taskId`, `contextId` |
@@ -393,7 +393,7 @@ A2A events appear within the activity log but indented under the `action` row, w
 ```
 [thought]  "User has a billing issue. I'll contact support."
 [action]   support_agent("Player #8821 duplicate charge")
-  │ [a2a_discovery]       🔍 Pixel Forge Support Agent
+  │ [a2a_discovery]       🔍 Riot Games Support Agent
   │ [a2a_task_submitted]  📤 Opened task
   │ [a2a_working]         ⚙️ → lookup_account({player_id: "#8821"})
   │ [a2a_working]         ⚙️ → check_billing_history({player_id: "#8821"})
@@ -424,7 +424,7 @@ Replace book-agent content in `8-agent-to-agent/README.md` with the new scenario
 
 1. `docker compose up --build`
 2. Open chat UI at `http://localhost:3000`
-3. Send: "I got charged twice for the Battle Pass in Pixel Warriors. My player ID is #8821. Can you handle this?"
+3. Send: "I got charged twice for the Battle Pass in Valorant. My player ID is #8821. Can you handle this?"
 4. Observe: discovery → `input-required` → agent asks user for verification
 5. Send: "The email is mark@example.com"
 6. Observe: verification → refund → artifact displayed → agent summarizes outcome

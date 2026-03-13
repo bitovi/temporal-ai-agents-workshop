@@ -38,10 +38,10 @@ public class AgentRegistryTool {
     /** The mock registry — in production this would be a real service. */
     private static final List<AgentEntry> REGISTRY = List.of(
         new AgentEntry(
-            "Pixel Forge Support Agent",
+            "Riot Games Support Agent",
             "http://localhost:4000",
-            "Handles billing inquiries, refunds, and account issues for Pixel Forge Games.",
-            List.of("support", "billing", "refunds", "account", "pixel forge", "gaming")
+            "Handles billing inquiries, refunds, and account issues for Riot Games.",
+            List.of("support", "billing", "refunds", "account", "riot games", "gaming")
         ),
         new AgentEntry(
             "Book Agent",
