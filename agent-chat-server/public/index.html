@@ -53,6 +53,28 @@
   #status-hint { display: none; font-size: 12px; font-style: italic; color: #aaa; padding: 6px 9px; margin: 5px 0; background: white; border-radius: 4px; border-left: 2px dashed #ddd; }
   #status-hint.active { display: block; animation: status-pulse 1.2s ease-in-out infinite; }
   @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* A2A event styles */
+  .event.a2a_discovery, .event.a2a_task_submitted, .event.a2a_task_resumed,
+  .event.a2a_working, .event.a2a_input_required, .event.a2a_artifact, .event.a2a_completed {
+    margin-left: 24px; border-left: 3px solid #6c5ce7; background: #f8f7ff; font-size: 12px; padding: 5px 9px;
+  }
+  .event.a2a_discovery .event-label { color: #6c5ce7; }
+  .event.a2a_task_submitted .event-label { color: #0984e3; }
+  .event.a2a_task_resumed .event-label { color: #0984e3; }
+  .event.a2a_working .event-label { color: #636e72; }
+  .event.a2a_input_required { background: #fff8e1; border-left-color: #f0932b; }
+  .event.a2a_input_required .event-label { color: #f0932b; }
+  .event.a2a_artifact { background: #fff; border-left-color: #00b894; }
+  .event.a2a_artifact .event-label { color: #00b894; }
+  .event.a2a_completed { background: #f0fff4; border-left-color: #00b894; }
+  .event.a2a_completed .event-label { color: #00b894; }
+
+  .artifact-card { border: 1px solid #dfe6e9; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .artifact-header { background: #dfe6e9; padding: 6px 10px; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .artifact-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .artifact-table td { padding: 4px 10px; border-top: 1px solid #f0f0f0; }
+  .artifact-table td:first-child { font-weight: 600; color: #636e72; white-space: nowrap; width: 40%; }
 </style>
 </head>
 <body>
@@ -187,6 +209,13 @@ function flushEventBuffer() {
       system: '⚙️',
       compact: '📦',
       connected: '🔌',
+      a2a_discovery: '🔍',
+      a2a_task_submitted: '📤',
+      a2a_task_resumed: '↩️',
+      a2a_working: '⚙️',
+      a2a_input_required: '🔒',
+      a2a_artifact: '📄',
+      a2a_completed: '✅',
     };
     const emoji = emojiMap[data.type.toLowerCase()] || '';
 
@@ -200,6 +229,52 @@ function flushEventBuffer() {
     msgEl.className = 'event-message';
     if (data.type.toLowerCase() === 'answer' && typeof marked !== 'undefined') {
       msgEl.innerHTML = marked.parse(data.message);
+    } else if (data.type === 'a2a_artifact') {
+      // Render artifact as a styled card with key-value table
+      const card = document.createElement('div');
+      card.className = 'artifact-card';
+      const header = document.createElement('div');
+      header.className = 'artifact-header';
+      header.textContent = '📄 ' + (data.title || 'Artifact');
+      card.appendChild(header);
+      const table = document.createElement('table');
+      table.className = 'artifact-table';
+      // Iterate over all data fields (skip meta fields)
+      const skipKeys = new Set(['type', 'message', 'timestamp', 'sequence', 'workflowId', 'title']);
+      for (const [key, val] of Object.entries(data)) {
+        if (skipKeys.has(key)) continue;
+        const row = document.createElement('tr');
+        const keyCell = document.createElement('td');
+        keyCell.textContent = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+        const valCell = document.createElement('td');
+        valCell.textContent = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        row.appendChild(keyCell);
+        row.appendChild(valCell);
+        table.appendChild(row);
+      }
+      card.appendChild(table);
+      msgEl.appendChild(card);
+    } else if (data.type === 'a2a_discovery' && data.skills) {
+      // Show description and collapsible skill list
+      const desc = document.createElement('div');
+      desc.textContent = data.message;
+      msgEl.appendChild(desc);
+      const details = document.createElement('details');
+      details.style.marginTop = '4px';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Skills (' + data.skills.length + ')';
+      summary.style.cursor = 'pointer';
+      summary.style.fontSize = '11px';
+      details.appendChild(summary);
+      const ul = document.createElement('ul');
+      ul.style.margin = '4px 0'; ul.style.paddingLeft = '18px'; ul.style.fontSize = '11px';
+      for (const skill of data.skills) {
+        const li = document.createElement('li');
+        li.textContent = skill.name + (skill.description ? ' — ' + skill.description : '');
+        ul.appendChild(li);
+      }
+      details.appendChild(ul);
+      msgEl.appendChild(details);
     } else {
       msgEl.textContent = data.message;
     }

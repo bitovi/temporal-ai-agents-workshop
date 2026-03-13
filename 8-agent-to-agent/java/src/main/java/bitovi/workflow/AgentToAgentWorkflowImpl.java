@@ -190,6 +190,11 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 				// Execute the action
 				String actionResult = activities.actionActivity(action.name(), action.input());
 
+				// Add the raw action result to context so the thought model can reference
+				// structured data (e.g. taskId/contextId for multi-turn A2A conversations)
+				String actionResultContext = String.format("<action-result>\n%s\n</action-result>", actionResult);
+				context.add(actionResultContext);
+
 				// Get observation
 				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
 
