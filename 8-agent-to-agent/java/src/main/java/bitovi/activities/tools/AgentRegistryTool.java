@@ -7,12 +7,6 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
-import io.a2a.client.http.A2ACardResolver;
-import io.a2a.spec.AgentCard;
-import io.a2a.spec.AgentSkill;
-
-import bitovi.common.EventClient;
-
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
@@ -48,12 +42,42 @@ public class AgentRegistryTool {
             "http://localhost:5001",
             "An agent that can answer questions about books, recommend reading, and search the Gutenberg library.",
             List.of("books", "reading", "literature", "gutenberg", "library")
+        ),
+        new AgentEntry(
+            "Travel Planner Agent",
+            "http://localhost:6001",
+            "Plans trips, searches flights and hotels, builds itineraries, and provides destination recommendations.",
+            List.of("travel", "flights", "hotels", "itinerary", "vacation", "booking", "destinations")
+        ),
+        new AgentEntry(
+            "Code Review Agent",
+            "http://localhost:6002",
+            "Reviews pull requests, identifies bugs and security issues, suggests improvements, and enforces coding standards.",
+            List.of("code review", "pull request", "bugs", "security", "linting", "engineering", "software")
+        ),
+        new AgentEntry(
+            "Finance Agent",
+            "http://localhost:6003",
+            "Tracks expenses, analyzes budgets, provides investment summaries, and generates financial reports.",
+            List.of("finance", "budget", "expenses", "investments", "reports", "accounting", "money")
+        ),
+        new AgentEntry(
+            "Calendar & Scheduling Agent",
+            "http://localhost:6004",
+            "Manages calendars, schedules meetings across time zones, resolves conflicts, and sends reminders.",
+            List.of("calendar", "scheduling", "meetings", "time zones", "reminders", "availability")
+        ),
+        new AgentEntry(
+            "Research Agent",
+            "http://localhost:6005",
+            "Conducts deep research on topics, summarizes academic papers, and compiles citation-backed reports.",
+            List.of("research", "papers", "academic", "citations", "summarization", "knowledge")
         )
     );
 
     /**
      * Search the registry for agents matching a query string.
-     * Matches against name, description, and tags (case-insensitive).
+     * If query is omitted or empty, returns all registered agents.
      */
     public static String execute(String toolName, Map<String, Object> toolUseInput) {
         Map<String, Object> params = toolUseInput;
@@ -63,59 +87,32 @@ public class AgentRegistryTool {
             params = nested;
         }
 
-        if (params == null || !params.containsKey("query")) {
-            throw new IllegalArgumentException("Invalid input: 'query' is required.");
+        String query = "";
+        if (params != null && params.containsKey("query") && params.get("query") != null) {
+            query = params.get("query").toString().trim().toLowerCase();
         }
 
-        String query = params.get("query").toString().toLowerCase();
-        System.out.println("[AgentRegistryTool] Searching for: " + query);
+        boolean listAll = query.isEmpty();
+        if (listAll) {
+            System.out.println("[AgentRegistryTool] Listing all agents");
+        } else {
+            System.out.println("[AgentRegistryTool] Searching for: " + query);
+        }
 
         List<Map<String, Object>> results = new ArrayList<>();
         for (AgentEntry agent : REGISTRY) {
-            if (matches(agent, query)) {
+            if (listAll || matches(agent, query)) {
                 Map<String, Object> entry = new HashMap<>();
                 entry.put("name", agent.name());
                 entry.put("url", agent.url());
                 entry.put("description", agent.description());
                 entry.put("tags", agent.tags());
                 results.add(entry);
-
-                emitDiscovery(agent);
             }
         }
 
-        System.out.println("[AgentRegistryTool] Found " + results.size() + " matching agent(s)");
+        System.out.println("[AgentRegistryTool] Found " + results.size() + " agent(s)");
         return gson.toJson(Map.of("agents", results));
-    }
-
-    /**
-     * Resolve the agent card and emit an a2a_discovery event for the UI.
-     * If the card can't be resolved (agent is down), emits with registry data only.
-     */
-    private static void emitDiscovery(AgentEntry agent) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("name", agent.name());
-        data.put("description", agent.description());
-
-        try {
-            AgentCard card = new A2ACardResolver(agent.url()).getAgentCard();
-            if (card.skills() != null) {
-                List<Map<String, String>> skillsList = new ArrayList<>();
-                for (AgentSkill skill : card.skills()) {
-                    Map<String, String> s = new HashMap<>();
-                    s.put("id", skill.id());
-                    s.put("name", skill.name());
-                    s.put("description", skill.description());
-                    skillsList.add(s);
-                }
-                data.put("skills", skillsList);
-            }
-        } catch (Exception e) {
-            System.err.println("[AgentRegistryTool] Could not resolve agent card for " + agent.name() + ": " + e.getMessage());
-        }
-
-        data.put("lane", EventClient.LANE_CLIENT);
-        EventClient.emitEvent("a2a_discovery", agent.name() + " — " + agent.description(), data);
     }
 
     private static boolean matches(AgentEntry agent, String query) {
@@ -131,7 +128,8 @@ public class AgentRegistryTool {
         Map<String, Document> queryProp = new HashMap<>();
         queryProp.put("type", Document.fromString("string"));
         queryProp.put("description", Document.fromString(
-                "A keyword or phrase to search for (e.g. 'billing', 'books', 'support')"));
+                "Optional keyword or phrase to filter agents (e.g. 'billing', 'books', 'support'). "
+                + "Omit or leave empty to list all available agents."));
 
         Map<String, Document> properties = new HashMap<>();
         properties.put("query", Document.fromMap(queryProp));
@@ -139,13 +137,13 @@ public class AgentRegistryTool {
         Map<String, Document> root = new HashMap<>();
         root.put("type", Document.fromString("object"));
         root.put("properties", Document.fromMap(properties));
-        root.put("required", Document.fromList(List.of(Document.fromString("query"))));
 
         return Tool.builder()
                 .toolSpec(ToolSpecification.builder()
                         .name("search_agent_registry")
-                        .description("Search a registry of remote A2A agents by keyword. "
-                                + "Returns a list of agents with their name, URL, description, and tags. "
+                        .description("Search a registry of remote A2A agents by keyword, or list all available agents. "
+                                + "Returns agents with their name, URL, description, and tags. "
+                                + "Call with no query to browse all agents, or with a query to filter by keyword. "
                                 + "Use this to discover which agents are available before contacting one.")
                         .inputSchema(ToolInputSchema.builder()
                                 .json(Document.fromMap(root))

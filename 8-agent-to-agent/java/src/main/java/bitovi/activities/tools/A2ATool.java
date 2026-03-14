@@ -358,27 +358,6 @@ public class A2ATool {
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
-    private static void emitDiscovery(AgentConnection conn) {
-        if (conn.discoveryEmitted().compareAndSet(false, true)) {
-            AgentCard card = conn.card();
-            Map<String, Object> data = new HashMap<>();
-            data.put("name", card.name());
-            data.put("description", card.description());
-            if (card.skills() != null) {
-                List<Map<String, String>> skillsList = new ArrayList<>();
-                for (AgentSkill skill : card.skills()) {
-                    Map<String, String> s = new HashMap<>();
-                    s.put("id", skill.id());
-                    s.put("name", skill.name());
-                    s.put("description", skill.description());
-                    skillsList.add(s);
-                }
-                data.put("skills", skillsList);
-            }
-            EventClient.emitEvent("a2a_discovery", card.name() + " — " + card.description(), data);
-        }
-    }
-
     /**
      * Extract a short one-line summary suitable for the a2a_completed status badge.
      */

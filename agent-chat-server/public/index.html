@@ -67,19 +67,70 @@
   }
   .lane-header.user, .lane-header.client, .lane-header.remote { color: #4a5568; border-color: #a0aec0; background: #f7fafc; }
 
-  .lane-status {
-    display: block;
-    font-size: 11px;
-    font-weight: 400;
-    font-style: italic;
+  .lane-pills {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 500;
     letter-spacing: normal;
     text-transform: none;
-    color: #aaa;
-    min-height: 1.3em;
-    margin-top: 3px;
+    padding: 2px 7px;
+    border-radius: 9px;
+    background: #f0f0f0;
+    color: #b0b0b0;
+    transition: all 0.25s ease;
+    line-height: 1.4;
   }
-  .lane-status.active { color: inherit; animation: status-pulse 1.2s ease-in-out infinite; }
-  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .pill.active {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.3);
+    animation: pill-glow 1.6s ease-in-out infinite;
+  }
+  .pill.active[data-state="awaiting_input"] {
+    background: #fef3c7;
+    color: #b45309;
+    box-shadow: 0 0 0 1px rgba(217,119,6,0.3);
+    animation: pill-glow-amber 1.6s ease-in-out infinite;
+  }
+  @keyframes pill-glow-amber {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(217,119,6,0.3); }
+    50% { box-shadow: 0 0 6px 1px rgba(217,119,6,0.35); }
+  }
+  .pill.active .pill-dots { opacity: 1; }
+  .pill-dots {
+    display: inline-flex;
+    opacity: 0;
+    gap: 2px;
+    margin-left: 1px;
+    transition: opacity 0.25s ease;
+  }
+  .pill-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: dot-bounce 1.2s ease-in-out infinite;
+  }
+  .pill-dot:nth-child(2) { animation-delay: 0.2s; }
+  .pill-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pill-glow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(59,130,246,0.3); }
+    50% { box-shadow: 0 0 6px 1px rgba(59,130,246,0.35); }
+  }
+  @keyframes dot-bounce {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.2); }
+  }
 
   /* Scrollable body area — persistent column dividers via pseudo-elements */
   .swimlane-body {
@@ -220,15 +271,24 @@
     <div class="swimlane-grid">
       <div class="lane-header user">
         User
-        <span class="lane-status" id="status-user"></span>
       </div>
       <div class="lane-header client">
         Client Agent
-        <span class="lane-status" id="status-client"></span>
+        <div class="lane-pills" id="pills-client">
+          <span class="pill active" data-state="idle">Idle</span>
+          <span class="pill" data-state="thinking">Thinking<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+          <span class="pill" data-state="acting">Acting<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+          <span class="pill" data-state="observing">Observing<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+          <span class="pill" data-state="compacting">Compacting<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+        </div>
       </div>
       <div class="lane-header remote">
         Remote Agent
-        <span class="lane-status" id="status-remote"></span>
+        <div class="lane-pills" id="pills-remote">
+          <span class="pill active" data-state="idle">Idle</span>
+          <span class="pill" data-state="working">Working<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+          <span class="pill" data-state="awaiting_input">Awaiting Input<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
+        </div>
       </div>
       <div class="swimlane-body" id="swimlane-body">
         <div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent's steps here.</div>
@@ -261,7 +321,7 @@ function resolveLane(data) {
   if (data.lane) return data.lane;
   const t = data.type.toLowerCase();
   if (t === 'user_message' || t === 'connected') return 'user';
-  if (t.startsWith('a2a_') && t !== 'a2a_discovery' && t !== 'a2a_task_submitted' && t !== 'a2a_task_resumed') return 'remote';
+  if (t.startsWith('a2a_') && t !== 'a2a_task_submitted' && t !== 'a2a_task_resumed') return 'remote';
   return 'client';
 }
 
@@ -283,21 +343,35 @@ function arrowDirection(lane, targetLane) {
   return to > from ? 'right' : 'left';
 }
 
-// ── Status hints (column headers) ────────────────────────────
-function setLaneStatus(lane, message) {
-  const el = document.getElementById('status-' + lane);
-  if (!el) return;
-  if (message) {
-    el.textContent = message;
-    el.classList.add('active');
-  } else {
-    el.textContent = '';
-    el.classList.remove('active');
+// ── Status-message → pill-state mapping ─────────────────────
+const STATUS_TO_STATE = {
+  'Thinking...': 'thinking',
+  'Acting...':   'acting',
+  'Observing...':'observing',
+  'Compacting...':'compacting',
+  'Working':     'working',
+  'Awaiting Input': 'awaiting_input',
+};
+
+function setLaneStatus(lane, message, seq) {
+  const container = document.getElementById('pills-' + lane);
+  if (!container) return;
+  // Reject stale out-of-order events
+  if (typeof seq === 'number') {
+    if (seq < (laneStatusSeq[lane] || -1)) return;
+    laneStatusSeq[lane] = seq;
   }
+  const state = message ? (STATUS_TO_STATE[message] || 'idle') : 'idle';
+  container.querySelectorAll('.pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.state === state);
+  });
 }
+
+const laneStatusSeq = { user: -1, client: -1, remote: -1 };
 
 function clearAllLaneStatuses() {
   LANE_ORDER.forEach(l => setLaneStatus(l, ''));
+  laneStatusSeq.user = laneStatusSeq.client = laneStatusSeq.remote = -1;
 }
 
 // ── SSE connection ───────────────────────────────────────────
@@ -319,22 +393,22 @@ function connectToConversationEvents(conversationId) {
     const data = JSON.parse(event.data);
 
     if (data.type === 'status') {
-      setLaneStatus(data.lane || 'client', data.message);
+      setLaneStatus(data.lane || 'client', data.message, data.sequence);
       return;
     }
 
     if (data.type !== 'action') {
-      setLaneStatus(resolveLane(data), '');
+      setLaneStatus(resolveLane(data), '', data.sequence);
     }
 
     // a2a_working → show simple "Working" in header + render card in body
     if (data.type === 'a2a_working') {
-      setLaneStatus('remote', 'Working');
+      setLaneStatus('remote', 'Working', data.sequence);
     }
 
-    // Clear remote status when input is required
+    // Show awaiting-input pill on remote lane
     if (data.type === 'a2a_input_required') {
-      setLaneStatus('remote', '');
+      setLaneStatus('remote', 'Awaiting Input', data.sequence);
     }
 
     eventBuffer.push(data);
@@ -363,7 +437,7 @@ let bufferTimer = null;
 const emojiMap = {
   thought: '🧠', action: '⚡', observation: '🔍', answer: '🤖',
   error: '❌', user_message: '💬', system: '⚙️', compact: '📦',
-  connected: '🔌', a2a_discovery: '🔍', a2a_task_submitted: '📤',
+  connected: '🔌', a2a_task_submitted: '📤',
   a2a_task_resumed: '↩️', a2a_input_required: '🔒', a2a_working: '⏳',
   a2a_artifact: '📄', a2a_completed: '✅', a2a_failed: '❌',
 };
@@ -372,7 +446,6 @@ function getLabelText(data) {
   const a2aAgent = data.agentName || '';
   const t = data.type.toLowerCase();
   const map = {
-    a2a_discovery: 'Discovery',
     a2a_task_submitted: a2aAgent ? `→ ${a2aAgent}` : 'Task Submitted',
     a2a_task_resumed:   a2aAgent ? `→ ${a2aAgent} (resume)` : 'Task Resumed',
     a2a_input_required: a2aAgent ? `${a2aAgent} needs input` : 'Input Required',
@@ -429,25 +502,6 @@ function buildEventCard(data) {
     }
     card.appendChild(table);
     msgEl.appendChild(card);
-  } else if (data.type === 'a2a_discovery' && data.skills) {
-    const desc = document.createElement('div');
-    desc.textContent = data.message;
-    msgEl.appendChild(desc);
-    const details = document.createElement('details');
-    details.style.marginTop = '4px';
-    const summary = document.createElement('summary');
-    summary.textContent = 'Skills (' + data.skills.length + ')';
-    summary.style.cursor = 'pointer'; summary.style.fontSize = '11px';
-    details.appendChild(summary);
-    const ul = document.createElement('ul');
-    ul.style.margin = '4px 0'; ul.style.paddingLeft = '18px'; ul.style.fontSize = '11px';
-    for (const skill of data.skills) {
-      const li = document.createElement('li');
-      li.textContent = skill.name + (skill.description ? ' — ' + skill.description : '');
-      ul.appendChild(li);
-    }
-    details.appendChild(ul);
-    msgEl.appendChild(details);
   } else {
     msgEl.textContent = data.message;
   }
