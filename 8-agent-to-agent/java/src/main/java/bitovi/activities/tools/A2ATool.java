@@ -317,8 +317,12 @@ public class A2ATool {
 
         Consumer<Throwable> errorHandler = error -> {
             if (error == null) {
-                // null signals normal SSE stream completion
-                latch.countDown();
+                // null signals normal SSE stream completion — do NOT count down the
+                // latch here.  The event callbacks already count down for every
+                // terminal state (COMPLETED, FAILED, INPUT_REQUIRED).  Counting down
+                // here races with the callbacks: if the stream closes before the
+                // callback sets resultJsonRef, the main thread wakes up to a null
+                // result and incorrectly reports "failed".
                 return;
             }
             System.err.println("[A2ATool:" + agentName + "] Error: " + error.getMessage());
@@ -337,15 +341,19 @@ public class A2ATool {
             return gson.toJson(Map.of("status", "failed", "message", timeoutMsg));
         }
 
-        String error = errorRef.get();
-        if (error != null) {
-            return gson.toJson(Map.of("status", "failed", "message", "Error: " + error));
-        }
-
+        // Check resultJsonRef FIRST — the event callbacks set it on terminal
+        // states (COMPLETED, FAILED, INPUT_REQUIRED).  A transport-level error
+        // like "Request cancelled" can arrive after the result is already
+        // captured, so a valid result always takes priority over errorRef.
         String resultJson = resultJsonRef.get();
         if (resultJson != null) {
             System.out.println("[A2ATool:" + agentName + "] Result: " + resultJson);
             return resultJson;
+        }
+
+        String error = errorRef.get();
+        if (error != null) {
+            return gson.toJson(Map.of("status", "failed", "message", "Error: " + error));
         }
 
         String text = responseBuilder.toString();
