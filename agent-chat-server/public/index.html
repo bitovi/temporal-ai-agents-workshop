@@ -49,7 +49,14 @@
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     overflow: hidden;
+    transition: grid-template-columns 0.35s ease;
   }
+
+  /* Two-column mode (default — no remote agent lane) */
+  .swimlane-grid.two-col { grid-template-columns: 1fr 1fr; }
+  .swimlane-grid.two-col .lane-header.remote { display: none; }
+  .swimlane-grid.two-col .lane-cell.remote { display: none; }
+  .swimlane-grid.two-col .event-row { grid-template-columns: 1fr 1fr; }
 
   /* Sticky column headers */
   .lane-header {
@@ -152,6 +159,8 @@
   }
   .swimlane-body::before { left: 33.3333%; }
   .swimlane-body::after { left: 66.6666%; }
+  .swimlane-grid.two-col .swimlane-body::before { left: 50%; }
+  .swimlane-grid.two-col .swimlane-body::after { display: none; }
 
   /* Each event is a 3-column row inside the body */
   .event-row {
@@ -270,12 +279,12 @@
   </div>
 
   <div id="events-section">
-    <div class="swimlane-grid">
+    <div class="swimlane-grid two-col" id="swimlane-grid">
       <div class="lane-header user">
         User
       </div>
-      <div class="lane-header client">
-        Client Agent
+      <div class="lane-header client" id="client-lane-header">
+        Agent
         <div class="lane-pills" id="pills-client">
           <span class="pill active" data-state="idle">Idle</span>
           <span class="pill" data-state="thinking">Thinking<span class="pill-dots"><span class="pill-dot"></span><span class="pill-dot"></span><span class="pill-dot"></span></span></span>
@@ -315,6 +324,24 @@
 <script>
 let currentConversationId = null;
 let currentEventSource = null;
+let remoteLaneActive = false;
+
+// ── Adaptive layout: expand to 3 columns when A2A events arrive ─
+function activateRemoteLane() {
+  if (remoteLaneActive) return;
+  remoteLaneActive = true;
+  const grid = document.getElementById('swimlane-grid');
+  grid.classList.remove('two-col');
+  // Rename "Agent" → "Client Agent" to distinguish from remote
+  const header = document.getElementById('client-lane-header');
+  const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+  while (walker.nextNode()) {
+    if (walker.currentNode.textContent.trim() === 'Agent') {
+      walker.currentNode.textContent = walker.currentNode.textContent.replace('Agent', 'Client Agent');
+      break;
+    }
+  }
+}
 
 // ── Lane resolution ──────────────────────────────────────────
 const LANE_ORDER = ['user', 'client', 'remote'];
@@ -401,6 +428,11 @@ function connectToConversationEvents(conversationId) {
 
     if (data.type !== 'action') {
       setLaneStatus(resolveLane(data), '', data.sequence);
+    }
+
+    // Activate 3-column layout when any A2A event arrives
+    if (data.type && data.type.toLowerCase().startsWith('a2a_')) {
+      activateRemoteLane();
     }
 
     // a2a_working → show simple "Working" in header + render card in body
@@ -586,6 +618,17 @@ async function createConversation() {
   if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
   eventBuffer = [];
   clearAllLaneStatuses();
+  // Reset to 2-column mode for new conversation
+  remoteLaneActive = false;
+  document.getElementById('swimlane-grid').classList.add('two-col');
+  const header = document.getElementById('client-lane-header');
+  const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+  while (walker.nextNode()) {
+    if (walker.currentNode.textContent.trim() === 'Client Agent') {
+      walker.currentNode.textContent = walker.currentNode.textContent.replace('Client Agent', 'Agent');
+      break;
+    }
+  }
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
   setConversationId(data.conversationId);
