@@ -86,7 +86,7 @@ public class A2ATool {
             Message message;
             if (isResume) {
                 message = A2A.createUserTextMessage(messageText, contextId, taskId);
-                EventClient.emitEvent("a2a_task_resumed", "Resumed task with " + conn.card().name(),
+                EventClient.emitEvent("a2a_task_resumed", messageText,
                         EventClient.LANE_CLIENT, EventClient.LANE_REMOTE,
                         Map.of("taskId", taskId, "agentName", conn.card().name()));
             } else {

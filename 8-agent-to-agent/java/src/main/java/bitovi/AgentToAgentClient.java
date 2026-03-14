@@ -40,8 +40,8 @@ public class AgentToAgentClient {
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 				"TestUser",
-				// TODO_A2A: Experiment with different question about books
-				"Are there any good books about sailing?",
+				// TODO_A2A: Experiment with different questions
+				"What purchases have I made from Riot recently?",
 				LocalDateTime.now().toString());
 		workflow.receiveMessage(testMessage);
 

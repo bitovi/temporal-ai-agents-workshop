@@ -50,7 +50,7 @@ export function getSupportTools(): Tool[] {
             properties: {
               player_id: {
                 type: 'string',
-                description: 'The player ID (e.g., "#8821")',
+                description: 'The player ID (e.g., "#1234")',
               },
             },
             required: ['player_id'],

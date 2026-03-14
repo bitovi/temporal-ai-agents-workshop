@@ -32,7 +32,7 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 
 	private static final int COMPACTION_CONTEXT_TOKEN_THRESHOLD = 100000;
 
-	private static String answer = null;
+	private String answer = null;
 
 	// Signal state
 	private final List<MessagePayload> pendingMsgs = new ArrayList<>();

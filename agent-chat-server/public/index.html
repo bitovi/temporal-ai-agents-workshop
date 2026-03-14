@@ -446,15 +446,38 @@ function getLabelText(data) {
   const a2aAgent = data.agentName || '';
   const t = data.type.toLowerCase();
   const map = {
-    a2a_task_submitted: a2aAgent ? `→ ${a2aAgent}` : 'Task Submitted',
-    a2a_task_resumed:   a2aAgent ? `→ ${a2aAgent} (resume)` : 'Task Resumed',
+    a2a_task_submitted: a2aAgent ? `Submitting task to ${a2aAgent}` : 'Task Submitted',
+    a2a_task_resumed:   a2aAgent ? `Resuming task with ${a2aAgent}` : 'Task Resumed',
     a2a_input_required: a2aAgent ? `${a2aAgent} needs input` : 'Input Required',
+    a2a_working:        a2aAgent ? `${a2aAgent}: Update` : 'A2A Update',
     a2a_artifact:       a2aAgent ? `Artifact from ${a2aAgent}` : 'Artifact',
     a2a_completed:      a2aAgent ? `${a2aAgent} completed` : 'Completed',
     a2a_failed:         a2aAgent ? `${a2aAgent} failed` : 'Failed',
   };
   if (map[t]) return map[t];
   return data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function humanizeA2aMessage(msg) {
+  if (!msg) return msg;
+  // Match tool-call pattern: → tool_name({...})
+  const match = msg.match(/^→\s*(\w+)\((.+)\)$/s);
+  if (!match) return msg;
+  const toolName = match[1];
+  const paramsStr = match[2];
+  // Convert snake_case to readable words, capitalize first letter
+  const words = toolName.replace(/_/g, ' ');
+  const humanName = words.charAt(0).toUpperCase() + words.slice(1);
+  // Format params as readable key-value pairs
+  let paramDesc = '';
+  try {
+    const params = JSON.parse(paramsStr);
+    const entries = Object.entries(params);
+    if (entries.length) {
+      paramDesc = ' (' + entries.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', ') + ')';
+    }
+  } catch {}
+  return humanName + paramDesc;
 }
 
 // ── Build event card ─────────────────────────────────────────
@@ -502,6 +525,8 @@ function buildEventCard(data) {
     }
     card.appendChild(table);
     msgEl.appendChild(card);
+  } else if (data.type === 'a2a_working') {
+    msgEl.textContent = humanizeA2aMessage(data.message);
   } else {
     msgEl.textContent = data.message;
   }

@@ -46,15 +46,13 @@ This ensures the conversation pauses properly until the user responds.
 When a player reports a billing issue:
 1. If you don't have the player's ID, use request_information to ask for it
 2. Use lookup_account to find their account and check_billing_history to review their charges
-3. Analyze the charge history yourself — look for suspicious patterns like the same item charged
-   multiple times on the same date at the same amount, which likely indicates a duplicate charge
-4. Before taking any action, use request_verification to ask the player to verify their identity.
+3. Before taking any action, use request_verification to ask the player to verify their identity.
    You MUST call request_verification — never skip this step.
-5. Once you receive verification information in a follow-up message, use verify_identity to check it
-6. If verified and a billing issue is confirmed, use offer_resolution_options to present the player
+4. Once you receive verification information in a follow-up message, use verify_identity to check it
+5. If verified and a billing issue is confirmed, use offer_resolution_options to present the player
    with choices for how they'd like it resolved. NEVER skip this step or pick a resolution yourself.
-7. When the user responds with their choice, use apply_resolution with the appropriate resolution type
-8. Summarize the outcome clearly to the player
+6. When the user responds with their choice, use apply_resolution with the appropriate resolution type
+7. Summarize the outcome clearly to the player
 
 Do NOT reveal the stored email or payment details when asking for verification — only ask the
 player to provide them. Do NOT resolve billing issues before identity is verified.
