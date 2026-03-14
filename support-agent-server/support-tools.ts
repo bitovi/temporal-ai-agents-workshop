@@ -79,7 +79,7 @@ export function getSupportTools(): Tool[] {
     {
       toolSpec: {
         name: 'request_verification',
-        description: 'Request identity verification from the user before taking account actions. This pauses the conversation until the user provides their verification details. You MUST call this before resolving any billing issue.',
+        description: 'Request identity verification from the user before taking account actions. This pauses the conversation until the user provides their verification details.',
         inputSchema: {
           json: {
             type: 'object',
@@ -160,7 +160,7 @@ export function getSupportTools(): Tool[] {
               },
               message: {
                 type: 'string',
-                description: 'A message explaining the issue and presenting numbered resolution options. Always include these three options: (1) Full refund to original payment method, (2) Valorant Points credit worth 110% of the charge value, (3) Exclusive skin bundle + bonus VP worth 120% of the charge value.',
+                description: 'A message explaining the issue and presenting numbered resolution options for the player to choose from.',
               },
             },
             required: ['player_id', 'charge_id', 'message'],

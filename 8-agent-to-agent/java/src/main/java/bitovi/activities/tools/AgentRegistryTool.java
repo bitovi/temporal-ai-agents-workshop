@@ -116,10 +116,23 @@ public class AgentRegistryTool {
     }
 
     private static boolean matches(AgentEntry agent, String query) {
-        if (agent.name().toLowerCase().contains(query)) return true;
-        if (agent.description().toLowerCase().contains(query)) return true;
+        // Match against the full query first
+        String nameLower = agent.name().toLowerCase();
+        String descLower = agent.description().toLowerCase();
+        if (nameLower.contains(query)) return true;
+        if (descLower.contains(query)) return true;
         for (String tag : agent.tags()) {
             if (tag.toLowerCase().contains(query) || query.contains(tag.toLowerCase())) return true;
+        }
+        // Also match if ANY individual word in the query matches
+        String[] words = query.split("\\s+");
+        for (String word : words) {
+            if (word.length() < 2) continue; // skip tiny words
+            if (nameLower.contains(word)) return true;
+            if (descLower.contains(word)) return true;
+            for (String tag : agent.tags()) {
+                if (tag.toLowerCase().contains(word)) return true;
+            }
         }
         return false;
     }
