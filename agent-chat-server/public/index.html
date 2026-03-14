@@ -65,9 +65,7 @@
     border-bottom: 2px solid;
     background: #fff;
   }
-  .lane-header.user { color: #005baa; border-color: #005baa; background: #f0f7ff; }
-  .lane-header.client { color: #6c5ce7; border-color: #6c5ce7; background: #f8f7ff; }
-  .lane-header.remote { color: #00b894; border-color: #00b894; background: #f0fff8; }
+  .lane-header.user, .lane-header.client, .lane-header.remote { color: #4a5568; border-color: #a0aec0; background: #f7fafc; }
 
   .lane-status {
     display: block;
@@ -137,27 +135,22 @@
   }
   .event-message { white-space: pre-wrap; word-break: break-word; font-size: 12px; }
 
-  /* Lane-specific colors */
-  .lane-cell.user .event { border-left-color: #005baa; }
-  .lane-cell.user .event-label { color: #005baa; }
-  .lane-cell.client .event { border-left-color: #6c5ce7; }
-  .lane-cell.client .event-label { color: #6c5ce7; }
-  .lane-cell.remote .event { border-left-color: #00b894; }
-  .lane-cell.remote .event-label { color: #00b894; }
+  /* Default event colors (blue accent) */
+  .event { border-left-color: #3b82f6; }
+  .event-label { color: #2563eb; }
 
   /* Type-specific overrides */
   .event.error { background: #fff0f0; border-left-color: #c00; }
   .event.error .event-label { color: #c00; }
-  .event.answer { background: #edf7ed; border-left-color: #1e6b1e; }
-  .event.answer .event-label { color: #1e6b1e; }
+  .event.answer { background: #edf7ed; border-left-color: #2f855a; }
+  .event.answer .event-label { color: #2f855a; }
   .event.a2a_input_required { background: #fff8e1; border-left-color: #f0932b; }
   .event.a2a_input_required .event-label { color: #f0932b; }
-  .event.a2a_failed { background: #fff0f0; border-left-color: #d63031; }
-  .event.a2a_failed .event-label { color: #d63031; }
-  .event.a2a_completed { background: #f0fff4; border-left-color: #00b894; }
-  .event.a2a_completed .event-label { color: #00b894; }
-  .event.compact, .event.system { background: #fffbe6; border-left-color: #7a5c00; }
-  .event.compact .event-label, .event.system .event-label { color: #7a5c00; }
+  .event.a2a_failed { background: #fff0f0; border-left-color: #c00; }
+  .event.a2a_failed .event-label { color: #c00; }
+  .event.compact, .event.system, .event.connected, .event.a2a_working { background: #f9fafb; border-left-color: #cbd5e0; }
+  .event.compact .event-label, .event.system .event-label, .event.connected .event-label, .event.a2a_working .event-label { color: #94a3b8; }
+  .event.compact .event-message, .event.system .event-message, .event.connected .event-message, .event.a2a_working .event-message { color: #64748b; }
 
   /* Markdown in answers */
   .event.answer .event-message { line-height: 1.5; white-space: normal; }
@@ -180,10 +173,9 @@
     transform: translateY(-50%);
     font-size: 16px;
     font-weight: 700;
+    color: #a0aec0;
     z-index: 2;
   }
-  .lane-cell.user .event.arrow-right::after { color: #005baa; }
-  .lane-cell.client .event.arrow-right::after { color: #6c5ce7; }
 
   /* Arrow pointing left (toward previous column) */
   .event.arrow-left::before {
@@ -194,10 +186,9 @@
     transform: translateY(-50%);
     font-size: 16px;
     font-weight: 700;
+    color: #a0aec0;
     z-index: 2;
   }
-  .lane-cell.client .event.arrow-left::before { color: #6c5ce7; }
-  .lane-cell.remote .event.arrow-left::before { color: #00b894; }
 
   /* Artifact card */
   .artifact-card { border: 1px solid #dfe6e9; border-radius: 6px; overflow: hidden; margin-top: 4px; }
@@ -336,10 +327,14 @@ function connectToConversationEvents(conversationId) {
       setLaneStatus(resolveLane(data), '');
     }
 
-    // a2a_working → ephemeral status in remote column header
+    // a2a_working → show simple "Working" in header + render card in body
     if (data.type === 'a2a_working') {
-      setLaneStatus('remote', data.message || 'Working...');
-      return;
+      setLaneStatus('remote', 'Working');
+    }
+
+    // Clear remote status when input is required
+    if (data.type === 'a2a_input_required') {
+      setLaneStatus('remote', '');
     }
 
     eventBuffer.push(data);
@@ -369,7 +364,7 @@ const emojiMap = {
   thought: '🧠', action: '⚡', observation: '🔍', answer: '🤖',
   error: '❌', user_message: '💬', system: '⚙️', compact: '📦',
   connected: '🔌', a2a_discovery: '🔍', a2a_task_submitted: '📤',
-  a2a_task_resumed: '↩️', a2a_input_required: '🔒',
+  a2a_task_resumed: '↩️', a2a_input_required: '🔒', a2a_working: '⏳',
   a2a_artifact: '📄', a2a_completed: '✅', a2a_failed: '❌',
 };
 
