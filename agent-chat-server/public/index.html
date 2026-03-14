@@ -4,9 +4,9 @@
 <title>Agent Workflow</title>
 <style>
   html, body { height: 100%; margin: 0; }
-  body { font-family: Arial, sans-serif; padding: 16px; background: #f5f5f5; box-sizing: border-box; display: flex; flex-direction: column; }
-  .container { max-width: 600px; width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  input, select, button { padding: 8px 12px; margin: 5px 0; font-size: 14px; }
+  body { font-family: Arial, sans-serif; padding: 0; background: #f5f5f5; box-sizing: border-box; display: flex; flex-direction: column; }
+  .container { max-width: 1100px; width: 100%; margin: 0 auto; background: white; padding: 0 16px; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; overflow: hidden; }
+  input, select, button { padding: 6px 10px; margin: 2px 0; font-size: 13px; }
   select, input[type="text"] { width: 100%; box-sizing: border-box; }
   button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
   button:hover { background: #0056b3; }
@@ -14,35 +14,152 @@
   button.danger:hover { background: #c82333; }
   button.secondary { background: #6c757d; }
   button.secondary:hover { background: #545b62; }
-  .conversation-row { display: flex; align-items: center; gap: 8px; }
-  .conversation-row #conversationId { flex: 1; }
-  #events-section { margin-top: 20px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #events-header { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #888; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
-  #events { padding: 10px; background: #f9f9f9; border-left: 3px solid #007bff; flex: 1; overflow-y: auto; min-height: 0; }
-  #events-empty { color: #aaa; font-size: 13px; text-align: center; padding: 24px 16px; line-height: 1.6; }
-  .event { padding: 7px 9px; margin: 5px 0; background: white; border-radius: 4px; font-size: 13px; }
-  .event-label {
+
+  /* ── Compact top bar ───────────────────────────────────────── */
+  .top-bar { display: flex; align-items: center; gap: 12px; padding: 6px 0; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0; }
+  .top-bar h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+  .top-bar .status { padding: 3px 8px; margin: 0; border-radius: 4px; background: #e8f5e9; font-size: 12px; white-space: nowrap; }
+  .conversation-row { display: flex; align-items: center; gap: 6px; }
+  .conversation-row #conversationId { font-family: monospace; font-size: 12px; color: #555; }
+  .top-bar button { font-size: 12px; padding: 4px 10px; margin: 0; }
+  .top-bar .spacer { flex: 1; }
+
+  /* ── Sticky bottom message bar ──────────────────────────────── */
+  #messagePanel { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #fff; border-top: 2px solid #007bff; padding: 8px 16px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); }
+  #messagePanel .message-inner { max-width: 1100px; width: 100%; margin: 0 auto; display: flex; align-items: stretch; gap: 8px; }
+  textarea#messageInput { flex: 1 1 0%; box-sizing: border-box; resize: none; min-height: 40px; max-height: 120px; font-family: Arial, sans-serif; font-size: 14px; padding: 8px 12px; margin: 0; border: 1px solid #ccc; border-radius: 4px; }
+  .btn-column { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 80px; }
+  .btn-column .send-btn { flex: 1; padding: 8px 20px; margin: 0; font-size: 14px; }
+  .btn-column .secondary-row { display: flex; gap: 4px; }
+  .btn-column .secondary-row button { flex: 1; background: none; color: #888; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; padding: 3px 6px; cursor: pointer; }
+  .btn-column .secondary-row button:hover { background: #f5f5f5; color: #333; }
+  .btn-column .secondary-row button.danger { color: #c00; border-color: #e8c0c0; }
+  .btn-column .secondary-row button.danger:hover { background: #fff0f0; color: #900; }
+  body.has-message-panel .container { padding-bottom: 80px; }
+
+  /* ── Swimlane layout ───────────────────────────────────────── */
+  #events-section { margin-top: 8px; margin-bottom: 8px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  .swimlane-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    flex: 1;
+    min-height: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* Sticky column headers */
+  .lane-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 10px 12px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    border-bottom: 2px solid;
+    background: #fff;
+  }
+  .lane-header.user { color: #005baa; border-color: #005baa; background: #f0f7ff; }
+  .lane-header.client { color: #6c5ce7; border-color: #6c5ce7; background: #f8f7ff; }
+  .lane-header.remote { color: #00b894; border-color: #00b894; background: #f0fff8; }
+
+  .lane-status {
     display: block;
     font-size: 11px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #aaa;
+    min-height: 1.3em;
+    margin-top: 3px;
+  }
+  .lane-status.active { color: inherit; animation: status-pulse 1.2s ease-in-out infinite; }
+  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* Scrollable body area — persistent column dividers via pseudo-elements */
+  .swimlane-body {
+    grid-column: 1 / -1;
+    overflow-y: auto;
+    min-height: 0;
+    background: #fafafa;
+    position: relative;
+  }
+  .swimlane-body::before, .swimlane-body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #e8e8e8;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .swimlane-body::before { left: 33.3333%; }
+  .swimlane-body::after { left: 66.6666%; }
+
+  /* Each event is a 3-column row inside the body */
+  .event-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .event-row:last-child { border-bottom: none; }
+
+  .lane-cell { padding: 0; min-height: 0; position: relative; }
+  .lane-cell.user { border-right: 1px solid #e8e8e8; }
+  .lane-cell.client { border-right: 1px solid #e8e8e8; }
+
+  /* The event card inside a cell */
+  .event {
+    margin: 6px 8px;
+    padding: 7px 9px;
+    background: white;
+    border-radius: 4px;
+    font-size: 13px;
+    border-left: 3px solid #ddd;
+    position: relative;
+  }
+  .event-label {
+    display: block;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    margin-bottom: 4px;
-    padding-bottom: 3px;
+    margin-bottom: 3px;
+    padding-bottom: 2px;
     border-bottom: 1px solid rgba(0,0,0,0.07);
   }
-  .event.error { background: #fff0f0; }
+  .event-message { white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+
+  /* Lane-specific colors */
+  .lane-cell.user .event { border-left-color: #005baa; }
+  .lane-cell.user .event-label { color: #005baa; }
+  .lane-cell.client .event { border-left-color: #6c5ce7; }
+  .lane-cell.client .event-label { color: #6c5ce7; }
+  .lane-cell.remote .event { border-left-color: #00b894; }
+  .lane-cell.remote .event-label { color: #00b894; }
+
+  /* Type-specific overrides */
+  .event.error { background: #fff0f0; border-left-color: #c00; }
   .event.error .event-label { color: #c00; }
-  .event.answer { background: #edf7ed; }
+  .event.answer { background: #edf7ed; border-left-color: #1e6b1e; }
   .event.answer .event-label { color: #1e6b1e; }
-  .event.user_message { background: #e8f4ff; }
-  .event.user_message .event-label { color: #005baa; }
-  .event.system, .event.compact { background: #fffbe6; }
-  .event.system .event-label, .event.compact .event-label { color: #7a5c00; }
-  .event.connected { background: #fffbe6; }
-  .event.connected .event-label { color: #7a5c00; }
-  .event-message { white-space: pre-wrap; word-break: break-word; }
-  .status { padding: 10px; margin: 10px 0; border-radius: 4px; background: #e8f5e9; }
-  textarea#messageInput { width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px; font-family: Arial, sans-serif; font-size: 14px; padding: 8px 12px; margin: 5px 0; }
+  .event.a2a_input_required { background: #fff8e1; border-left-color: #f0932b; }
+  .event.a2a_input_required .event-label { color: #f0932b; }
+  .event.a2a_failed { background: #fff0f0; border-left-color: #d63031; }
+  .event.a2a_failed .event-label { color: #d63031; }
+  .event.a2a_completed { background: #f0fff4; border-left-color: #00b894; }
+  .event.a2a_completed .event-label { color: #00b894; }
+  .event.compact, .event.system { background: #fffbe6; border-left-color: #7a5c00; }
+  .event.compact .event-label, .event.system .event-label { color: #7a5c00; }
+
+  /* Markdown in answers */
   .event.answer .event-message { line-height: 1.5; white-space: normal; }
   .event.answer .event-message p { margin: 0 0 0.5em; }
   .event.answer .event-message p:last-child { margin-bottom: 0; }
@@ -50,69 +167,94 @@
   .event.answer .event-message code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
   .event.answer .event-message pre { background: #f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto; }
   .event.answer .event-message pre code { background: none; padding: 0; }
-  #status-hint { display: none; font-size: 12px; font-style: italic; color: #aaa; padding: 6px 9px; margin: 5px 0; background: white; border-radius: 4px; border-left: 2px dashed #ddd; }
-  #status-hint.active { display: block; animation: status-pulse 1.2s ease-in-out infinite; }
-  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
-  /* A2A event styles */
-  .event.a2a_discovery, .event.a2a_task_submitted, .event.a2a_task_resumed,
-  .event.a2a_working, .event.a2a_input_required, .event.a2a_artifact, .event.a2a_completed, .event.a2a_failed {
-    margin-left: 24px; border-left: 3px solid #6c5ce7; background: #f8f7ff; font-size: 12px; padding: 5px 9px;
+  /* ── Directional arrow indicators ──────────────────────────── */
+  .event.directional { position: relative; }
+
+  /* Arrow pointing right (toward next column) */
+  .event.arrow-right::after {
+    content: '→';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    font-weight: 700;
+    z-index: 2;
   }
-  .event.a2a_discovery .event-label { color: #6c5ce7; }
-  .event.a2a_task_submitted .event-label { color: #0984e3; }
-  .event.a2a_task_resumed .event-label { color: #0984e3; }
-  .event.a2a_working .event-label { color: #636e72; }
-  .event.a2a_input_required { background: #fff8e1; border-left-color: #f0932b; }
-  .event.a2a_input_required .event-label { color: #f0932b; }
-  .event.a2a_artifact { background: #fff; border-left-color: #00b894; }
-  .event.a2a_artifact .event-label { color: #00b894; }
-  .event.a2a_completed { background: #f0fff4; border-left-color: #00b894; }
-  .event.a2a_completed .event-label { color: #00b894; }
-  .event.a2a_failed { background: #fff0f0; border-left-color: #d63031; }
-  .event.a2a_failed .event-label { color: #d63031; }
+  .lane-cell.user .event.arrow-right::after { color: #005baa; }
+  .lane-cell.client .event.arrow-right::after { color: #6c5ce7; }
 
+  /* Arrow pointing left (toward previous column) */
+  .event.arrow-left::before {
+    content: '←';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    font-weight: 700;
+    z-index: 2;
+  }
+  .lane-cell.client .event.arrow-left::before { color: #6c5ce7; }
+  .lane-cell.remote .event.arrow-left::before { color: #00b894; }
+
+  /* Artifact card */
   .artifact-card { border: 1px solid #dfe6e9; border-radius: 6px; overflow: hidden; margin-top: 4px; }
   .artifact-header { background: #dfe6e9; padding: 6px 10px; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; }
   .artifact-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .artifact-table td { padding: 4px 10px; border-top: 1px solid #f0f0f0; }
   .artifact-table td:first-child { font-weight: 600; color: #636e72; white-space: nowrap; width: 40%; }
+
+  /* Empty state */
+  #events-empty { color: #aaa; font-size: 13px; text-align: center; padding: 24px 16px; line-height: 1.6; grid-column: 1 / -1; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Agent Workflow</h1>
-  <div class="status" id="status">Start a conversation to begin.</div>
-  
-  <div>
-    <label><strong>Conversation:</strong></label>
+  <div class="top-bar">
+    <h1>Agent Workflow</h1>
+    <div class="status" id="status">Start a conversation to begin.</div>
+    <div class="spacer"></div>
     <div class="conversation-row">
-      <div id="conversationId" style="font-family: monospace; font-size: 13px; color: #555; padding: 6px 0;">No active conversation</div>
+      <div id="conversationId">No active conversation</div>
       <a id="temporalUiLink" href="#" target="_blank" style="display: none;">
-        <button class="secondary" type="button" title="Open in Temporal UI" style="white-space: nowrap; font-size: 12px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 5px;"><img src="http://localhost:8233/favicon.ico" style="width: 14px; height: 14px; vertical-align: middle;" /> Temporal UI</button>
+        <button class="secondary" type="button" title="Open in Temporal UI" style="white-space: nowrap; font-size: 12px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px;"><img src="http://localhost:8233/favicon.ico" style="width: 14px; height: 14px; vertical-align: middle;" /> Temporal UI</button>
       </a>
     </div>
-    <button onclick="createConversation()" style="width: 100%; margin-top: 8px;">New Conversation</button>
-  </div>
-
-  <div id="messagePanel" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
-    <div>
-      <label><strong>Message:</strong></label>
-      <textarea id="messageInput" placeholder="Type your message… (Enter to send, Shift+Enter for new line)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-    </div>
-    
-    <div>
-      <button onclick="sendMessage()" style="width: 32%; margin-right: 1%;">Send Message</button>
-      <button onclick="compactConversation()" style="width: 30%; margin: 0 1%;">Compact</button>
-      <button onclick="exitConversation()" class="danger" style="width: 32%;">Exit</button>
-    </div>
+    <button onclick="createConversation()">New Conversation</button>
   </div>
 
   <div id="events-section">
-    <div id="events-header">Activity</div>
-    <div id="events">
-      <div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent's steps here.</div>
-      <div id="status-hint"></div>
+    <div class="swimlane-grid">
+      <div class="lane-header user">
+        User
+        <span class="lane-status" id="status-user"></span>
+      </div>
+      <div class="lane-header client">
+        Client Agent
+        <span class="lane-status" id="status-client"></span>
+      </div>
+      <div class="lane-header remote">
+        Remote Agent
+        <span class="lane-status" id="status-remote"></span>
+      </div>
+      <div class="swimlane-body" id="swimlane-body">
+        <div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent's steps here.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="messagePanel">
+  <div class="message-inner">
+    <textarea id="messageInput" placeholder="Type your message… (Enter to send, Shift+Enter for new line)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+    <div class="btn-column">
+      <div class="secondary-row">
+        <button onclick="compactConversation()">Compact</button>
+        <button onclick="exitConversation()" class="danger">Exit</button>
+      </div>
+      <button class="send-btn" onclick="sendMessage()">Send</button>
     </div>
   </div>
 </div>
@@ -121,12 +263,55 @@
 let currentConversationId = null;
 let currentEventSource = null;
 
-function connectToConversationEvents(conversationId) {
-  // Close any existing SSE connection
-  if (currentEventSource) {
-    currentEventSource.close();
-    currentEventSource = null;
+// ── Lane resolution ──────────────────────────────────────────
+const LANE_ORDER = ['user', 'client', 'remote'];
+
+function resolveLane(data) {
+  if (data.lane) return data.lane;
+  const t = data.type.toLowerCase();
+  if (t === 'user_message' || t === 'connected') return 'user';
+  if (t.startsWith('a2a_') && t !== 'a2a_discovery' && t !== 'a2a_task_submitted' && t !== 'a2a_task_resumed') return 'remote';
+  return 'client';
+}
+
+function resolveTargetLane(data) {
+  if (data.targetLane) return data.targetLane;
+  const t = data.type.toLowerCase();
+  if (t === 'user_message') return 'client';
+  if (t === 'answer') return 'user';
+  if (t === 'a2a_task_submitted' || t === 'a2a_task_resumed') return 'remote';
+  if (t === 'a2a_input_required' || t === 'a2a_completed' || t === 'a2a_failed' || t === 'a2a_artifact') return 'client';
+  return null;
+}
+
+function arrowDirection(lane, targetLane) {
+  if (!targetLane) return null;
+  const from = LANE_ORDER.indexOf(lane);
+  const to = LANE_ORDER.indexOf(targetLane);
+  if (from < 0 || to < 0 || from === to) return null;
+  return to > from ? 'right' : 'left';
+}
+
+// ── Status hints (column headers) ────────────────────────────
+function setLaneStatus(lane, message) {
+  const el = document.getElementById('status-' + lane);
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    el.classList.add('active');
+  } else {
+    el.textContent = '';
+    el.classList.remove('active');
   }
+}
+
+function clearAllLaneStatuses() {
+  LANE_ORDER.forEach(l => setLaneStatus(l, ''));
+}
+
+// ── SSE connection ───────────────────────────────────────────
+function connectToConversationEvents(conversationId) {
+  if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
 
   const es = new EventSource(`/events/${conversationId}`);
   currentEventSource = es;
@@ -134,34 +319,31 @@ function connectToConversationEvents(conversationId) {
   es.onopen = function() {
     document.getElementById('status').textContent = '✓ Connected to event stream';
   };
-
-  es.onerror = function(e) {
+  es.onerror = function() {
     document.getElementById('status').textContent = '✗ Error connecting to event stream';
-    setStatusHint('');
+    clearAllLaneStatuses();
   };
 
   es.onmessage = function(event) {
     const data = JSON.parse(event.data);
 
-    // Status events are ephemeral — show as a hint, don't buffer as a regular event
     if (data.type === 'status') {
-      setStatusHint(data.message);
+      setLaneStatus(data.lane || 'client', data.message);
       return;
     }
 
-    // Action events do NOT clear the hint — "Acting..." follows right after and
-    // should remain visible while the tool runs. All other real events clear it.
     if (data.type !== 'action') {
-      setStatusHint('');
+      setLaneStatus(resolveLane(data), '');
     }
 
-    // Add to buffer
+    // a2a_working → ephemeral status in remote column header
+    if (data.type === 'a2a_working') {
+      setLaneStatus('remote', data.message || 'Working...');
+      return;
+    }
+
     eventBuffer.push(data);
-    
-    // Clear existing timer
     if (bufferTimer) clearTimeout(bufferTimer);
-    
-    // Set new timer to flush buffer after 100ms of no new events
     bufferTimer = setTimeout(flushEventBuffer, 100);
   };
 }
@@ -179,245 +361,209 @@ function setConversationId(id) {
     link.style.display = 'none';
   }
 }
+
 let eventBuffer = [];
 let bufferTimer = null;
 
+const emojiMap = {
+  thought: '🧠', action: '⚡', observation: '🔍', answer: '🤖',
+  error: '❌', user_message: '💬', system: '⚙️', compact: '📦',
+  connected: '🔌', a2a_discovery: '🔍', a2a_task_submitted: '📤',
+  a2a_task_resumed: '↩️', a2a_input_required: '🔒',
+  a2a_artifact: '📄', a2a_completed: '✅', a2a_failed: '❌',
+};
+
+function getLabelText(data) {
+  const a2aAgent = data.agentName || '';
+  const t = data.type.toLowerCase();
+  const map = {
+    a2a_discovery: 'Discovery',
+    a2a_task_submitted: a2aAgent ? `→ ${a2aAgent}` : 'Task Submitted',
+    a2a_task_resumed:   a2aAgent ? `→ ${a2aAgent} (resume)` : 'Task Resumed',
+    a2a_input_required: a2aAgent ? `${a2aAgent} needs input` : 'Input Required',
+    a2a_artifact:       a2aAgent ? `Artifact from ${a2aAgent}` : 'Artifact',
+    a2a_completed:      a2aAgent ? `${a2aAgent} completed` : 'Completed',
+    a2a_failed:         a2aAgent ? `${a2aAgent} failed` : 'Failed',
+  };
+  if (map[t]) return map[t];
+  return data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── Build event card ─────────────────────────────────────────
+function buildEventCard(data) {
+  const typeClass = data.type.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const lane = resolveLane(data);
+  const target = resolveTargetLane(data);
+  const arrow = arrowDirection(lane, target);
+
+  const div = document.createElement('div');
+  let cls = `event ${typeClass}`;
+  if (target) cls += ' directional';
+  if (arrow) cls += ` arrow-${arrow}`;
+  div.className = cls;
+
+  const emoji = emojiMap[data.type.toLowerCase()] || '';
+  const lbl = document.createElement('span');
+  lbl.className = 'event-label';
+  lbl.textContent = getLabelText(data) + (emoji ? ' ' + emoji : '');
+  div.appendChild(lbl);
+
+  const msgEl = document.createElement('div');
+  msgEl.className = 'event-message';
+
+  if (data.type.toLowerCase() === 'answer' && typeof marked !== 'undefined') {
+    msgEl.innerHTML = marked.parse(data.message);
+  } else if (data.type === 'a2a_artifact') {
+    const card = document.createElement('div');
+    card.className = 'artifact-card';
+    const header = document.createElement('div');
+    header.className = 'artifact-header';
+    header.textContent = '📄 ' + (data.title || 'Artifact');
+    card.appendChild(header);
+    const table = document.createElement('table');
+    table.className = 'artifact-table';
+    const skipKeys = new Set(['type','message','timestamp','sequence','workflowId','title','lane','targetLane','agentName']);
+    for (const [key, val] of Object.entries(data)) {
+      if (skipKeys.has(key)) continue;
+      const row = document.createElement('tr');
+      const kc = document.createElement('td');
+      kc.textContent = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+      const vc = document.createElement('td');
+      vc.textContent = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      row.appendChild(kc); row.appendChild(vc); table.appendChild(row);
+    }
+    card.appendChild(table);
+    msgEl.appendChild(card);
+  } else if (data.type === 'a2a_discovery' && data.skills) {
+    const desc = document.createElement('div');
+    desc.textContent = data.message;
+    msgEl.appendChild(desc);
+    const details = document.createElement('details');
+    details.style.marginTop = '4px';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Skills (' + data.skills.length + ')';
+    summary.style.cursor = 'pointer'; summary.style.fontSize = '11px';
+    details.appendChild(summary);
+    const ul = document.createElement('ul');
+    ul.style.margin = '4px 0'; ul.style.paddingLeft = '18px'; ul.style.fontSize = '11px';
+    for (const skill of data.skills) {
+      const li = document.createElement('li');
+      li.textContent = skill.name + (skill.description ? ' — ' + skill.description : '');
+      ul.appendChild(li);
+    }
+    details.appendChild(ul);
+    msgEl.appendChild(details);
+  } else {
+    msgEl.textContent = data.message;
+  }
+
+  div.appendChild(msgEl);
+  return { element: div, lane };
+}
+
+// ── Create a 3-column event row ──────────────────────────────
+function createEventRow(eventCard, lane) {
+  const row = document.createElement('div');
+  row.className = 'event-row';
+  for (const l of LANE_ORDER) {
+    const cell = document.createElement('div');
+    cell.className = `lane-cell ${l}`;
+    if (l === lane) cell.appendChild(eventCard);
+    row.appendChild(cell);
+  }
+  return row;
+}
+
+// ── Flush buffered events ────────────────────────────────────
 function flushEventBuffer() {
   if (eventBuffer.length === 0) return;
-  
-  // Sort by timestamp first, then by sequence number for events with same timestamp
+
   eventBuffer.sort((a, b) => {
-    const timeDiff = (a.timestamp || 0) - (b.timestamp || 0);
-    if (timeDiff !== 0) return timeDiff;
-    return (a.sequence || 0) - (b.sequence || 0);
+    const td = (a.timestamp || 0) - (b.timestamp || 0);
+    return td !== 0 ? td : (a.sequence || 0) - (b.sequence || 0);
   });
-  
-  // Remove a2a_working events that immediately precede an a2a_input_required event
-  // with overlapping content (the working event typically shows the tool call that
-  // produced the input_required response, so it's redundant).
+
   eventBuffer = eventBuffer.filter((ev, i, arr) => {
     if (ev.type !== 'a2a_working') return true;
     const next = arr[i + 1];
-    if (next && next.type === 'a2a_input_required') return false;
-    return true;
+    return !(next && next.type === 'a2a_input_required');
   });
-  
-  // Add all events to DOM
-  const eventsDiv = document.getElementById('events');
-  // Re-append hint after new events so it stays last
-  const hintActive = statusHint.classList.contains('active');
-  eventBuffer.forEach(data => {
-    const div = document.createElement('div');
-    const typeClass = data.type.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    div.className = `event ${typeClass}`;
 
-    const emojiMap = {
-      thought: '🧠',
-      action: '⚡',
-      observation: '🔍',
-      answer: '🤖',
-      error: '❌',
-      user_message: '💬',
-      system: '⚙️',
-      compact: '📦',
-      connected: '🔌',
-      a2a_discovery: '🔍',
-      a2a_task_submitted: '📤',
-      a2a_task_resumed: '↩️',
-      a2a_working: '⚙️',
-      a2a_input_required: '🔒',
-      a2a_artifact: '📄',
-      a2a_completed: '✅',
-      a2a_failed: '❌',
-    };
-    const emoji = emojiMap[data.type.toLowerCase()] || '';
-
-    const labelEl = document.createElement('span');
-    labelEl.className = 'event-label';
-
-    // Build label text — A2A events get special formatting with remote agent name
-    let labelText;
-    const a2aAgent = data.agentName || '';
-    const a2aLabels = {
-      a2a_discovery:      'A2A Discovery',
-      a2a_task_submitted: a2aAgent ? `A2A: Task submitted to ${a2aAgent}` : 'A2A: Task Submitted',
-      a2a_task_resumed:   a2aAgent ? `A2A: Task resumed with ${a2aAgent}` : 'A2A: Task Resumed',
-      a2a_working:        a2aAgent ? `A2A: ${a2aAgent} working` : 'A2A: Remote Agent Working',
-      a2a_input_required: a2aAgent ? `A2A: ${a2aAgent} needs input` : 'A2A: Input Required',
-      a2a_artifact:       a2aAgent ? `A2A: Artifact from ${a2aAgent}` : 'A2A: Artifact',
-      a2a_completed:      a2aAgent ? `A2A: ${a2aAgent} completed` : 'A2A: Task Completed',
-      a2a_failed:         a2aAgent ? `A2A: ${a2aAgent} failed` : 'A2A: Task Failed',
-    };
-    const typeLower = data.type.toLowerCase();
-    if (a2aLabels[typeLower]) {
-      labelText = a2aLabels[typeLower];
-    } else {
-      // Title-case the label (e.g. "user_message" → "User Message")
-      labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-    labelEl.textContent = labelText + (emoji ? ' ' + emoji : '');
-
-    const msgEl = document.createElement('div');
-    msgEl.className = 'event-message';
-    if (data.type.toLowerCase() === 'answer' && typeof marked !== 'undefined') {
-      msgEl.innerHTML = marked.parse(data.message);
-    } else if (data.type === 'a2a_artifact') {
-      // Render artifact as a styled card with key-value table
-      const card = document.createElement('div');
-      card.className = 'artifact-card';
-      const header = document.createElement('div');
-      header.className = 'artifact-header';
-      header.textContent = '📄 ' + (data.title || 'Artifact');
-      card.appendChild(header);
-      const table = document.createElement('table');
-      table.className = 'artifact-table';
-      // Iterate over all data fields (skip meta fields)
-      const skipKeys = new Set(['type', 'message', 'timestamp', 'sequence', 'workflowId', 'title']);
-      for (const [key, val] of Object.entries(data)) {
-        if (skipKeys.has(key)) continue;
-        const row = document.createElement('tr');
-        const keyCell = document.createElement('td');
-        keyCell.textContent = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-        const valCell = document.createElement('td');
-        valCell.textContent = typeof val === 'object' ? JSON.stringify(val) : String(val);
-        row.appendChild(keyCell);
-        row.appendChild(valCell);
-        table.appendChild(row);
-      }
-      card.appendChild(table);
-      msgEl.appendChild(card);
-    } else if (data.type === 'a2a_discovery' && data.skills) {
-      // Show description and collapsible skill list
-      const desc = document.createElement('div');
-      desc.textContent = data.message;
-      msgEl.appendChild(desc);
-      const details = document.createElement('details');
-      details.style.marginTop = '4px';
-      const summary = document.createElement('summary');
-      summary.textContent = 'Skills (' + data.skills.length + ')';
-      summary.style.cursor = 'pointer';
-      summary.style.fontSize = '11px';
-      details.appendChild(summary);
-      const ul = document.createElement('ul');
-      ul.style.margin = '4px 0'; ul.style.paddingLeft = '18px'; ul.style.fontSize = '11px';
-      for (const skill of data.skills) {
-        const li = document.createElement('li');
-        li.textContent = skill.name + (skill.description ? ' — ' + skill.description : '');
-        ul.appendChild(li);
-      }
-      details.appendChild(ul);
-      msgEl.appendChild(details);
-    } else {
-      msgEl.textContent = data.message;
-    }
-
-    div.appendChild(labelEl);
-    div.appendChild(msgEl);
-    eventsDiv.appendChild(div);
-  });
-  
-  // Remove empty state placeholder on first real event
+  const body = document.getElementById('swimlane-body');
   const emptyEl = document.getElementById('events-empty');
   if (emptyEl) emptyEl.remove();
 
-  if (hintActive) eventsDiv.appendChild(statusHint);
-  eventsDiv.scrollTop = eventsDiv.scrollHeight;
+  eventBuffer.forEach(data => {
+    const { element, lane } = buildEventCard(data);
+    body.appendChild(createEventRow(element, lane));
+  });
+
+  body.scrollTop = body.scrollHeight;
   eventBuffer = [];
 }
 
-const statusHint = document.getElementById('status-hint');
-
-function setStatusHint(message) {
-  const eventsDiv = document.getElementById('events');
-  if (message) {
-    statusHint.textContent = message;
-    statusHint.classList.add('active');
-    // Keep it pinned as last child
-    eventsDiv.appendChild(statusHint);
-    eventsDiv.scrollTop = eventsDiv.scrollHeight;
-  } else {
-    statusHint.classList.remove('active');
-    statusHint.textContent = '';
-  }
-}
-
+// ── Conversation management ──────────────────────────────────
 async function createConversation() {
   if (currentConversationId) {
     await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
   }
-  // Cancel any pending buffer flush so stale events don't bleed into the new conversation
   if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
   eventBuffer = [];
-  setStatusHint('');
+  clearAllLaneStatuses();
   const res = await fetch('/api/conversations', { method: 'POST' });
   const data = await res.json();
   setConversationId(data.conversationId);
   connectToConversationEvents(data.conversationId);
   document.getElementById('messagePanel').style.display = 'block';
-  const evDiv = document.getElementById('events');
-  evDiv.innerHTML = '<div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent\'s steps here.</div>';
+  document.body.classList.add('has-message-panel');
+  document.getElementById('swimlane-body').innerHTML =
+    '<div id="events-empty">No activity yet.<br>Start a conversation and send a message to see the agent\'s steps here.</div>';
   document.getElementById('messageInput').focus();
 }
 
 async function sendMessage() {
-  if (!currentConversationId) {
-    alert('Please select or create a conversation');
-    return;
-  }
-  
+  if (!currentConversationId) { alert('Please select or create a conversation'); return; }
   const name = 'user@example.com';
   const message = document.getElementById('messageInput').value.trim();
-  
-  if (!message) {
-    alert('Please enter a message');
-    return;
-  }
-
+  if (!message) { alert('Please enter a message'); return; }
   await fetch(`/api/conversations/${currentConversationId}/message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, message })
   });
-
   document.getElementById('messageInput').value = '';
   document.getElementById('messageInput').focus();
 }
 
 async function exitConversation() {
   if (!currentConversationId) return;
-  
   const res = await fetch(`/api/conversations/${currentConversationId}/exit`, { method: 'POST' });
   const data = await res.json();
-  
-  // Close the per-conversation SSE connection
-  if (currentEventSource) {
-    currentEventSource.close();
-    currentEventSource = null;
-  }
-  setStatusHint('');
+  if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
+  clearAllLaneStatuses();
   currentConversationId = null;
   document.getElementById('messagePanel').style.display = 'none';
-  const endDiv = document.createElement('div');
-  endDiv.className = 'event system';
+  document.body.classList.remove('has-message-panel');
+
+  const endCard = document.createElement('div');
+  endCard.className = 'event system';
   const endLabel = document.createElement('span');
   endLabel.className = 'event-label';
-  endLabel.textContent = 'Conversation Ended';
+  endLabel.textContent = 'Conversation Ended ⚙️';
   const endMsg = document.createElement('div');
   endMsg.className = 'event-message';
   endMsg.textContent = 'Usage: ' + JSON.stringify(data.usage);
-  endDiv.appendChild(endLabel);
-  endDiv.appendChild(endMsg);
-  document.getElementById('events').appendChild(endDiv);
+  endCard.appendChild(endLabel);
+  endCard.appendChild(endMsg);
+  document.getElementById('swimlane-body').appendChild(createEventRow(endCard, 'client'));
 }
 
 async function compactConversation() {
   if (!currentConversationId) return;
-  
   await fetch(`/api/conversations/${currentConversationId}/compact`, { method: 'POST' });
 }
-
-
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>

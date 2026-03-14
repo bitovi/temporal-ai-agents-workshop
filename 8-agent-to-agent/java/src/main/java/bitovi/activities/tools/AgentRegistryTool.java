@@ -114,6 +114,7 @@ public class AgentRegistryTool {
             System.err.println("[AgentRegistryTool] Could not resolve agent card for " + agent.name() + ": " + e.getMessage());
         }
 
+        data.put("lane", EventClient.LANE_CLIENT);
         EventClient.emitEvent("a2a_discovery", agent.name() + " — " + agent.description(), data);
     }
 

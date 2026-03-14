@@ -90,6 +90,8 @@ app.post("/api/conversations/:id/message", async (req, res) => {
       type: "user_message",
       message: message,
       timestamp: Date.now(),
+      lane: "user",
+      targetLane: "client",
     });
 
     res.json({ success: true });

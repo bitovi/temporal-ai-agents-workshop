@@ -26,6 +26,11 @@ public class EventClient {
 	private static final int TIMEOUT_MS = 5000;
 	private static long sequenceCounter = 0;
 
+	// Swimlane constants
+	public static final String LANE_USER = "user";
+	public static final String LANE_CLIENT = "client";
+	public static final String LANE_REMOTE = "remote";
+
 	/**
 	 * Emit an event to the server asynchronously.
 	 * 
@@ -105,6 +110,44 @@ public class EventClient {
 	 */
 	public static void emitEvent(String type, String message) {
 		emitEvent(type, message, null);
+	}
+
+	/**
+	 * Emit an event with lane metadata for the swimlane UI.
+	 * 
+	 * @param type       The event type
+	 * @param message    The event message
+	 * @param lane       The swimlane this event belongs to ("user", "client", "remote")
+	 * @param targetLane Optional target lane for directional events (null if not directional)
+	 */
+	public static void emitEvent(String type, String message, String lane, String targetLane) {
+		Map<String, Object> data = new HashMap<>();
+		data.put("lane", lane);
+		if (targetLane != null) {
+			data.put("targetLane", targetLane);
+		}
+		emitEvent(type, message, data);
+	}
+
+	/**
+	 * Emit an event with lane metadata and additional data.
+	 * 
+	 * @param type           The event type
+	 * @param message        The event message
+	 * @param lane           The swimlane this event belongs to
+	 * @param targetLane     Optional target lane for directional events
+	 * @param additionalData Extra fields to include
+	 */
+	public static void emitEvent(String type, String message, String lane, String targetLane, Map<String, Object> additionalData) {
+		Map<String, Object> data = new HashMap<>();
+		data.put("lane", lane);
+		if (targetLane != null) {
+			data.put("targetLane", targetLane);
+		}
+		if (additionalData != null) {
+			data.putAll(additionalData);
+		}
+		emitEvent(type, message, data);
 	}
 	
 	/**

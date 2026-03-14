@@ -33,7 +33,7 @@ public class ActivitiesImpl implements Activities {
 	public ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure {
 		try {
 			System.out.println("thoughtActivity called with context size: " + context.size());
-			EventClient.emitEvent("status", "Thinking...");
+			EventClient.emitEvent("status", "Thinking...", EventClient.LANE_CLIENT, null);
 
 			// Load prompt template
 			String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
@@ -84,8 +84,8 @@ public class ActivitiesImpl implements Activities {
 				type = "answer";
 				answer = jsonResponse.getString("answer");
 				// Emit events for answer type
-				EventClient.emitEvent("thought", thought);
-				EventClient.emitEvent("answer", answer);
+				EventClient.emitEvent("thought", thought, EventClient.LANE_CLIENT, null);
+				EventClient.emitEvent("answer", answer, EventClient.LANE_CLIENT, EventClient.LANE_USER);
 			} else if (jsonResponse.has("action")) {
 				type = "action";
 				JSONObject actionObj = jsonResponse.getJSONObject("action");
@@ -116,7 +116,7 @@ public class ActivitiesImpl implements Activities {
 				action = new ActionDetail(name, reason, actionInput);
 
 				// Emit events for action type
-				EventClient.emitEvent("thought", thought);
+				EventClient.emitEvent("thought", thought, EventClient.LANE_CLIENT, null);
 			} else {
 				throw ApplicationFailure.newFailure("Invalid response format: missing 'answer' or 'action'",
 						"InvalidResponseFormat");
@@ -127,13 +127,13 @@ public class ActivitiesImpl implements Activities {
 		} catch (JSONException e) {
 			String errorMsg = "Error parsing JSON response: " + e.getMessage();
 			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Thought error: " + errorMsg);
+			EventClient.emitEvent("error", "Thought error: " + errorMsg, EventClient.LANE_CLIENT, null);
 			throw ApplicationFailure.newFailure("Failed to parse model response: " + e.getMessage(),
 					"ThoughtActivityError");
 		} catch (Exception e) {
 			String errorMsg = "Error in thoughtActivity: " + e.getMessage();
 			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Thought error: " + errorMsg);
+			EventClient.emitEvent("error", "Thought error: " + errorMsg, EventClient.LANE_CLIENT, null);
 			throw ApplicationFailure.newFailure("thoughtActivity failed: " + e.getMessage(),
 					"ThoughtActivityError");
 		}
@@ -146,7 +146,7 @@ public class ActivitiesImpl implements Activities {
 
 			// Check if tool exists
 			if (!ToolRegistry.hasToolNamed(toolName)) {
-				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.");
+				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.", EventClient.LANE_CLIENT, null);
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
 				errorResult.put("input", input.parameters());
@@ -160,8 +160,8 @@ public class ActivitiesImpl implements Activities {
 			// Execute tool
 			try {
 				EventClient.emitEvent("action", "Invoked tool " + toolName +
-						" with input " + new JSONObject(inputMap).toString());
-				EventClient.emitEvent("status", "Acting...");
+						" with input " + new JSONObject(inputMap).toString(), EventClient.LANE_CLIENT, null);
+				EventClient.emitEvent("status", "Acting...", EventClient.LANE_CLIENT, null);
 
 				String result = ToolRegistry.executeTool(toolName, inputMap);
 				System.out.println("Tool execution successful: " + toolName);
@@ -169,7 +169,7 @@ public class ActivitiesImpl implements Activities {
 			} catch (Exception e) {
 				String errorMsg = "Error executing tool " + toolName + ": " + e.getMessage();
 				System.err.println(errorMsg);
-				EventClient.emitEvent("error", errorMsg);
+				EventClient.emitEvent("error", errorMsg, EventClient.LANE_CLIENT, null);
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
 				errorResult.put("input", inputMap);
@@ -190,7 +190,7 @@ public class ActivitiesImpl implements Activities {
 		try {
 			System.out.println("observationActivity called with action result length: " +
 					actionResult.length());
-			EventClient.emitEvent("status", "Observing...");
+			EventClient.emitEvent("status", "Observing...", EventClient.LANE_CLIENT, null);
 
 			// Load prompt template
 			String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
@@ -220,14 +220,14 @@ public class ActivitiesImpl implements Activities {
 			}
 
 			// Emit observation event
-			EventClient.emitEvent("observation", observations);
+			EventClient.emitEvent("observation", observations, EventClient.LANE_CLIENT, null);
 
 			return new ObservationResponse(observations, response.usage());
 
 		} catch (Exception e) {
 			String errorMsg = "Error in observationActivity: " + e.getMessage();
 			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Observation error: " + errorMsg);
+			EventClient.emitEvent("error", "Observation error: " + errorMsg, EventClient.LANE_CLIENT, null);
 			throw ApplicationFailure.newFailure("observationActivity failed: " + e.getMessage(),
 					"ObservationActivityError");
 		}
@@ -237,7 +237,7 @@ public class ActivitiesImpl implements Activities {
 	public CompactResponse compactActivity(List<String> context) throws ApplicationFailure {
 		try {
 			System.out.println("compactActivity called with context size: " + context.size());
-			EventClient.emitEvent("status", "Compacting...");
+			EventClient.emitEvent("status", "Compacting...", EventClient.LANE_CLIENT, null);
 
 			// Load prompt template
 			String systemPromptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
@@ -281,14 +281,14 @@ public class ActivitiesImpl implements Activities {
 					newContext.size() + " entries");
 
 			// Emit compact event
-			EventClient.emitEvent("compact", "Context compacted");
+			EventClient.emitEvent("compact", "Context compacted", EventClient.LANE_CLIENT, null);
 
 			return new CompactResponse(newContext, response.usage());
 
 		} catch (Exception e) {
 			String errorMsg = "Error in compactActivity: " + e.getMessage();
 			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Compact error: " + errorMsg);
+			EventClient.emitEvent("error", "Compact error: " + errorMsg, EventClient.LANE_CLIENT, null);
 			throw ApplicationFailure.newFailure("compactActivity failed: " + e.getMessage(),
 					"CompactActivityError");
 		}
