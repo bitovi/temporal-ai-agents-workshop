@@ -5,7 +5,7 @@ import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
 
 @ActivityInterface
-public interface BookAgentServer {
+public interface SupportAgentServer {
 	@ActivityMethod
-	String checkBookAgentServerConnection() throws ApplicationFailure;
+	String checkSupportAgentServerConnection() throws ApplicationFailure;
 }

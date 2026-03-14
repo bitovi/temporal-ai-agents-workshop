@@ -42,12 +42,6 @@ public class AgentRegistryTool {
             List.of("support", "billing", "refunds", "account", "riot games", "gaming")
         ),
         new AgentEntry(
-            "Book Agent",
-            "http://localhost:5001",
-            "An agent that can answer questions about books, recommend reading, and search the Gutenberg library.",
-            List.of("books", "reading", "literature", "gutenberg", "library")
-        ),
-        new AgentEntry(
             "Travel Planner Agent",
             "http://localhost:6001",
             "Plans trips, searches flights and hotels, builds itineraries, and provides destination recommendations.",

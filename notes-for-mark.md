@@ -53,7 +53,5 @@ Quick notes for async handoff to Mark if neeed.
 
 ## Exercise 8 (Agent To Agent Protocol)
 - see `8-agent-to-agent/java/TODO.md`
-- I chose to use gutendex api instead tmdb for legal reasons
-- source of the book agent is in `/book-agent-server/` (dockerized)
-- pretty minimal and rough impl of the A2A protocol integration
+- Support agent server is in `/support-agent-server/` (dockerized)
 

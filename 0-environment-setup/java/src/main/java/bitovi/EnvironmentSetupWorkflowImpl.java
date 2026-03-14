@@ -6,11 +6,11 @@ import org.slf4j.Logger;
 
 import bitovi.activities.AgentChatServer;
 import bitovi.activities.Bedrock;
-import bitovi.activities.BookAgentServer;
 import bitovi.activities.MockMcpServer;
 import bitovi.activities.Postgres;
 import bitovi.activities.Qdrant;
 import bitovi.activities.S3;
+import bitovi.activities.SupportAgentServer;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
@@ -33,7 +33,7 @@ public class EnvironmentSetupWorkflowImpl implements EnvironmentSetupWorkflow {
 			defaultActivityOptions);
 	private final AgentChatServer agentChatServerActivities = Workflow.newActivityStub(AgentChatServer.class,
 			defaultActivityOptions);
-	private final BookAgentServer bookAgentServerActivities = Workflow.newActivityStub(BookAgentServer.class,
+	private final SupportAgentServer supportAgentServerActivities = Workflow.newActivityStub(SupportAgentServer.class,
 			defaultActivityOptions);
 
 	@Override
@@ -57,8 +57,8 @@ public class EnvironmentSetupWorkflowImpl implements EnvironmentSetupWorkflow {
 		logger.info("checkAgentChatServerConnection");
 		agentChatServerActivities.checkAgentChatServerConnection();
 
-		logger.info("checkBookAgentServerConnection");
-		bookAgentServerActivities.checkBookAgentServerConnection();
+		logger.info("checkSupportAgentServerConnection");
+		supportAgentServerActivities.checkSupportAgentServerConnection();
 
 		return "Success";
 	}
