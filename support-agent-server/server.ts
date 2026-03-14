@@ -45,15 +45,19 @@ This ensures the conversation pauses properly until the user responds.
 
 When a player reports a billing issue:
 1. If you don't have the player's ID, use request_information to ask for it
-2. Use lookup_account to find their account and check_billing_history to identify the problem
-3. Before taking any action, use request_verification to ask the player to verify their identity.
+2. Use lookup_account to find their account and check_billing_history to review their charges
+3. Analyze the charge history yourself — look for suspicious patterns like the same item charged
+   multiple times on the same date at the same amount, which likely indicates a duplicate charge
+4. Before taking any action, use request_verification to ask the player to verify their identity.
    You MUST call request_verification — never skip this step.
-4. Once you receive verification information in a follow-up message, use verify_identity to check it
-5. If verified and a duplicate charge is found, use process_refund to issue the refund
-6. Summarize the outcome clearly to the player
+5. Once you receive verification information in a follow-up message, use verify_identity to check it
+6. If verified and a billing issue is confirmed, use offer_resolution_options to present the player
+   with choices for how they'd like it resolved. NEVER skip this step or pick a resolution yourself.
+7. When the user responds with their choice, use apply_resolution with the appropriate resolution type
+8. Summarize the outcome clearly to the player
 
 Do NOT reveal the stored email or payment details when asking for verification — only ask the
-player to provide them. Do NOT process refunds before identity is verified.
+player to provide them. Do NOT resolve billing issues before identity is verified.
 
 CRITICAL: Your final response to the user must contain ONLY the message intended for the customer.
 Do NOT include any internal reasoning, thinking, planning, or meta-commentary.
@@ -253,19 +257,19 @@ class SupportAgentExecutor implements AgentExecutor {
             };
             eventBus.publish(toolWorkingStatus);
 
-            // ─── Sentinel: request_information / request_verification ───
-            if (toolUse.name === 'request_information' || toolUse.name === 'request_verification') {
+            // ─── Sentinel: request_information / request_verification / offer_resolution_options ───
+            if (toolUse.name === 'request_information' || toolUse.name === 'request_verification' || toolUse.name === 'offer_resolution_options') {
               console.log(`[ReAct] Sentinel hit: ${toolUse.name} — pausing for input`);
 
               // Add synthetic tool result to close the open toolUse block
               context.addToolResult(toolUse.toolUseId, JSON.stringify({
-                status: "awaiting_verification",
-                message: "User has been asked to provide identity verification.",
+                status: "awaiting_user_response",
+                message: `User has been asked via ${toolUse.name}. Waiting for their response.`,
               }));
 
               // Inject an assistant-role summary so the follow-up user message alternates correctly
               context.addAssistantMessage([{
-                text: "I've asked the user to verify their identity. Waiting for their response.",
+                text: `I've asked the user for input via ${toolUse.name}. Waiting for their response.`,
               }]);
 
               // Save context for resume
@@ -336,25 +340,25 @@ class SupportAgentExecutor implements AgentExecutor {
                 }
               }
 
-              // Emit artifact for process_refund
-              if (toolUse.name === 'process_refund') {
+              // Emit artifact for apply_resolution
+              if (toolUse.name === 'apply_resolution') {
                 try {
-                  const refundData = JSON.parse(result);
-                  if (refundData.confirmationNumber) {
+                  const resolutionData = JSON.parse(result);
+                  if (resolutionData.confirmationNumber) {
                     const artifactEvent: TaskArtifactUpdateEvent = {
                       kind: 'artifact-update',
                       taskId: requestContext.taskId,
                       contextId,
                       artifact: {
                         artifactId: uuidv4(),
-                        name: 'Refund Receipt',
-                        parts: [{ kind: 'data', data: refundData } as DataPart],
+                        name: resolutionData.resolutionType || 'Resolution Receipt',
+                        parts: [{ kind: 'data', data: resolutionData } as DataPart],
                       },
                     };
                     eventBus.publish(artifactEvent);
                   }
                 } catch (parseErr) {
-                  // Non-JSON result from process_refund — skip artifact emission
+                  // Non-JSON result — skip artifact emission
                 }
               }
 

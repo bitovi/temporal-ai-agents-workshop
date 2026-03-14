@@ -7,7 +7,6 @@ interface MockCharge {
   item: string;
   amount: number;
   date: string;
-  duplicate?: boolean;
 }
 
 interface MockAccount {
@@ -24,7 +23,7 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
     playerName: "ValorantAce99",
     charges: [
       { id: "CHG-1001", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01" },
-      { id: "CHG-1002", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01", duplicate: true },
+      { id: "CHG-1002", item: "Episode 9 Battle Pass", amount: 9.99, date: "2026-03-01" },
     ]
   },
   "#9932": {
@@ -62,7 +61,7 @@ export function getSupportTools(): Tool[] {
     {
       toolSpec: {
         name: 'check_billing_history',
-        description: 'Get the charge history for a player account. Flags any duplicate charges.',
+        description: 'Get the charge history for a player account. Returns the raw list of charges — look for patterns like identical items charged on the same date.',
         inputSchema: {
           json: {
             type: 'object',
@@ -80,7 +79,7 @@ export function getSupportTools(): Tool[] {
     {
       toolSpec: {
         name: 'request_verification',
-        description: 'Request identity verification from the user before taking account actions. This pauses the conversation until the user provides their verification details. You MUST call this before processing any refund.',
+        description: 'Request identity verification from the user before taking account actions. This pauses the conversation until the user provides their verification details. You MUST call this before resolving any billing issue.',
         inputSchema: {
           json: {
             type: 'object',
@@ -145,8 +144,8 @@ export function getSupportTools(): Tool[] {
     },
     {
       toolSpec: {
-        name: 'process_refund',
-        description: 'Process a refund for a specific charge. Only call this after identity has been verified via verify_identity.',
+        name: 'offer_resolution_options',
+        description: 'Present the user with resolution options for a billing issue. This pauses the conversation until the user selects an option. Call this AFTER identity is verified and the billing problem is confirmed. Do NOT process a resolution without offering choices first.',
         inputSchema: {
           json: {
             type: 'object',
@@ -157,10 +156,41 @@ export function getSupportTools(): Tool[] {
               },
               charge_id: {
                 type: 'string',
-                description: 'The charge ID to refund (e.g., "CHG-1002")',
+                description: 'The charge ID in question',
+              },
+              message: {
+                type: 'string',
+                description: 'A message explaining the issue and presenting numbered resolution options. Always include these three options: (1) Full refund to original payment method, (2) Valorant Points credit worth 110% of the charge value, (3) Exclusive skin bundle + bonus VP worth 120% of the charge value.',
               },
             },
-            required: ['player_id', 'charge_id'],
+            required: ['player_id', 'charge_id', 'message'],
+          },
+        },
+      },
+    },
+    {
+      toolSpec: {
+        name: 'apply_resolution',
+        description: 'Apply the resolution option chosen by the user. Only call this after the user has selected an option via offer_resolution_options.',
+        inputSchema: {
+          json: {
+            type: 'object',
+            properties: {
+              player_id: {
+                type: 'string',
+                description: 'The player ID',
+              },
+              charge_id: {
+                type: 'string',
+                description: 'The charge ID being resolved',
+              },
+              resolution: {
+                type: 'string',
+                enum: ['refund', 'vp_credit', 'skin_bundle'],
+                description: 'The resolution type chosen by the user: "refund" for full refund, "vp_credit" for Valorant Points credit, "skin_bundle" for exclusive skin bundle + bonus VP.',
+              },
+            },
+            required: ['player_id', 'charge_id', 'resolution'],
           },
         },
       },
@@ -200,19 +230,12 @@ export function executeCheckBillingHistory(input: Record<string, any>): string {
     item: c.item,
     amount: c.amount,
     date: c.date,
-    flagged: c.duplicate ? "DUPLICATE" : undefined,
   }));
-
-  const duplicates = account.charges.filter(c => c.duplicate);
 
   return JSON.stringify({
     player_id: playerId,
     playerName: account.playerName,
     charges,
-    duplicateChargesFound: duplicates.length,
-    summary: duplicates.length > 0
-      ? `Found ${duplicates.length} duplicate charge(s) totaling $${duplicates.reduce((s, c) => s + c.amount, 0).toFixed(2)}`
-      : "No billing issues found",
   });
 }
 
@@ -241,9 +264,10 @@ export function executeVerifyIdentity(input: Record<string, any>): string {
   });
 }
 
-export function executeProcessRefund(input: Record<string, any>): string {
+export function executeApplyResolution(input: Record<string, any>): string {
   const playerId = input.player_id as string;
   const chargeId = input.charge_id as string;
+  const resolution = input.resolution as string;
   const account = MOCK_ACCOUNTS[playerId];
   
   if (!account) {
@@ -255,18 +279,50 @@ export function executeProcessRefund(input: Record<string, any>): string {
     return JSON.stringify({ error: `No charge found with ID ${chargeId}` });
   }
 
-  // Build deterministic confirmation number: RF- + numeric part of charge ID
   const numericPart = chargeId.replace('CHG-', '');
-  const receipt = {
-    confirmationNumber: `RF-${numericPart}`,
-    refundAmount: charge.amount,
-    currency: "USD",
-    originalChargeId: chargeId,
-    item: charge.item,
-    playerName: account.playerName,
-    estimatedDays: "3-5 business days",
-    status: "processed",
-  };
 
-  return JSON.stringify(receipt);
+  switch (resolution) {
+    case 'refund': {
+      return JSON.stringify({
+        confirmationNumber: `RF-${numericPart}`,
+        resolutionType: "Refund",
+        refundAmount: charge.amount,
+        currency: "USD",
+        originalChargeId: chargeId,
+        item: charge.item,
+        playerName: account.playerName,
+        estimatedDays: "3-5 business days",
+        status: "processed",
+      });
+    }
+    case 'vp_credit': {
+      const vpAmount = Math.round(charge.amount * 110);
+      return JSON.stringify({
+        confirmationNumber: `VP-${numericPart}`,
+        resolutionType: "Valorant Points Credit",
+        vpAwarded: vpAmount,
+        estimatedValue: `$${(charge.amount * 1.1).toFixed(2)}`,
+        originalChargeId: chargeId,
+        item: charge.item,
+        playerName: account.playerName,
+        status: "credited",
+      });
+    }
+    case 'skin_bundle': {
+      const bonusVp = Math.round(charge.amount * 20);
+      return JSON.stringify({
+        confirmationNumber: `SB-${numericPart}`,
+        resolutionType: "Exclusive Skin Bundle + Bonus VP",
+        skinBundle: "Radiant Crisis 012 Collection",
+        bonusVpAwarded: bonusVp,
+        estimatedValue: `$${(charge.amount * 1.2).toFixed(2)}`,
+        originalChargeId: chargeId,
+        item: charge.item,
+        playerName: account.playerName,
+        status: "granted",
+      });
+    }
+    default:
+      return JSON.stringify({ error: `Unknown resolution type: ${resolution}` });
+  }
 }
