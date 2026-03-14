@@ -2,7 +2,13 @@ import { Message, ContentBlock } from '@aws-sdk/client-bedrock-runtime';
 
 /**
  * Manages conversation context using Bedrock's native Message format.
- * Maintains ordered list of user/assistant messages with proper tool calling pattern.
+ *
+ * Bedrock requires strict alternating user/assistant roles. This class
+ * handles that constraint, including the tricky case of tool results
+ * (which must be user-role messages containing toolResult blocks).
+ *
+ * When the agent pauses for input (input-required), we inject a synthetic
+ * assistant message so the next user message doesn't violate the alternation.
  */
 export class ConversationContext {
   private messages: Message[] = [];

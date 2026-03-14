@@ -12,6 +12,18 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
 
+/**
+ * Client that starts the Agent-to-Agent workflow and sends it a test message.
+ *
+ * This demonstrates:
+ * 1. Starting a long-running Temporal workflow
+ * 2. Sending a message via signal (the user’s question)
+ * 3. Polling for the answer via a query
+ * 4. Sending an exit signal to shut down the workflow
+ *
+ * In the real chat UI (agent-chat-server), the web frontend sends signals
+ * instead of this client. This client exists for quick command-line testing.
+ */
 public class AgentToAgentClient {
 
 	public static void main(String[] args) throws Exception {
@@ -40,7 +52,7 @@ public class AgentToAgentClient {
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 				"TestUser",
-				// TODO_A2A: Experiment with different questions
+				// TODO_A2A: Experiment with different questions (billing issues, refund requests, etc.)
 				"What purchases have I made from Riot recently?",
 				LocalDateTime.now().toString());
 		workflow.receiveMessage(testMessage);

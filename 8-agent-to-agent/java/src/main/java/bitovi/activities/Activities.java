@@ -11,6 +11,17 @@ import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
 
+/**
+ * Activity interface for the ReAct agent workflow.
+ *
+ * Each method maps to one step in the reasoning cycle:
+ *   thoughtActivity     — LLM decides: answer the user or invoke a tool
+ *   actionActivity      — execute the chosen tool (including A2A calls)
+ *   observationActivity — LLM distills raw tool output into concise context
+ *   compactActivity     — summarize context when it grows too large
+ *   persistActivity     — save messages for audit/history
+ *   getTokenUsage       — estimate token count for compaction threshold
+ */
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod

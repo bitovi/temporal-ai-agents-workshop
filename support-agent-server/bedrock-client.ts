@@ -6,11 +6,6 @@ import {
   ContentBlock 
 } from '@aws-sdk/client-bedrock-runtime';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 export interface ToolUse {
   toolUseId: string;
   name: string;
@@ -32,53 +27,14 @@ const client = new BedrockRuntimeClient({
   },
 });
 
-export async function callBedrock(
-  messages: ChatMessage[],
-  systemPrompt?: string
-): Promise<string> {
-  console.log(`[Bedrock] Sending ${messages.length} message(s) to model ${process.env.AWS_MODEL_ID}`);
-  
-  const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
-  const estimatedTokens = Math.ceil(totalChars / 4);
-  console.log(`[Bedrock] Estimated tokens: ${estimatedTokens} (~${totalChars} characters)`);
-  
-  if (estimatedTokens > 12000) {
-    console.warn(`[Bedrock] WARNING: Estimated tokens (${estimatedTokens}) exceeds 12,000 token limit`);
-  }
-
-  const command = new ConverseCommand({
-    modelId: process.env.AWS_MODEL_ID as string,
-    system: systemPrompt ? [{ text: systemPrompt }] : undefined,
-    messages: messages.map((msg) => ({
-      role: msg.role,
-      content: [{ text: msg.content }],
-    })),
-  });
-
-  try {
-    const response = await client.send(command);
-    
-    const outputMessage = response.output?.message;
-    if (!outputMessage || !outputMessage.content || outputMessage.content.length === 0) {
-      throw new Error('Empty response from Bedrock API');
-    }
-
-    const textContent = outputMessage.content.find((block) => 'text' in block);
-    
-    if (!textContent || !('text' in textContent) || !textContent.text) {
-      throw new Error('No text content in Bedrock response');
-    }
-
-    const responseText = textContent.text;
-    console.log(`[Bedrock] Received response: ${responseText.substring(0, 100)}...`);
-    
-    return responseText;
-  } catch (error) {
-    console.error('[Bedrock] API call failed:', error);
-    throw error;
-  }
-}
-
+/**
+ * Call Bedrock Converse API with tool definitions.
+ *
+ * This is the core LLM call used by the support agent's ReAct loop.
+ * Bedrock's Converse API natively supports tool use: when the model wants
+ * to call a tool, it returns a `toolUse` content block instead of (or in
+ * addition to) text.
+ */
 export async function callBedrockWithTools(
   messages: Message[],
   systemPrompt: string,

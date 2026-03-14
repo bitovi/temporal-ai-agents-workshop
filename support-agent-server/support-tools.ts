@@ -1,6 +1,19 @@
 import { Tool } from '@aws-sdk/client-bedrock-runtime';
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
+/**
+ * Support agent tools and mock data.
+ *
+ * This file defines:
+ *   1. Mock account/billing data that simulates a real database
+ *   2. Bedrock tool definitions (JSON Schema) so the LLM knows what it can call
+ *   3. Tool executor functions that return mock results
+ *
+ * Key design pattern — sentinel tools:
+ *   request_verification, request_information, and offer_resolution_options
+ *   are "sentinel" tools. The LLM can call them, but they’re never routed to
+ *   executeTool(). Instead, server.ts intercepts them to emit `input-required`
+ *   status and pause the conversation, waiting for the user to respond.
+ */
 
 interface MockCharge {
   id: string;

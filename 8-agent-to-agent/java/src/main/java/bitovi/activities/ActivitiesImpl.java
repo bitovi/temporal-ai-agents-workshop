@@ -337,8 +337,10 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
-		// TODO: Implement actual token counting logic based on the context and model
-		// tokenization
-		return 1;
+		int total = 0;
+		for (String entry : context) {
+			total += ModelUtils.estimateTokenCount(entry);
+		}
+		return total;
 	}
 }

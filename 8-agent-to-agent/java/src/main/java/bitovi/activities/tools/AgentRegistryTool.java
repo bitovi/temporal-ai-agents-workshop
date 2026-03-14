@@ -15,8 +15,12 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 /**
  * A tool that searches an agent registry to find remote A2A agents by keyword.
  *
- * In production this would call a real registry web service. For this demo,
- * it uses a hardcoded in-memory list of known agents that simulates the concept.
+ * In a production system this would call a real discovery service or use the
+ * A2A protocol's .well-known/agent-card.json endpoint on known hosts.
+ * For this demo, we use a hardcoded in-memory list to simulate agent discovery.
+ *
+ * The LLM calls this tool first to find out which agents are available,
+ * then uses a2a_send_message to communicate with the chosen agent.
  */
 public class AgentRegistryTool {
     private static final Gson gson = new Gson();

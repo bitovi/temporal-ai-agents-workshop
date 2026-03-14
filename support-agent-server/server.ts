@@ -1,3 +1,19 @@
+/**
+ * Riot Games Support Agent — A2A (Agent-to-Agent) Server
+ *
+ * This is a remote A2A agent that handles billing inquiries, refunds, and
+ * account issues. It demonstrates:
+ *
+ *   1. Agent Card — advertises capabilities at .well-known/agent-card.json
+ *   2. Multi-turn conversations — uses `input-required` state to pause and
+ *      ask the caller for identity verification, then resumes on follow-up
+ *   3. Artifacts — emits structured refund receipts as DataPart artifacts
+ *   4. Opacity — the calling agent can’t see this agent’s internal tools or
+ *      reasoning; it only sees status updates and the final answer
+ *
+ * Transports: JSON-RPC (port 4000), REST (port 4000), gRPC (port 4001)
+ */
+
 import dotenv from 'dotenv';
 import express from 'express';
 import { Server, ServerCredentials } from '@grpc/grpc-js';

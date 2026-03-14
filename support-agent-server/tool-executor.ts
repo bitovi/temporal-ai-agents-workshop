@@ -6,12 +6,11 @@ import {
 } from './support-tools';
 
 /**
- * Execute a tool by name with the provided input parameters.
- * Routes to the appropriate execution function.
- * 
- * Note: request_verification, request_information, and offer_resolution_options
- * are sentinel tools — they are never routed here.
- * The server.ts ReAct loop intercepts them before execution.
+ * Routes tool names to their executor functions.
+ *
+ * Note: sentinel tools (request_verification, request_information,
+ * offer_resolution_options) are intercepted by server.ts BEFORE reaching
+ * this router. They trigger `input-required` status instead of executing.
  */
 export function executeTool(
   toolName: string,

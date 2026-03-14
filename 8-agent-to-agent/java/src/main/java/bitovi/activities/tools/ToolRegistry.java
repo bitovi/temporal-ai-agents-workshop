@@ -10,18 +10,22 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 
 /**
  * Registry for all available tools in the agent workflow.
- * Provides methods to get tool definitions for Bedrock and execute tool calls.
+ *
+ * This exercise focuses on A2A (Agent-to-Agent) communication, so only two tools
+ * are registered:
+ *   1. search_agent_registry — discover remote A2A agents by keyword
+ *   2. a2a_send_message       — send a message to a discovered agent
+ *
+ * The LLM sees these tool definitions (via getToolsAsXmlString) in the thought
+ * prompt and decides when to call them. The workflow's actionActivity routes
+ * the call here for execution.
  */
 public class ToolRegistry {
-    
-    // Map of tool names to their execution functions
-    private static final Map<String, BiFunction<String, Map<String, Object>, String>> toolExecutors = new HashMap<>();
-    
-    static {
-        // Register built-in tool executors
-        toolExecutors.put("brave_search", BraveSearchTool::execute);
-        toolExecutors.put("fetch_webpage", FetchWebpageTool::execute);
 
+    /** Map of tool names → execution functions. */
+    private static final Map<String, BiFunction<String, Map<String, Object>, String>> toolExecutors = new HashMap<>();
+
+    static {
         // A2A agent discovery and communication
         toolExecutors.put("search_agent_registry", AgentRegistryTool::execute);
         toolExecutors.put("a2a_send_message", A2ATool::execute);
@@ -29,15 +33,13 @@ public class ToolRegistry {
 
     /**
      * Get all Bedrock tool definitions for the agent.
-     * These are used to configure the AI model with available tools.
-     * 
-     * @return List of AWS Bedrock Tool objects
+     * These are serialized to XML and injected into the thought prompt so the LLM
+     * knows what tools it can invoke.
+     *
+     * @return List of AWS Bedrock Tool schema objects
      */
     public static List<Tool> getAllBedrockTools() {
         List<Tool> tools = new ArrayList<>();
-        // Note: The actual tool definitions are currently commented out to narrow the example's focus on A2A communication.
-        // tools.add(BraveSearchTool.getBedrockTool());
-        // tools.add(FetchWebpageTool.getBedrockTool());
         tools.add(AgentRegistryTool.getBedrockTool());
         tools.add(A2ATool.getBedrockTool());
         return tools;
