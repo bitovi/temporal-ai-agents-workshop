@@ -12,11 +12,11 @@ The Agent-to-Agent Protocol is an open standard created by Google that enables A
 
 A2A defines standard 'agent cards', authentication and authorization mechanisums for controlling access between agents. It also provides the ability for agents to collaborate on long-running tasks without exposing their internal state to each other.
 
-We will look at using AWS Bedrock AgentCore which supports the A2A Protocol in its Strands Agent SDK.
+In this exercise, our personal assistant agent (Java/Temporal) uses the [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk) as a client to communicate with a remote Riot Games support agent (TypeScript) built with the [A2A JS SDK](https://github.com/a2aproject/a2a-js).
 
 ### How it works
 
-With the built-in A2A support in Strands Agents you can easily expose an agent as an A2A server and communicate from a Strands Agent to other A2A agents.
+The A2A protocol follows a client-server model. Our personal assistant is the A2A **client** and the support agent is the A2A **server**.
 
 The Agent2Agent protocol consists of several building blocks for agent interactions:
 
@@ -63,114 +63,50 @@ Both protocols are meant to complement each other. For example, a retail store m
 
 ### Agent Card
 
-TODO: This has changed a bit since it was originally written see: https://github.com/a2aproject/a2a-js and https://github.com/repkam09/telegram-gpt-bot/blob/temporal-worker/src/client/a2a.ts
+The support agent in this exercise advertises itself via an agent card at `.well-known/agent-card.json`. You can see the card definition in `support-agent-server/server.ts`. Here's what it looks like:
 
 ```ts
-const movieAgentCard: AgentCard = {
-  name: "Movie Agent",
-  description:
-    "An agent that can answer questions about movies and actors using TMDB.",
+const agentCard: AgentCard = {
+  name: "Riot Games Support Agent",
+  description: "Handles billing inquiries, refunds, and account issues for Riot Games.",
   protocolVersion: "0.3.0",
-  version: "0.1.0",
-  url: "http://localhost:4000/a2a/jsonrpc", // The public URL of your agent server
+  url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`,
   skills: [
     {
-      id: "general_movie_chat",
-      name: "General Movie Chat",
-      description:
-        "Answer general questions or chat about movies, actors, directors.",
-      tags: ["movies", "actors", "directors"],
-      examples: [
-        "Tell me about the plot of Inception.",
-        "Recommend a good sci-fi movie.",
-        "Who directed The Matrix?",
-        "What other movies has Scarlett Johansson been in?",
-        "Find action movies starring Keanu Reeves",
-        "Which came out first, Jurassic Park or Terminator 2?",
-      ],
-      inputModes: ["text"], // Explicitly defining for skill
-      outputModes: ["text", "task-status"], // Explicitly defining for skill
+      id: "billing",
+      name: "Billing Support",
+      description: "Refunds, duplicate charges, payment issues",
+    },
+    {
+      id: "account",
+      name: "Account Support",
+      description: "Account verification, password resets",
     },
   ],
-  capabilities: {
-    pushNotifications: false,
-  },
   defaultInputModes: ["text"],
-  defaultOutputModes: ["text"],
+  defaultOutputModes: ["text", "data"],
   additionalInterfaces: [
-    { url: "http://localhost:4000/a2a/jsonrpc", transport: "JSONRPC" }, // Default JSON-RPC transport
-    { url: "http://localhost:4000/a2a/rest", transport: "HTTP+JSON" }, // HTTP+JSON/REST transport
-    { url: "localhost:4001", transport: "GRPC" }, // GRPC transport
+    { url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`, transport: "JSONRPC" },
+    { url: `http://${HOST}:${HTTP_PORT}/a2a/rest`, transport: "HTTP+JSON" },
+    { url: `${HOST}:${GRPC_PORT}`, transport: "GRPC" },
   ],
 };
 ```
 
 ### A2A Server
 
-https://github.com/a2aproject/a2a-samples/tree/main/samples/js
+The support agent server lives in `support-agent-server/` and follows the same pattern as the [A2A JS SDK samples](https://github.com/a2aproject/a2a-samples/tree/main/samples/js). The key components are:
 
-https://github.com/a2aproject/a2a-js
+1. **TaskStore** — `InMemoryTaskStore` tracks task state across requests
+2. **AgentExecutor** — implements the `execute()` method where the agent's ReAct loop runs; publishes status updates and artifacts via `ExecutionEventBus`
+3. **DefaultRequestHandler** — wires the agent card, task store, and executor together
+4. **Express middleware** — `agentCardHandler`, `jsonRpcHandler`, and `restHandler` expose the A2A endpoints
 
-Taking a look at one of the sample A2A servers, such as the Movie Agent, we can see how to set up an A2A server using TypeScript and Express.
-
-```ts
-// 1. Create TaskStore
-const taskStore: TaskStore = new InMemoryTaskStore();
-
-// 2. Create AgentExecutor
-class MovieAgentExecutor implements AgentExecutor {
-  async execute(
-    requestContext: RequestContext,
-    eventBus: ExecutionEventBus,
-  ): Promise<void> {
-    // Here we would perform the actual work to process the incoming request with our Movie Agent's capabilities,
-    // such as querying a movie database and generating a response.
-    const responseMessage: Message = {
-      kind: "message",
-      messageId: randomUUID(),
-      role: "agent",
-      parts: [
-        { kind: "text", text: "This is the answer about your movie question!" },
-      ],
-      // Associate the response with the incoming request's context.
-      contextId: requestContext.contextId,
-    };
-
-    // Publish the message and signal that the interaction is finished.
-    eventBus.publish(responseMessage);
-    eventBus.finished();
-  }
-
-  // cancelTask is not needed for this simple, non-stateful agent.
-  cancelTask = async (): Promise<void> => {};
-}
-
-const agentExecutor: AgentExecutor = new MovieAgentExecutor();
-
-// 3. Create DefaultRequestHandler
-const requestHandler = new DefaultRequestHandler(
-  movieAgentCard,
-  taskStore,
-  agentExecutor,
-);
-
-// 4. Create and start Express server with A2A middleware handlers
-const app = express();
-
-app.use(
-  `/${AGENT_CARD_PATH}`,
-  agentCardHandler({ agentCardProvider: requestHandler }),
-);
-app.use(
-  "/a2a/rest",
-  restHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }),
-);
-
-app.listen(4000, () => {
-  console.log(`🚀 Server started on http://localhost:4000`);
-});
-```
+The support agent uses **sentinel tools** (`request_verification`, `request_information`, `offer_resolution_options`) that don't execute a function — instead, they trigger an `input-required` pause in the A2A protocol, waiting for the caller to respond. See `support-agent-server/server.ts` and `support-agent-server/support-tools.ts` for the full implementation.
 
 ### Sample Code
 
-https://github.com/a2aproject/a2a-samples
+- [A2A Protocol Spec](https://github.com/a2aproject/a2a-spec)
+- [A2A JS SDK](https://github.com/a2aproject/a2a-js)
+- [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk)
+- [A2A Sample Agents](https://github.com/a2aproject/a2a-samples)
