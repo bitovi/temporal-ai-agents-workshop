@@ -139,6 +139,15 @@ public class A2ATool {
         List<Map<String, Object>> collectedArtifacts = new ArrayList<>();
         String agentName = conn.card().name();
 
+        // Capture workflowId on the activity thread — streaming callbacks run on the
+        // A2A SDK's own threads where Activity.getExecutionContext() is not available.
+        String capturedWorkflowId = null;
+        try {
+            capturedWorkflowId = io.temporal.activity.Activity.getExecutionContext().getInfo().getWorkflowId();
+        } catch (Exception ignored) { }
+        final Map<String, Object> wfMeta = capturedWorkflowId != null
+                ? Map.of("workflowId", capturedWorkflowId) : null;
+
         List<BiConsumer<ClientEvent, AgentCard>> consumers = List.of(
             (event, card) -> {
                 try {
@@ -151,7 +160,7 @@ public class A2ATool {
                             System.out.println("[A2ATool:" + agentName + "] Status: " + state + " — " + statusMsg);
 
                             if (state == TaskState.WORKING) {
-                                EventClient.emitEvent("a2a_working", statusMsg);
+                                EventClient.emitEvent("a2a_working", statusMsg, wfMeta);
 
                             } else if (state == TaskState.INPUT_REQUIRED) {
                                 String returnTaskId = tsue.getTaskId();
@@ -160,6 +169,7 @@ public class A2ATool {
                                 Map<String, Object> irData = new HashMap<>();
                                 irData.put("taskId", returnTaskId);
                                 irData.put("contextId", returnContextId);
+                                if (wfMeta != null) irData.putAll(wfMeta);
                                 EventClient.emitEvent("a2a_input_required", statusMsg, irData);
 
                                 Map<String, Object> result = new HashMap<>();
@@ -171,7 +181,7 @@ public class A2ATool {
                                 latch.countDown();
 
                             } else if (state == TaskState.COMPLETED) {
-                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(statusMsg));
+                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(statusMsg), wfMeta);
 
                                 Map<String, Object> result = new HashMap<>();
                                 result.put("status", "completed");
@@ -183,7 +193,7 @@ public class A2ATool {
                                 latch.countDown();
 
                             } else if (state == TaskState.FAILED) {
-                                EventClient.emitEvent("a2a_failed", statusMsg);
+                                EventClient.emitEvent("a2a_failed", statusMsg, wfMeta);
 
                                 Map<String, Object> result = new HashMap<>();
                                 result.put("status", "failed");
@@ -208,11 +218,13 @@ public class A2ATool {
                                         if (dataPart.getData() != null) {
                                             eventData.putAll(dataPart.getData());
                                         }
+                                        if (wfMeta != null) eventData.putAll(wfMeta);
                                         EventClient.emitEvent("a2a_artifact", artifact.name(), eventData);
                                     } else if (part instanceof TextPart textPart) {
                                         artifactMap.put("text", textPart.getText());
-                                        EventClient.emitEvent("a2a_artifact", textPart.getText(),
-                                                Map.of("title", artifact.name()));
+                                        Map<String, Object> textArtData = new HashMap<>(Map.of("title", artifact.name()));
+                                        if (wfMeta != null) textArtData.putAll(wfMeta);
+                                        EventClient.emitEvent("a2a_artifact", textPart.getText(), textArtData);
                                     }
                                 }
                             }
@@ -256,14 +268,15 @@ public class A2ATool {
                             if ("input-required".equals(stateStr)) {
                                 result.put("taskId", task.getId());
                                 result.put("contextId", task.getContextId());
-                                EventClient.emitEvent("a2a_input_required", text,
-                                        Map.of("taskId", task.getId(), "contextId", task.getContextId()));
+                                Map<String, Object> irEvtData = new HashMap<>(Map.of("taskId", task.getId(), "contextId", task.getContextId()));
+                                if (wfMeta != null) irEvtData.putAll(wfMeta);
+                                EventClient.emitEvent("a2a_input_required", text, irEvtData);
                             } else if ("working".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_working", text);
+                                EventClient.emitEvent("a2a_working", text, wfMeta);
                             } else if ("completed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(text));
+                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(text), wfMeta);
                             } else if ("failed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_failed", text);
+                                EventClient.emitEvent("a2a_failed", text, wfMeta);
                             }
 
                             if (!collectedArtifacts.isEmpty()) {
@@ -287,6 +300,11 @@ public class A2ATool {
         );
 
         Consumer<Throwable> errorHandler = error -> {
+            if (error == null) {
+                // null signals normal SSE stream completion
+                latch.countDown();
+                return;
+            }
             System.err.println("[A2ATool:" + agentName + "] Error: " + error.getMessage());
             errorRef.set(error.getMessage());
             latch.countDown();

@@ -127,6 +127,7 @@ const supportAgentCard: AgentCard = {
   ],
   capabilities: {
     pushNotifications: false,
+    streaming: true,
   },
   defaultInputModes: ['text'],
   defaultOutputModes: ['text', 'data'],
