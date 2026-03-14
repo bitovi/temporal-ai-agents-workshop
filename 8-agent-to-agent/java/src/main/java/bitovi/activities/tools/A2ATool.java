@@ -87,11 +87,11 @@ public class A2ATool {
             if (isResume) {
                 message = A2A.createUserTextMessage(messageText, contextId, taskId);
                 EventClient.emitEvent("a2a_task_resumed", "Resumed task with " + conn.card().name(),
-                        Map.of("taskId", taskId));
+                        Map.of("taskId", taskId, "agentName", conn.card().name()));
             } else {
                 message = A2A.toUserMessage(messageText);
-                EventClient.emitEvent("a2a_task_submitted", "Opened task with " + conn.card().name(),
-                        Map.of("message", messageText));
+                EventClient.emitEvent("a2a_task_submitted", messageText,
+                        Map.of("message", messageText, "agentName", conn.card().name()));
             }
 
             return sendAndCollect(conn, message);
@@ -145,8 +145,13 @@ public class A2ATool {
         try {
             capturedWorkflowId = io.temporal.activity.Activity.getExecutionContext().getInfo().getWorkflowId();
         } catch (Exception ignored) { }
-        final Map<String, Object> wfMeta = capturedWorkflowId != null
-                ? Map.of("workflowId", capturedWorkflowId) : null;
+        final Map<String, Object> wfMeta;
+        {
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("agentName", agentName);
+            if (capturedWorkflowId != null) meta.put("workflowId", capturedWorkflowId);
+            wfMeta = meta;
+        }
 
         List<BiConsumer<ClientEvent, AgentCard>> consumers = List.of(
             (event, card) -> {
@@ -169,7 +174,7 @@ public class A2ATool {
                                 Map<String, Object> irData = new HashMap<>();
                                 irData.put("taskId", returnTaskId);
                                 irData.put("contextId", returnContextId);
-                                if (wfMeta != null) irData.putAll(wfMeta);
+                                irData.putAll(wfMeta);
                                 EventClient.emitEvent("a2a_input_required", statusMsg, irData);
 
                                 Map<String, Object> result = new HashMap<>();
@@ -218,12 +223,12 @@ public class A2ATool {
                                         if (dataPart.getData() != null) {
                                             eventData.putAll(dataPart.getData());
                                         }
-                                        if (wfMeta != null) eventData.putAll(wfMeta);
+                                        eventData.putAll(wfMeta);
                                         EventClient.emitEvent("a2a_artifact", artifact.name(), eventData);
                                     } else if (part instanceof TextPart textPart) {
                                         artifactMap.put("text", textPart.getText());
                                         Map<String, Object> textArtData = new HashMap<>(Map.of("title", artifact.name()));
-                                        if (wfMeta != null) textArtData.putAll(wfMeta);
+                                        textArtData.putAll(wfMeta);
                                         EventClient.emitEvent("a2a_artifact", textPart.getText(), textArtData);
                                     }
                                 }
@@ -269,14 +274,14 @@ public class A2ATool {
                                 result.put("taskId", task.getId());
                                 result.put("contextId", task.getContextId());
                                 Map<String, Object> irEvtData = new HashMap<>(Map.of("taskId", task.getId(), "contextId", task.getContextId()));
-                                if (wfMeta != null) irEvtData.putAll(wfMeta);
+                                irEvtData.putAll(wfMeta);
                                 EventClient.emitEvent("a2a_input_required", text, irEvtData);
                             } else if ("working".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_working", text, wfMeta);
+                                EventClient.emitEvent("a2a_working", text, new HashMap<>(wfMeta));
                             } else if ("completed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(text), wfMeta);
+                                EventClient.emitEvent("a2a_completed", cleanCompletedSummary(text), new HashMap<>(wfMeta));
                             } else if ("failed".equals(stateStr)) {
-                                EventClient.emitEvent("a2a_failed", text, wfMeta);
+                                EventClient.emitEvent("a2a_failed", text, new HashMap<>(wfMeta));
                             }
 
                             if (!collectedArtifacts.isEmpty()) {

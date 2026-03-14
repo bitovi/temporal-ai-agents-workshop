@@ -192,6 +192,16 @@ function flushEventBuffer() {
     return (a.sequence || 0) - (b.sequence || 0);
   });
   
+  // Remove a2a_working events that immediately precede an a2a_input_required event
+  // with overlapping content (the working event typically shows the tool call that
+  // produced the input_required response, so it's redundant).
+  eventBuffer = eventBuffer.filter((ev, i, arr) => {
+    if (ev.type !== 'a2a_working') return true;
+    const next = arr[i + 1];
+    if (next && next.type === 'a2a_input_required') return false;
+    return true;
+  });
+  
   // Add all events to DOM
   const eventsDiv = document.getElementById('events');
   // Re-append hint after new events so it stays last
@@ -224,10 +234,27 @@ function flushEventBuffer() {
 
     const labelEl = document.createElement('span');
     labelEl.className = 'event-label';
-    // Title-case the label (e.g. "user_message" → "User Message")
-    let labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    // Fix "A2a" → "A2A" for protocol name
-    labelText = labelText.replace(/\bA2a\b/g, 'A2A');
+
+    // Build label text — A2A events get special formatting with remote agent name
+    let labelText;
+    const a2aAgent = data.agentName || '';
+    const a2aLabels = {
+      a2a_discovery:      'A2A Discovery',
+      a2a_task_submitted: a2aAgent ? `A2A: Task submitted to ${a2aAgent}` : 'A2A: Task Submitted',
+      a2a_task_resumed:   a2aAgent ? `A2A: Task resumed with ${a2aAgent}` : 'A2A: Task Resumed',
+      a2a_working:        a2aAgent ? `A2A: ${a2aAgent} working` : 'A2A: Remote Agent Working',
+      a2a_input_required: a2aAgent ? `A2A: ${a2aAgent} needs input` : 'A2A: Input Required',
+      a2a_artifact:       a2aAgent ? `A2A: Artifact from ${a2aAgent}` : 'A2A: Artifact',
+      a2a_completed:      a2aAgent ? `A2A: ${a2aAgent} completed` : 'A2A: Task Completed',
+      a2a_failed:         a2aAgent ? `A2A: ${a2aAgent} failed` : 'A2A: Task Failed',
+    };
+    const typeLower = data.type.toLowerCase();
+    if (a2aLabels[typeLower]) {
+      labelText = a2aLabels[typeLower];
+    } else {
+      // Title-case the label (e.g. "user_message" → "User Message")
+      labelText = data.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
     labelEl.textContent = labelText + (emoji ? ' ' + emoji : '');
 
     const msgEl = document.createElement('div');
