@@ -76,23 +76,25 @@ Modern memory systems use multiple specialized strategies. Understanding when to
 
 A well-architected system uses multiple strategies simultaneously. Semantic facts and user preferences are queried based on relevance to the current conversation. Episodic memories provide deeper context for similar situations. Summaries offer broad continuity. The agent's memory retrieval step can query across all of these and inject the most relevant records into the working context.
 
+TODO: Come back to this section and re-order a bit around custom implementation and other existing libraries.
+<!--
 ### Specialized Memory Tiers
 
 For infinitely long conversations, modern agent architectures employ additional specialized memory types beyond the strategies above.
 
 **Graph Memory (Mem0g)** captures complex relational structures between conversational elements (entities as nodes, relationships as edges). Excellent for multi-hop reasoning and temporal queries. Uses Neo4j or similar graph database to model facts like: (User, lives_in, Austin).
 
-TODO: Write more about the specifics of how Mem0 works. Not just the Graph Memory.
+TODO: Write more about the specifics of how Mem0 works. Not just the Graph Memory. -->
 
-### High-level Design for Production Systems
+<!-- ### High-level Design for Production Systems
 
 - **Working memory:** small rolling window (e.g., last 12-20 turns) + the current scratchpad/tool traces. Used directly in prompts. Hard cap in tokens.
 - **Episodic memory:** append-only chronological events (user/agent messages, tool outcomes, decisions) chunked and immutable. Think log segments with indices.
 - **Semantic memory:** de-duplicated facts, entities, preferences, skills, constraints, and long-lived objectives extracted from Episodic Memory, stored as structured records + embeddings.
 - **Indexes:** hybrid retrieval (BM25/Full-Text + vector). Relevance = alpha _ similarity + beta _ recency + gamma \* importance.
-- **Consolidation:** background/cron Temporal Workflows that distill Episodic Memory to Semantic Memory, refresh embeddings, decay stale items, and maintain hierarchical summaries.
+- **Consolidation:** background/cron Temporal Workflows that distill Episodic Memory to Semantic Memory, refresh embeddings, decay stale items, and maintain hierarchical summaries. -->
 
-### Dynamic Memory Management
+<!-- ### Dynamic Memory Management
 
 The biggest architectural improvement over simple summarization is replacing periodic compression with dynamic, intelligent memory management that can evolve over time. You can integrate these processes using Temporal Workflows or separate background services.
 
@@ -104,7 +106,276 @@ The biggest architectural improvement over simple summarization is replacing per
    - DELETE: Remove memories that are contradicted by new information, ensuring temporal consistency.
    - NOOP: Ignore facts that are already present or irrelevant.
 
-3. **Self-Adaptive Reorganization (EVOLVE-MEM):** The EVOLVE-MEM architecture utilizes a Self-Improvement Engine that continuously monitors performance (accuracy, retrieval latency, coverage) and automatically triggers memory reorganization, such as dynamic clustering or parameter tuning, when thresholds are exceeded. This ensures the memory structure remains relevant as the agent's experience grows.
+3. **Self-Adaptive Reorganization (EVOLVE-MEM):** The EVOLVE-MEM architecture utilizes a Self-Improvement Engine that continuously monitors performance (accuracy, retrieval latency, coverage) and automatically triggers memory reorganization, such as dynamic clustering or parameter tuning, when thresholds are exceeded. This ensures the memory structure remains relevant as the agent's experience grows. -->
+
+## Implementing Memory in a Temporal Agent
+
+If we wanted to design a memory system from scratch we need to start with a few parts
+
+1. Core Extraction Layer: An LLM powered function that takes conversation messages + existing memories as input and returns a list of memory operations (Add, Update, Delete, No-op) with the content to be stored or updated.
+
+2. Stateful Memory Store: A wrapper around the Core that handles searching the existing memory for relevant memories to feed into the extraction function, and then executes the operations determined by the Core.
+
+- This could be built on top of any storage solution we want, vector, graph, or relational database.
+
+### Asynchronous Memory Persistence with Temporal Workflows
+
+We don't want to slow down our Agent's response time by making it wait for memory extraction and consolidation during the critical path of actually responding to the user. Instead, we can create a Temporal Workflow that runs asynchronously once the current session with the user is complete. This workflow would take the full conversation history as input, run the memory extraction function, and then update the long-term memory store accordingly. This way, the agent can respond to the user immediately while still ensuring that important information is extracted and remembered for future interactions.
+
+In this situation we can rely on our Short Term Memory and existing Working Context to provide the necessary information for the current interaction, while the Long Term Memory is being updated in the background for future interactions. Most of the time this will be sufficient for maintaining a coherent and contextually relevant conversation with the user.
+
+Because our Agent Workflow already has logic to track when the Working Context is getting full, if we do end up getting close to the limit we could trigger this background memory processing in a synchronous way right before we do compaction. This way we ensure that we extract as much information as possible before we lose any details due to compaction.
+
+Our workflow might look something like this:
+
+The User sends a message. The Agent generates a response immediately based on our existing Agent Workflow logic. Once an answer has been reached we can signal a `MemoryExtractionWorkflow` with the user message and the corresponding assistant message. This Workflow runs asynchronously keeping a timer running in the background. This Workflow will collect messages from the ongoing conversation and after a certain period of inactivity it will wake up and run the memory extraction with the full conversation that it has collected.
+
+The resulting memories are then persisted to the long-term memory store, making them available for retrieval in future interactions.
+
+This delayed workflow approach allows us to balance responsiveness with the need for memory persistence and ensures that we are not blocking the main agent interaction flow while still maintaining a robust memory system. The timer also acts as a method of 'debouncing' the memory extraction, ensuring that we only run it once the user has finished their current line of thought and is less likely to immediately follow up with additional messages that would be relevant to the same memory extraction process.
+
+### Memory Extraction Activity
+
+When our background `MemoryExtractionWorkflow` wakes up after the timer, it will execute an Activity that takes the collected conversation messages as input and runs them through the memory extraction function. This function will analyze the conversation and determine what information should be added, updated, or deleted in the long-term memory store. The same pipeline can be used for all the different memory strategy types (semantic, user preference, episodic, summary) by simply changing the prompt and output format of the extraction function.
+
+Step 1: Search for Relevant Existing Memories
+
+- Use the current conversation messages to query the long-term memory store for any relevant existing memories. This can be done using a vector search if we are using a vector database, or a keyword search if we are using a relational database.
+- The retrieved memories will provide context for the extraction function to determine if the new information is genuinely new (Add), complementary to existing information (Update), or already covered (No-op).
+
+Step 2: Prepare the LLM Prompt
+
+- We provide some instructions 'You are a long-term memory manager maintaining a core store of semantic, procedural, and episodic memory...'
+- We provide the full conversation wrapped in XML tags indicating the role, USER or ASSISTANT, and the timestamp of each message.
+- We will also provide a set of memory management Tool Definitions
+
+For example, here is the prompt that LangMem uses for its memory extraction function:
+
+```plain
+You are a long-term memory manager maintaining a core store of semantic, procedural, and episodic memory. These memories power a life-long learning agent's core predictive model.
+
+What should the agent learn from this interaction about the user, itself, or how it should act? Reflect on the input trajectory and current memories (if any).
+
+1. **Extract & Contextualize**
+   - Identify essential facts, relationships, preferences, reasoning procedures, and context
+   - Caveat uncertain or suppositional information with confidence levels (p(x)) and reasoning
+   - Quote supporting information when necessary
+
+2. **Compare & Update**
+   - Attend to novel information that deviates from existing memories and expectations.
+   - Consolidate and compress redundant memories to maintain information-density; strengthen based on reliability and recency; maximize SNR by avoiding idle words.
+   - Remove incorrect or redundant memories while maintaining internal consistency
+
+3. **Synthesize & Reason**
+   - What can you conclude about the user, agent ("I"), or environment using deduction, induction, and abduction?
+   - What patterns, relationships, and principles emerge about optimal responses?
+   - What generalizations can you make?
+   - Qualify conclusions with probabilistic confidence and justification
+
+As the agent, record memory content exactly as you'd want to recall it when predicting how to act or respond.
+Prioritize retention of surprising (pattern deviation) and persistent (frequently reinforced) information, ensuring nothing worth remembering is forgotten and nothing false is remembered. Prefer dense, complete memories over overlapping ones.
+```
+
+In order to make the existing memories available to the LLM during extraction, we can inject them into the prompt in a structured way.
+
+```xml
+<existing>
+  <instance id=ed13a880-e437-4ea8-b175-5f147542b1b9 schema_type="PreferenceMemory">
+    {'category': 'interface_preferences', 'preference': 'dark_mode', 'context': 'user prefers dark mode interface for all applications'}
+  </instance>
+  <instance id=a7b3c901-def4-5678-9012-abcdef123456 schema_type="Memory">
+    {'content': 'User works at Acme Corp in the ML team'}
+  </instance>
+</existing>
+```
+
+Step 3: Tool Calling
+
+- We provide a set of Tool Definitions that the LLM can choose to call. For 'Add' operations we can have a generic 'AddMemory' tool that takes the content to be added as input. For 'Update' and 'Delete' operations we will require a memoryId to specify which existing memory is being targeted.
+  - One way to do this is to actually generate tool calls for each relevant memory that we fetched. This makes 'Update' and 'Delete' operations easier because the LLM can just choose to call the corresponding tool.
+  - Depending on our implementation, we may also want to provide a 'Done' tool that the LLM can call when it decides it has no more operations to perform.
+- We want to enable Parallel Tool Calling so that the LLM can choose to perform multiple operations in the same response.
+- Depending on our implementation, we may perform multiple rounds of memory extraction by feeding the output memories from the first round back into the prompt for a second round, allowing the LLM to iteratively refine its memory operations and call 'Done' when it decides it has completed all necessary operations.
+
+Tool Definitions:
+
+#### User Preference Memory Tool Definition
+
+```json
+{
+  "name": "PreferenceMemory",
+  "description": "Store the user's preference",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "category": { "type": "string" },
+      "preference": { "type": "string" },
+      "context": { "type": "string" }
+    },
+    "required": ["category", "preference", "context"]
+  }
+}
+```
+
+Example LLM Output
+
+```json
+{
+  "name": "PreferenceMemory",
+  "input": {
+    "category": "user_interface",
+    "preference": "prefers dark mode",
+    "context": "User prefers dark mode for all applications and websites, especially during nighttime usage."
+  }
+}
+```
+
+#### Semantic Memory Tool Definition
+
+```json
+{
+  "name": "SemanticMemory",
+  "description": "Store a factual relationship between two entities. Use multi-tool calling to record multiple facts.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "description": "The entity the fact is about"
+      },
+      "predicate": {
+        "type": "string",
+        "description": "The relationship or attribute"
+      },
+      "object": {
+        "type": "string",
+        "description": "The related entity or value"
+      },
+      "context": {
+        "type": "string",
+        "description": "Supporting context or source of this fact"
+      }
+    },
+    "required": ["subject", "predicate", "object"]
+  }
+}
+```
+
+```json
+[
+  {
+    "name": "SemanticMemory",
+    "input": {
+      "subject": "User",
+      "predicate": "lives_in",
+      "object": "San Francisco",
+      "context": "Recently moved from NYC"
+    }
+  },
+  {
+    "name": "SemanticMemory",
+    "input": {
+      "subject": "User",
+      "predicate": "works_at",
+      "object": "Acme Corp",
+      "context": "Joined the ML team"
+    }
+  }
+]
+```
+
+#### Episodic Memory Tool Definition
+
+```json
+{
+  "name": "EpisodicMemory",
+  "description": "Capture a successful interaction pattern including the reasoning that made it work. Use multi-tool calling to record multiple episodes.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "observation": {
+        "type": "string",
+        "description": "The situation and relevant context — what happened"
+      },
+      "thoughts": {
+        "type": "string",
+        "description": "Key considerations and reasoning process that led to success"
+      },
+      "action": {
+        "type": "string",
+        "description": "What was done in response and how"
+      },
+      "result": {
+        "type": "string",
+        "description": "What happened and why it worked"
+      }
+    },
+    "required": ["observation", "thoughts", "action", "result"]
+  }
+}
+```
+
+Example Output:
+
+```json
+[
+  {
+    "name": "EpisodicMemory",
+    "input": {
+      "observation": "User asked about binary trees. Mentioned familiarity with family trees.",
+      "thoughts": "User has a concrete mental model (family trees) that maps well to the CS concept. Bridging to a known analogy will accelerate understanding.",
+      "action": "Explained binary trees using family tree analogy: each parent has at most 2 children. Drew ASCII diagram with familiar names (Bob, Amy, Carl).",
+      "result": "User immediately grasped the concept and independently extended the analogy to binary search trees ('organizing a family by age'). Analogies to known domains are effective for this user."
+    }
+  }
+]
+```
+
+#### Example to remove a Memory by Id
+
+```json
+{
+  "name": "RemoveMemory",
+  "description": "Use this tool to remove (delete) a memory by its ID.",
+  "input_schema": {
+    "type": "object",
+    "required": ["memoryId"],
+    "properties": {
+      "memoryId": {
+        "type": "string",
+        "description": "ID of the memory to remove. Must be one of: ('c3d551fa097b5ec09ad37057950fb0b1',)"
+      }
+    }
+  }
+}
+```
+
+### Example Done Tool Definition
+
+```json
+{
+  "name": "Done",
+  "description": "Only call this tool once you are done forming & consolidating memories. Before that, continue to refine existing memories by patching and removing them or create new ones.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}
+```
+
+Step 4: Execute Memory Operations
+
+- Now that we have collected the memory operations determined by the LLM, we can execute them against our long-term memory store.
+
+### Memory Storage Architecture
+
+Each memory record that we store should have a few key pieces of information:
+
+- memoryId: a unique identifier for the memory record, used for updates and deletes
+- namespace: a hierarchical 'path' that categorizes the memory (/strategies/semantic/actors/{actorId}/sessions/{sessionId})
+  - We can see an example of this when we look at at the AgentCore Memory configuration
+- value: the actual content of the memory, which can be a simple text string for semantic memory, or a more complex JSON object for episodic memory that captures the sequence of events and their relationships
 
 ## How Memory Integrates with the Temporal Agent
 
