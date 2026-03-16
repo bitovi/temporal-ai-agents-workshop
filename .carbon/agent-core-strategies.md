@@ -57,7 +57,7 @@ public static CreateMemoryResponse createMemory() {
 
     CreateMemoryRequest request = CreateMemoryRequest.builder()
                     .name(MEMORY_ID)
-                    .description("This is an example that handles only Semantic Memories")
+                    .description("This is an example that handles only User Preference Memories")
                     .eventExpiryDuration(30) // Events expire after 30 days
                     .memoryStrategies(
                         MemoryStrategyInput.builder()
@@ -74,7 +74,62 @@ public static CreateMemoryResponse createMemory() {
 }
 ```
 
+## Episodic Memory Resource
 
+```java
+public static CreateMemoryResponse createMemory() {
+    BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()
+
+    CreateMemoryRequest request = CreateMemoryRequest.builder()
+                    .name(MEMORY_ID)
+                    .description("This is an example that handles only Episodic Memories")
+                    .eventExpiryDuration(30) // Events expire after 30 days
+                    .memoryStrategies(
+                        MemoryStrategyInput.builder()
+                            .episodicMemoryStrategy(
+                                EpisodicMemoryStrategyInput.builder()
+                                    .name("Episodic")
+                                    .description("Stores temporal sequences of events")
+                                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                                    .reflectionConfiguration(
+                                        EpisodicReflectionConfigurationInput.builder()
+                                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                                        .build())
+                                    .build())
+                                .build())
+                    .build();
+
+    CreateMemoryResponse response = controlClient.createMemory(request);
+    return response;
+}
+```
+
+## Summary Memory
+
+```java
+public static CreateMemoryResponse createMemory() {
+    BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()
+
+    CreateMemoryRequest request = CreateMemoryRequest.builder()
+        .name(MEMORY_ID)
+        .description("This is an example that handles only Summary Memories")
+        .eventExpiryDuration(30) // Events expire after 30 days
+        .memoryStrategies(
+            MemoryStrategyInput.builder()
+                .summaryMemoryStrategy(
+                    SummaryMemoryStrategyInput.builder()
+                        .name("Summary")
+                        .description("Maintains summarized conversation history")
+                        .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                    .build())
+                .build())
+            .build();
+    CreateMemoryResponse response = controlClient.createMemory(request);
+    return response;
+}
+```
+
+## Original Code
 
 ```java
 public static CreateMemoryResponse createMemory() {
