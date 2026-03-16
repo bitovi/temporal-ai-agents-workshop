@@ -10,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.json.JSONObject;
 
-import bitovi.common.Config;
 import io.temporal.activity.Activity;
 
 /**

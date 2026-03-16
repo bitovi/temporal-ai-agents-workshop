@@ -25,7 +25,7 @@ try {
 
 			// Convert ContextEntry list to XML strings for LLM prompt
 			List<String> contextStrings = context.stream()
-					.map(ContextEntry::toXmlString)
+					.map(ContextEntry::toXMLString)
 					.collect(Collectors.toList());
 
 			// Truncate context
