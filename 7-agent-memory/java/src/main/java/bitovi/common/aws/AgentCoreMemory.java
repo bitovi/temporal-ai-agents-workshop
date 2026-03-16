@@ -72,7 +72,7 @@ public class AgentCoreMemory {
                         List<PayloadType> payloads = entries.stream()
                                         .map(entry -> {
                                                 Conversational conversational = Conversational.builder()
-                                                                .content(Content.fromText(entry.toXmlString()))
+                                                                .content(Content.fromText(entry.toXMLString()))
                                                                 .role(entry.role())
                                                                 .build();
                                                 return PayloadType.builder().conversational(conversational).build();

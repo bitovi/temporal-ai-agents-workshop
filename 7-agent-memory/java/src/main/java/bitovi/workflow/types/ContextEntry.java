@@ -1,6 +1,7 @@
 package bitovi.workflow.types;
 
 import java.time.Instant;
+
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 /**
@@ -31,7 +32,7 @@ public record ContextEntry(
      * 
      * @return XML string representation of this entry
      */
-    public String toXmlString() {
+    public String toXMLString() {
         String dateStr = timestamp.toString();
         
         return switch (type) {

@@ -75,6 +75,8 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				: new ArrayList<>();
 		List<UsageMetadata> usage = input.continueAsNew() != null ? input.continueAsNew().usage() : new ArrayList<>();
 
+		List<ContextEntry> persist = new ArrayList<>();
+
 		// If continuing as new, restore pending messages
 		if (input.continueAsNew() != null && input.continueAsNew().pending() != null) {
 			pendingMsgs.addAll(input.continueAsNew().pending());
@@ -136,6 +138,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 							null,
 							null);
 					context.add(userEntry);
+					persist.add(userEntry);
 				}
 
 				// Clear pending messages
@@ -145,16 +148,18 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			// Start ReAct (Reasoning and Acting) Steps
 			// Retrieve Long Term Memories
 			String query = context.stream()
-					.map(ContextEntry::toXmlString)
+					.map(ContextEntry::toXMLString)
 					.collect(Collectors.joining("\n"));
-			// TODO_MEMORY: Uncomment MemoryStrategyType.EPISODIC and SUMMARIZATION to enable richer memory context (Part D)
+			// TODO_MEMORY: Uncomment MemoryStrategyType.EPISODIC and SUMMARIZATION to
+			// enable richer memory context (Part D)
 			List<MemoryStrategyType> memoryStrategies = List.of(
 					// MemoryStrategyType.EPISODIC,
 					MemoryStrategyType.USER_PREFERENCE,
 					MemoryStrategyType.SEMANTIC
 					// MemoryStrategyType.SUMMARIZATION
-				);
-			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query, memoryStrategies);
+			);
+			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
+					memoryStrategies);
 			List<String> memoryRecords = retrieveResult.memoryRecords();
 
 			// Get thought from AI based on context and retrieved memories
@@ -177,28 +182,13 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 						null,
 						null);
 				context.add(answerEntry);
+				persist.add(answerEntry);
 
 				// Batch persist: collect entries from most recent USER_MESSAGE to ANSWER
-				// TODO: Can this be split into another array so we don't have to iterate
-				// backwards every time?
-				// Maybe persist after every message but mark which answer it belongs to?
-				List<ContextEntry> entriesToPersist = new ArrayList<>();
-				boolean foundUserMessage = false;
+				activities.persistMemoryActivity(persist);
 
-				// Iterate backwards to find the most recent USER_MESSAGE
-				for (int i = context.size() - 1; i >= 0; i--) {
-					ContextEntry entry = context.get(i);
-					entriesToPersist.add(0, entry); // Add at beginning to maintain order
-
-					if (entry.type() == ContextEntryType.USER_MESSAGE) {
-						foundUserMessage = true;
-						break;
-					}
-				}
-
-				if (foundUserMessage) {
-					activities.persistMemoryActivity(entriesToPersist);
-				}
+				// Once this has been persisted, we can clear the persist buffer
+				persist.clear();
 
 				// Store the most recent answer in a static variable to be retrieved by the
 				// client after exit
