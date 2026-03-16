@@ -6,7 +6,7 @@ First let's run the existing implementation of an agent with Long-Term Memory (L
 
 1. Update `.env` in root with your own username for `USER_ID`
 2. Run Task: Sync Environments
-3. Run Task: Docker Compose Down 
+3. Run Task: Docker Compose Down
 4. Run Task: Docker Compose Up
 5. Launch: Exercise 7 - Worker
 6. Launch: Exercise 7 - Client
@@ -24,7 +24,7 @@ The goal here is to teach the agent about your personal preferences and domain-s
 
 1. Open the [Chat Web UI](http://localhost:3000/) and start a conversation.
 2. Tell your agent about some of your personal preferences. Here are some examples that might help:
-  
+
 - **Communication Tone**: "I prefer short, bullet-point answers" or "Use a very formal tone".
 - **Skill Level**: "Explain things to me like I'm a beginner" or "Assume I have a PhD in Physics".
 - **Avoidance Lists**: "Never suggest recipes containing peanuts" or "Don't mention politics".
@@ -40,6 +40,7 @@ The goal here is to teach the agent about your personal preferences and domain-s
 6. Interact with the agent. Observe that the agent should be able to "remember" your personal preferences from a previous conversation.
 
 > **Note:** During this exercise, if you want to start fresh with no memories:
+>
 > 1. Update `USER_ID` in your root `.env` file to a new unique value (e.g. `mhaynie1`, `mhaynie2`, ...).
 > 2. Re-run the **Sync Environments** task.
 > 3. Restart the worker.
@@ -52,7 +53,7 @@ Now that the agent has built up some memory, let's look at what it actually stor
 AWS Bedrock AgentCore provides several built-in memory strategy types. The following four were enabled when we configured the memory resource in AWS:
 
 | Strategy          | What it stores                                                                                          |
-|-------------------|---------------------------------------------------------------------------------------------------------|
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
 | `USER_PREFERENCE` | User preferences, choices, and interaction styles learned over time ("I prefer bullet points")          |
 | `SEMANTIC`        | Key facts, entities, and contextual knowledge extracted from conversations ("User works at Acme Corp")  |
 | `SUMMARIZATION`   | Condensed per-session summaries covering key topics, tasks, and decisions discussed                     |
