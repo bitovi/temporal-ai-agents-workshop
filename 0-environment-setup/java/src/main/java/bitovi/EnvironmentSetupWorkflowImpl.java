@@ -6,12 +6,11 @@ import org.slf4j.Logger;
 
 import bitovi.activities.AgentChatServer;
 import bitovi.activities.Bedrock;
-import bitovi.activities.SupportAgentServer;
-import bitovi.activities.BookAgentServer;
 import bitovi.activities.MockMcpServer;
 import bitovi.activities.Postgres;
 import bitovi.activities.Qdrant;
 import bitovi.activities.S3;
+import bitovi.activities.SupportAgentServer;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
