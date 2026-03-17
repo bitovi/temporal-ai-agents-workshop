@@ -616,7 +616,7 @@ For cost optimization, consider batching persistence, taking everything from the
 Connecting to Exercise 8: when multiple agents collaborate, memory architecture introduces new questions.
 
 - Should agents share memory? A primary agent and a book-recommendation sub-agent might benefit from sharing user preference memory, but keeping their operational memory separate.
-- Should the primary agent's memory include sub-agent interactions? If the book agent found that the user likes sailing books, should that be persisted in the primary agent's memory so it is available in future sessions?
+- Should the primary agent's memory include sub-agent interactions? If a sub-agent learned something about the user's preferences, should that be persisted in the primary agent's memory so it is available in future sessions?
 - Memory as a coordination mechanism. Agents could communicate asynchronously through shared memory -- one agent writes findings, another reads them later. This is an alternative to the Signal-based approach from Exercise 8.
 
 ## ReAct Memory Integration Summary

@@ -45,7 +45,7 @@ All other systems will be run locally using the **Docker Compose Up** task.
 1. Postgres - relational database for structured data storage
 1. Agent Chat Server - web UI for interacting with the AI agent
 1. Mock MCP Server - used to test the Model Context Protocol in exercise 4
-1. Book Agent Server - used for agent-to-agent communication in exercise 8
+1. Support Agent Server - used for agent-to-agent communication in exercise 8
 
 To stop and clean up the running services, use the **Docker Compose Down** task.
 

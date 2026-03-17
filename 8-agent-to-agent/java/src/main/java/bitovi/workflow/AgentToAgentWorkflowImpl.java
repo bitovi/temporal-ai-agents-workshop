@@ -21,6 +21,26 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 
+/**
+ * ReAct (Reasoning and Acting) agent workflow that demonstrates A2A communication.
+ *
+ * This workflow implements the ReAct loop pattern:
+ *   1. THOUGHT — the LLM reasons about the user’s request and decides what to do
+ *   2. ACTION  — execute a tool (e.g., search_agent_registry, a2a_send_message)
+ *   3. OBSERVATION — distill the raw tool result into concise context
+ *   4. Repeat until the LLM produces a final ANSWER
+ *
+ * The workflow is long-running: it waits for user messages via Temporal signals,
+ * processes them through the ReAct loop, and suspends again. This maps perfectly
+ * onto A2A’s `input-required` state — when a remote agent needs more info,
+ * the workflow durably suspends via Workflow.await() until the user responds.
+ *
+ * Key A2A integration points:
+ * - The LLM can discover agents via search_agent_registry
+ * - The LLM can message agents via a2a_send_message (handles streaming, multi-turn)
+ * - When a remote agent returns input_required, the LLM relays the question to the
+ *   user, and the workflow suspends until the user provides a signal response
+ */
 public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
@@ -32,7 +52,7 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 
 	private static final int COMPACTION_CONTEXT_TOKEN_THRESHOLD = 100000;
 
-	private static String answer = null;
+	private String answer = null;
 
 	// Signal state
 	private final List<MessagePayload> pendingMsgs = new ArrayList<>();
@@ -190,7 +210,7 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 				// Execute the action
 				String actionResult = activities.actionActivity(action.name(), action.input());
 
-				// Get observation
+				// Get observation (distills raw action result into salient context)
 				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
 
 				// Track usage

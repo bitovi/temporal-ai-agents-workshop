@@ -8,12 +8,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class BookAgentServerImpl implements BookAgentServer {
+public class SupportAgentServerImpl implements SupportAgentServer {
 
 	@Override
-	public String checkBookAgentServerConnection() throws ApplicationFailure {
+	public String checkSupportAgentServerConnection() throws ApplicationFailure {
 		Config config = new Config();
-		String baseUrl = config.getProperty("BOOK_AGENT_SERVER_BASE_URL");
+		String baseUrl = config.getProperty("SUPPORT_AGENT_SERVER_BASE_URL");
 
 		try {
 			HttpClient httpClient = HttpClient.newHttpClient();
@@ -26,17 +26,17 @@ public class BookAgentServerImpl implements BookAgentServer {
 
 			if (response.statusCode() < 200 || response.statusCode() >= 300) {
 				throw ApplicationFailure.newNonRetryableFailure(
-						"Book Agent Server health check failed with status: " + response.statusCode(),
-						"BookAgentServerError");
+						"Support Agent Server health check failed with status: " + response.statusCode(),
+						"SupportAgentServerError");
 			}
 		} catch (ApplicationFailure e) {
 			throw e;
 		} catch (Exception e) {
 			throw ApplicationFailure.newNonRetryableFailure(
-					"Failed to connect to Book Agent Server: " + e.getMessage(),
-					"BookAgentServerError");
+					"Failed to connect to Support Agent Server: " + e.getMessage(),
+					"SupportAgentServerError");
 		}
 
-		return "Book Agent Server connection successful.";
+		return "Support Agent Server connection successful.";
 	}
 }

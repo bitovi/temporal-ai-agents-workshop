@@ -1,8 +1,15 @@
+/**
+ * Exercise 8 - Agent to Agent (TypeScript)
+ *
+ * TODO: This is a placeholder. The Java version of this exercise is fully
+ * implemented. See the java/ directory for the complete implementation.
+ */
+
 import dotenv from 'dotenv'
 import { Connection, Client } from '@temporalio/client'
 import { v4 as uuidv4 } from 'uuid'
 import { getTemporalClientOptions } from './utils'
-import { environmentSetupWorkflow } from './workflows'
+import { agentWorkflow } from './workflows'
 
 dotenv.config()
 
@@ -14,23 +21,18 @@ async function main() {
     namespace: process.env.TEMPORAL_NAMESPACE,
   })
 
-  const workflowId = `${uuidv4()}`
-
-  const workflowOptions = {
-    taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
-    workflowId: workflowId,
-  }
+  const workflowId = `agent-workflow-${uuidv4()}`
 
   try {
-    const handle = await client.workflow.start(environmentSetupWorkflow, {
+    const handle = await client.workflow.start(agentWorkflow, {
       args: [],
-      ...workflowOptions,
+      taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'agent-queue',
+      workflowId,
     })
 
     console.log('Workflow started with ID: %s', handle.workflowId)
 
     const result: string = await handle.result()
-
     console.log(`Response: ${result}`)
   } catch (error: any) {
     console.error('Error executing workflow:', error)

@@ -1,13 +1,11 @@
 {
-  "name": "book-agent-server",
+  "name": "support-agent-server",
   "version": "1.0.0",
-  "description": "Book Agent Server using A2A SDK",
+  "description": "Riot Games Support Agent Server using A2A SDK",
   "main": "server.ts",
   "scripts": {
     "start": "ts-node server.ts",
     "dev": "ts-node-dev --respawn server.ts",
-    "client:http": "ts-node http-client.ts",
-    "client:grpc": "ts-node grpc-client.ts",
     "card": "curl http://localhost:4000/.well-known/agent-card.json",
     "build": "tsc",
     "start:prod": "node dist/server.js"

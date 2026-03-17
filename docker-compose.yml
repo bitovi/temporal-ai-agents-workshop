@@ -103,10 +103,10 @@ services:
       timeout: 10s
       retries: 3
 
-  book-agent-server:
-    container_name: book-agent-server
+  support-agent-server:
+    container_name: support-agent-server
     build:
-      context: ./book-agent-server
+      context: ./support-agent-server
       dockerfile: Dockerfile
     ports:
       - 4000:4000 # HTTP/JSON-RPC

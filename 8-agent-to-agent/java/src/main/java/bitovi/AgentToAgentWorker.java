@@ -8,6 +8,16 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
+/**
+ * Temporal Worker that hosts the Agent-to-Agent workflow and activities.
+ *
+ * This registers:
+ * - AgentToAgentWorkflowImpl — the ReAct loop workflow
+ * - ActivitiesImpl — thought, action, observation, compact, persist activities
+ *
+ * The worker listens on the configured task queue and executes workflow/activity
+ * tasks dispatched by the Temporal server.
+ */
 public class AgentToAgentWorker {
 	public static void main(String[] args) {
 
