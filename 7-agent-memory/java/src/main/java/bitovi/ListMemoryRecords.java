@@ -25,10 +25,10 @@ public class ListMemoryRecords {
 		Config config = new Config();
 
 		var strategyTypes = List.of(
-			// MemoryStrategyType.EPISODIC,
+			MemoryStrategyType.EPISODIC,
 			MemoryStrategyType.USER_PREFERENCE,
-			MemoryStrategyType.SEMANTIC
-			// MemoryStrategyType.SUMMARIZATION
+			MemoryStrategyType.SEMANTIC,
+			MemoryStrategyType.SUMMARIZATION
 		);
 
 		ListMemoryRecordsResponse response = AgentCoreMemory.listMemoryRecords(strategyTypes);

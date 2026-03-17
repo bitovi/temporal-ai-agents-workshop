@@ -31,7 +31,10 @@
           "endsPattern": "Server:  0.0.0.0:7233"
         }
       },
-      "detail": "Build and start Docker Compose services"
+      "detail": "Build and start Docker Compose services",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Docker Compose Down",
@@ -52,27 +55,73 @@
         "clear": false
       },
       "problemMatcher": [],
-      "detail": "Stop and remove Docker Compose services and volumes"
+      "detail": "Stop and remove Docker Compose services and volumes",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Sync Environments",
       "type": "shell",
-      "command": "./sync-env.sh",
+      "linux": {
+        "command": "sh",
+        "args": [
+          "sync-env.sh"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "sync-env.ps1"
+        ]
+      },
+      "osx": {
+        "command": "sh",
+        "args": [
+          "sync-env.sh"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/"
       },
       "problemMatcher": [],
       "detail": "Copies the root .env file into each exercise"
     },
-        {
+    {
       "label": "Nuke Environments",
       "type": "shell",
-      "command": "./nuke-env.sh",
+      "linux": {
+        "command": "sh",
+        "args": [
+          "nuke-env.sh"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "nuke-env.ps1"
+        ]
+      },
+      "osx": {
+        "command": "sh",
+        "args": [
+          "nuke-env.sh"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/"
       },
       "problemMatcher": [],
-      "detail": "Use if things get messed up and don't seem to be working."
+      "detail": "Use if things get messed up and don't seem to be working.",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 0 Maven Build",
@@ -85,7 +134,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 1 Maven Build",
@@ -98,7 +150,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 2 Maven Build",
@@ -111,7 +166,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 3 Maven Build",
@@ -124,7 +182,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 4 Maven Build",
@@ -137,7 +198,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 5 Maven Build",
@@ -150,7 +214,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 6 Maven Build",
@@ -163,7 +230,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 7 Maven Build",
@@ -176,7 +246,10 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     },
     {
       "label": "Exercise 8 Maven Build",
@@ -190,7 +263,10 @@
         "isDefault": true
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile"
+      "detail": "Runs mvn compile",
+      "dependsOn": [
+        "Sync Environments"
+      ]
     }
   ]
 }

@@ -9,6 +9,9 @@ import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.GetMemoryRequest;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.Memory;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -105,6 +108,73 @@ public class BedrockImpl implements Bedrock {
 		}
 
 		return "Bedrock connection successful.";
+	}
+
+	@Override
+
+	public String checkBedrockMemoryConnection() throws ApplicationFailure {
+		Config config = new Config();
+
+		String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
+		String AWS_SECRET_ACCESS_KEY = config.getProperty("AWS_SECRET_ACCESS_KEY");
+		String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
+
+		String AWS_BEDROCK_AGENTCORE_MEMORY_REGION = config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION");
+		String AWS_BEDROCK_AGENTCORE_MEMORY_ID = config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_ID");
+
+		StaticCredentialsProvider credentialsProvider;
+
+		validateAWSFormat(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN);
+
+		try {
+			if (AWS_SESSION_TOKEN == null || AWS_SESSION_TOKEN.isEmpty()) {
+				System.out.println("Using long-term AWS credentials.");
+				credentialsProvider = StaticCredentialsProvider.create(
+						AwsBasicCredentials.create(
+								AWS_ACCESS_KEY_ID,
+								AWS_SECRET_ACCESS_KEY));
+			} else {
+				System.out.println("Using temporary AWS credentials.");
+				credentialsProvider = StaticCredentialsProvider.create(
+						AwsSessionCredentials.create(
+								AWS_ACCESS_KEY_ID,
+								AWS_SECRET_ACCESS_KEY,
+								AWS_SESSION_TOKEN));
+			}
+		} catch (Exception e) {
+			System.err.println("Error creating AWS credentials: " + e.getMessage());
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to create AWS credentials: " + e.getMessage(),
+					"AWSCredentialsError");
+		}
+
+		BedrockAgentCoreControlClient bedrockAgentCoreControlClient;
+
+		try {
+			bedrockAgentCoreControlClient = BedrockAgentCoreControlClient.builder()
+					.credentialsProvider(credentialsProvider)
+					.region(Region.of(AWS_BEDROCK_AGENTCORE_MEMORY_REGION))
+					.build();
+
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to create Bedrock client: " + e.getMessage(),
+					"BedrockClientError");
+		}
+
+		GetMemoryRequest getRequest = GetMemoryRequest.builder()
+				.memoryId(AWS_BEDROCK_AGENTCORE_MEMORY_ID)
+				.build();
+
+		try {
+			Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
+			return "Bedrock Memory connection successful: " + memory.name();
+			
+		} catch (Exception e) {
+			throw ApplicationFailure.newNonRetryableFailure(
+					"Failed to get Bedrock memory: " + e.getMessage(),
+					"BedrockError");
+		}
 	}
 
 	private void validateAWSFormat(String AWS_ACCESS_KEY_ID, String AWS_SECRET_ACCESS_KEY, String AWS_SESSION_TOKEN) {
