@@ -56,11 +56,9 @@ Each Exercise has two launch configurations configured:
 1. The first to start the Temporal Worker
 1. The second to use a Temporal Client to start a Workflow
 
-![image](https://github.com/user-attachments/assets/95e269c7-18fc-4b25-aee5-9bac5b78288e)
+The Launch Configurations can be accessed from the Run and Debug view in VSCode:
 
-After making code changes, be sure to restart the worker:
-
-![image](https://github.com/user-attachments/assets/3d4a47a2-f65b-403a-ab0c-9bb4d8a02bbc)
+![image](../.images/vscode-run-menu.png)
 
 ## Solution
 
@@ -71,5 +69,4 @@ To recap, here are all the steps needed to verify your environment is set up cor
 1. Launch `Exercise 0 - Worker`
 1. Launch `Exercise 0 - Client`
 1. Visit the [Temporal UI](http://localhost:8233) and verify the workflow executed successfully:
-
-![image](https://github.com/user-attachments/assets/4d497e90-f245-4108-8f72-03ca1c9602e7)
+![image](../.images/temporal-exercise-0.png)
