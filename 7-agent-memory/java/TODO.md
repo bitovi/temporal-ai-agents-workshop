@@ -6,16 +6,34 @@ First let's run the existing implementation of an agent with Long-Term Memory (L
 
 1. Update `.env` in root with your own username for `USER_ID`
 2. Run Task: Sync Environments
-3. Run Task: Docker Compose Down 
+3. Run Task: Docker Compose Down
 4. Run Task: Docker Compose Up
+
+You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+![image](../../.images/vscode-cmd-menu.png)
+
+Select the appropriate task from the list to run.
+![image](../../.images/vscode-run-task.png)
+
 5. Launch: Exercise 7 - Worker
 6. Launch: Exercise 7 - Client
 
+You can access the VSCode 'Run and Debug' panel by pressing `Cmd+Shift+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux) and selecting the appropriate launch configuration.
+
+At the top of the panel, you can select the configuration to launch.
+![image](../../.images/vscode-run-menu.png)
+
 Let's open the latest workflow in the [temporal ui](http://localhost:8233/) so we can observe the behavior of the agent.
+
+![image](../../.images/agent-memory-temporal.png)
 
 Click on the Thought Activity to see the question asked and answered.
 
 Notice how in `AgentMemoryClient.java` we asked the agent what it knew about us. If we haven't interacted with the agent yet, it shouldn't have any LTM about us yet.
+
+If we open the [Chat Web UI](http://localhost:3000/) and start a conversation, and ask the agent what it knows about us, we can verify that it doesn't have any Long-Term Memory about us yet.
+
+![image](../../.images/agent-chat-ui-memory-empty.png)
 
 ## Part B - Building Long-Term Memory
 
@@ -23,8 +41,11 @@ Now let's interact with the agent to build up some Long-Term Memory and observe 
 The goal here is to teach the agent about your personal preferences and domain-specific knowledge so it can tailor its responses in future conversations.
 
 1. Open the [Chat Web UI](http://localhost:3000/) and start a conversation.
+
+![image](../../.images/agent-chat-ui.png)
+
 2. Tell your agent about some of your personal preferences. Here are some examples that might help:
-  
+
 - **Communication Tone**: "I prefer short, bullet-point answers" or "Use a very formal tone".
 - **Skill Level**: "Explain things to me like I'm a beginner" or "Assume I have a PhD in Physics".
 - **Avoidance Lists**: "Never suggest recipes containing peanuts" or "Don't mention politics".
@@ -35,11 +56,13 @@ The goal here is to teach the agent about your personal preferences and domain-s
 - **Projects**: "Project Nighthawk is the internal codename for our mobile app rewrite launching in Q3".
 - **Definitions**: "When we say 'the platform', we mean our internal developer tooling monorepo, not the customer-facing product".
 
-4. _(Optional)_ Navigate to the AWS console, find the memory resource and watch it extract LTM records async.
-5. After a few minutes, start a completely new conversation.
-6. Interact with the agent. Observe that the agent should be able to "remember" your personal preferences from a previous conversation.
+4. After a few minutes, start a completely new conversation.
+5. Interact with the agent. Observe that the agent should be able to "remember" your personal preferences from a previous conversation.
+
+![image](../../.images/agent-chat-ui-memory-exists.png)
 
 > **Note:** During this exercise, if you want to start fresh with no memories:
+>
 > 1. Update `USER_ID` in your root `.env` file to a new unique value (e.g. `mhaynie1`, `mhaynie2`, ...).
 > 2. Re-run the **Sync Environments** task.
 > 3. Restart the worker.
@@ -52,7 +75,7 @@ Now that the agent has built up some memory, let's look at what it actually stor
 AWS Bedrock AgentCore provides several built-in memory strategy types. The following four were enabled when we configured the memory resource in AWS:
 
 | Strategy          | What it stores                                                                                          |
-|-------------------|---------------------------------------------------------------------------------------------------------|
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
 | `USER_PREFERENCE` | User preferences, choices, and interaction styles learned over time ("I prefer bullet points")          |
 | `SEMANTIC`        | Key facts, entities, and contextual knowledge extracted from conversations ("User works at Acme Corp")  |
 | `SUMMARIZATION`   | Condensed per-session summaries covering key topics, tasks, and decisions discussed                     |
@@ -64,11 +87,14 @@ AWS Bedrock AgentCore provides several built-in memory strategy types. The follo
 
 1. Open `ListMemoryRecords.java`. Notice the `strategyTypes` list at the top of `main` — by default it shows `USER_PREFERENCE` and `SEMANTIC` records.
 2. Run the **Launch: ListMemoryRecords** launch config and observe the output. You should see entries like:
-   ```
+
+   ```plain
    [USER_PREFERENCE]: {"preference":"Favorite color is blue","categories":["color","personal preferences"]}
    [SEMANTIC]: {"fact":"User's favorite color is blue"}
    ```
+
 3. Now uncomment `EPISODIC` and `SUMMARIZATION` and re-run to compare the output:
+
    ```java
    var strategyTypes = List.of(
        MemoryStrategyType.EPISODIC,
@@ -77,6 +103,7 @@ AWS Bedrock AgentCore provides several built-in memory strategy types. The follo
        MemoryStrategyType.SUMMARIZATION
    );
    ```
+
    Notice how the same underlying fact ("favorite color is blue") is represented very differently across strategies — as a typed preference object, a plain semantic fact, a timestamped narrative episode, and inside a condensed session summary.
 
 ### Semantic Search Over Memory
@@ -125,3 +152,9 @@ Then restart the worker.
 Start a new conversation and ask the same questions again.
 
 With `EPISODIC` and `SUMMARIZATION` enabled the agent now has access to structured interaction records and condensed session summaries, giving it a much richer picture of your conversation history. Compare the responses to what you saw in Step 1.
+
+## Part E - Custom Memory Implementations
+
+To get a little more hands on, we can experiment with a completely custom Memory Extraction workflow implemented in Temporal. This solution does not use AgentCore Memory at all.
+
+TODO: Implement this if we have time.

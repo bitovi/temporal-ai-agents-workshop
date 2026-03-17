@@ -48,30 +48,25 @@ Provide a compacted version of the context history, preserving important details
 
 ```java
 public static CompactResponse compactContext(String promptTemplate, List<ContextEntry> context) throws ApplicationFailure {
-    try {
-        String systemPrompt = promptTemplate
-                .replace("{contextHistory}", String.join("\n", context));
+String systemPrompt = promptTemplate.replace("{contextHistory}", String.join("\n", context));
 
-        // Call Bedrock with low-quality model for cost optimization
-        Config config = new Config();
-        String modelId = config.getProperty("AWS_LOW_MODEL_ID");
+// Call Bedrock with low-quality model for cost optimization
+Config config = new Config();
+String modelId = config.getProperty("AWS_LOW_MODEL_ID");
 
-        ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
-                systemPrompt,
-                List.of(new ChatMessage("user", systemPrompt)),
-                null,
-                modelId);
+ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
+        systemPrompt,
+        List.of(new ChatMessage("user", systemPrompt)),
+        null,
+        modelId);
 
-        // Create SUMMARY entry with compacted content
-        ContextEntry summaryEntry = new ContextEntry(
-                Instant.now(),
-                Role.ASSISTANT,
-                response.response(),
-                ContextEntryType.SUMMARY);
-        return new CompactResponse(summaryEntry, response.usage());
-    } catch (Exception e) {
-        throw ApplicationFailure.newFailure("compactContext failed: " + e.getMessage(),
-                "CompactActivityError")
-    }
+// Create SUMMARY entry with compacted content
+ContextEntry summaryEntry = new ContextEntry(
+        Instant.now(),
+        Role.ASSISTANT,
+        response.response(),
+        ContextEntryType.SUMMARY);
+return new CompactResponse(summaryEntry, response.usage());
+
 }
 ```

@@ -7,14 +7,28 @@ First let's run the existing implementation of a ReAct ("Reasoning and Acting") 
 0. Run Task: Sync Environments
 1. Run Task: Docker Compose Down
 2. Run Task: Docker Compose Up
+
+You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+![image](../../.images/vscode-cmd-menu.png)
+
+Select the appropriate task from the list to run.
+![image](../../.images/vscode-run-task.png)
+
 3. Launch: Exercise 6 - Worker
 4. Launch: Exercise 6 - Client (Reasoning and Acting)
+
+You can access the VSCode 'Run and Debug' panel by pressing `Cmd+Shift+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux) and selecting the appropriate launch configuration.
+
+At the top of the panel, you can select the configuration to launch.
+![image](../../.images/vscode-run-menu.png)
 
 Let's open the latest workflow in the [temporal ui](http://localhost:8233/) so we can observe that behavior of the agent.
 
 Notice how the workflow loops through the THOUGHT, ACTION, and OBSERVATION activities.
 
 Click on individual activities to inspect the input and output of each step.
+
+![image](../../.images/agent-react-temporal.png)
 
 Notice how the result for each activity includes a `usage.reasoningTokens` value.
 
@@ -49,8 +63,41 @@ Now lets try an example implementation of a Plan and Execute Agent. This time we
 0. Run Task: Sync Environments
 1. Run Task: Docker Compose Down
 2. Run Task: Docker Compose Up
+
+You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+![image](../../.images/vscode-cmd-menu.png)
+
+Select the appropriate task from the list to run.
+![image](../../.images/vscode-run-task.png)
+
 3. Launch: Exercise 6 - Worker
 4. Launch: Exercise 6 - Client (Plan and Execute)
+
+You can access the VSCode 'Run and Debug' panel by pressing `Cmd+Shift+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux) and selecting the appropriate launch configuration.
+
+At the top of the panel, you can select the configuration to launch.
+![image](../../.images/vscode-run-menu.png)
+
+Let's open the latest workflow in the [temporal ui](http://localhost:8233/) so we can observe that behavior of the agent.
+
+Notice how the workflow this time has a single planning phase followed by a separate execution phase, rather than looping through THOUGHT, ACTION, and OBSERVATION activities.
+
+Click on individual activities to inspect the input and output of each step.
+
+![image](../../.images/agent-pe-temporal.png)
+
+Note that the workflow result includes it's own `usage.reasoningTokens` value. This time it represents the reasoning tokens used during the single planning phase, as the execution phase does not perform any reasoning.
+
+TODO: Update these values with correct ones from the P&E Workflow.
+
+```plain
+Workflow completed!
+Usage metrics:
+  Input tokens: 7619
+  Output tokens: 1507
+  Reasoning tokens: 953
+  Total tokens: 9126
+```
 
 ## Part C - Experiment
 

@@ -9,4 +9,6 @@ public interface Bedrock {
 
 	@ActivityMethod
 	String checkBedrockConnection() throws ApplicationFailure;
+	
+	String checkBedrockMemoryConnection() throws ApplicationFailure;
 }
