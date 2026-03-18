@@ -38,9 +38,9 @@ public class PlanActivity {
     String modelId = config.getProperty("AWS_MODEL_ID");
 
     AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
-        "You are a helpful and friendly AI agent, named Hennos, making decisions based on context and available actions.",
+        systemPrompt,
         // Must start with a user message
-        List.of(new ChatMessage("user", systemPrompt)),
+        List.of(new ChatMessage("user", "Please plan the next steps based on the context and available actions.")),
         null, // No tool config needed for thought
         modelId);
 

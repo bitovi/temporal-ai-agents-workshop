@@ -9,6 +9,7 @@ import bitovi.common.TemporalClient;
 import bitovi.workflow.AgentDecisionsPlanWorkflow;
 import bitovi.workflow.AgentDecisionsReActWorkflow;
 import bitovi.workflow.types.MessagePayload;
+import bitovi.workflow.types.PlanWorkflowInput;
 import bitovi.workflow.types.PlanWorkflowResult;
 import bitovi.workflow.types.WorkflowInput;
 import bitovi.workflow.types.WorkflowResult;
@@ -119,8 +120,11 @@ public class AgentDecisionsClient {
 		AgentDecisionsPlanWorkflow workflow = temporalClient
 				.newWorkflowStub(AgentDecisionsPlanWorkflow.class, workflowOptions);
 
+		PlanWorkflowInput input = new PlanWorkflowInput(testMessage.name(), testMessage.message(), testMessage.date(),
+				null);
+
 		// Start workflow asynchronously with empty input
-		WorkflowClient.start(workflow::execute, testMessage);
+		WorkflowClient.start(workflow::execute, input);
 
 		System.out.println("Workflow started with ID: " + workflowId);
 
