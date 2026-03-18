@@ -24,7 +24,7 @@ import io.temporal.workflow.Workflow;
 public class AgentDecisionsReActWorkflowImpl implements AgentDecisionsReActWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
-			.setStartToCloseTimeout(Duration.ofSeconds(120))
+			.setStartToCloseTimeout(Duration.ofMinutes(5))
 			.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
 			.build();
 

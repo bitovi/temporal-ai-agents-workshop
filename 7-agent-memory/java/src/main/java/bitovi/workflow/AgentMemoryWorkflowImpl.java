@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrat
 public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 	private final ActivityOptions defaultActivityOptions = ActivityOptions
 			.newBuilder()
-			.setStartToCloseTimeout(Duration.ofSeconds(120))
+			.setStartToCloseTimeout(Duration.ofMinutes(5))
 			.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
 			.build();
 
@@ -156,7 +156,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 					// MemoryStrategyType.EPISODIC,
 					MemoryStrategyType.USER_PREFERENCE,
 					MemoryStrategyType.SEMANTIC
-					// MemoryStrategyType.SUMMARIZATION
+			// MemoryStrategyType.SUMMARIZATION
 			);
 			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
 					memoryStrategies);
