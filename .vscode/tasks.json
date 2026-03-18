@@ -162,86 +162,86 @@
         "Sync Environments"
       ]
     },
-    {
-      "label": "Exercise 1 Maven Build",
-      "type": "shell",
-      "command": "mvn compile",
-      "options": {
-        "cwd": "${workspaceFolder}/1-prompt-engineering/java"
-      },
-      "group": {
-        "kind": "build",
-      },
-      "problemMatcher": [],
-      "detail": "Runs mvn compile",
-      "dependsOn": [
-        "Sync Environments"
-      ]
-    },
-    {
-      "label": "Exercise 2 Maven Build",
-      "type": "shell",
-      "command": "mvn compile",
-      "options": {
-        "cwd": "${workspaceFolder}/2-rag/java"
-      },
-      "group": {
-        "kind": "build",
-      },
-      "problemMatcher": [],
-      "detail": "Runs mvn compile",
-      "dependsOn": [
-        "Sync Environments"
-      ]
-    },
-    {
-      "label": "Exercise 3 Maven Build",
-      "type": "shell",
-      "command": "mvn compile",
-      "options": {
-        "cwd": "${workspaceFolder}/3-tool-calling/java"
-      },
-      "group": {
-        "kind": "build",
-      },
-      "problemMatcher": [],
-      "detail": "Runs mvn compile",
-      "dependsOn": [
-        "Sync Environments"
-      ]
-    },
-    {
-      "label": "Exercise 4 Maven Build",
-      "type": "shell",
-      "command": "mvn compile",
-      "options": {
-        "cwd": "${workspaceFolder}/4-mcp/java"
-      },
-      "group": {
-        "kind": "build",
-      },
-      "problemMatcher": [],
-      "detail": "Runs mvn compile",
-      "dependsOn": [
-        "Sync Environments"
-      ]
-    },
-    {
-      "label": "Exercise 5 Maven Build",
-      "type": "shell",
-      "command": "mvn compile",
-      "options": {
-        "cwd": "${workspaceFolder}/5-agent-workflow/java"
-      },
-      "group": {
-        "kind": "build",
-      },
-      "problemMatcher": [],
-      "detail": "Runs mvn compile",
-      "dependsOn": [
-        "Sync Environments"
-      ]
-    },
+    // {
+    //   "label": "Exercise 1 Maven Build",
+    //   "type": "shell",
+    //   "command": "mvn compile",
+    //   "options": {
+    //     "cwd": "${workspaceFolder}/1-prompt-engineering/java"
+    //   },
+    //   "group": {
+    //     "kind": "build",
+    //   },
+    //   "problemMatcher": [],
+    //   "detail": "Runs mvn compile",
+    //   "dependsOn": [
+    //     "Sync Environments"
+    //   ]
+    // },
+    // {
+    //   "label": "Exercise 2 Maven Build",
+    //   "type": "shell",
+    //   "command": "mvn compile",
+    //   "options": {
+    //     "cwd": "${workspaceFolder}/2-rag/java"
+    //   },
+    //   "group": {
+    //     "kind": "build",
+    //   },
+    //   "problemMatcher": [],
+    //   "detail": "Runs mvn compile",
+    //   "dependsOn": [
+    //     "Sync Environments"
+    //   ]
+    // },
+    // {
+    //   "label": "Exercise 3 Maven Build",
+    //   "type": "shell",
+    //   "command": "mvn compile",
+    //   "options": {
+    //     "cwd": "${workspaceFolder}/3-tool-calling/java"
+    //   },
+    //   "group": {
+    //     "kind": "build",
+    //   },
+    //   "problemMatcher": [],
+    //   "detail": "Runs mvn compile",
+    //   "dependsOn": [
+    //     "Sync Environments"
+    //   ]
+    // },
+    // {
+    //   "label": "Exercise 4 Maven Build",
+    //   "type": "shell",
+    //   "command": "mvn compile",
+    //   "options": {
+    //     "cwd": "${workspaceFolder}/4-mcp/java"
+    //   },
+    //   "group": {
+    //     "kind": "build",
+    //   },
+    //   "problemMatcher": [],
+    //   "detail": "Runs mvn compile",
+    //   "dependsOn": [
+    //     "Sync Environments"
+    //   ]
+    // },
+    // {
+    //   "label": "Exercise 5 Maven Build",
+    //   "type": "shell",
+    //   "command": "mvn compile",
+    //   "options": {
+    //     "cwd": "${workspaceFolder}/5-agent-workflow/java"
+    //   },
+    //   "group": {
+    //     "kind": "build",
+    //   },
+    //   "problemMatcher": [],
+    //   "detail": "Runs mvn compile",
+    //   "dependsOn": [
+    //     "Sync Environments"
+    //   ]
+    // },
     {
       "label": "Exercise 6 Maven Build",
       "type": "shell",

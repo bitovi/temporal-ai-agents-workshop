@@ -18,93 +18,93 @@
             "projectName": "environment-setup",
             "cwd": "${workspaceFolder}/0-environment-setup/java/"
         },
-        {
-            "type": "java",
-            "name": "Exercise 1 - Worker",
-            "request": "launch",
-            "mainClass": "bitovi.PromptEngineeringWorker",
-            "projectName": "prompt-engineering",
-            "cwd": "${workspaceFolder}/1-prompt-engineering/java/",
-            "preLaunchTask": "Exercise 1 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 1 - Client",
-            "request": "launch",
-            "mainClass": "bitovi.PromptEngineeringClient",
-            "projectName": "prompt-engineering",
-            "cwd": "${workspaceFolder}/1-prompt-engineering/java/"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 2 - Worker",
-            "request": "launch",
-            "mainClass": "bitovi.RagWorker",
-            "projectName": "rag",
-            "cwd": "${workspaceFolder}/2-rag/java/",
-            "preLaunchTask": "Exercise 2 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 2 - Client",
-            "request": "launch",
-            "mainClass": "bitovi.RagClient",
-            "projectName": "rag",
-            "cwd": "${workspaceFolder}/2-rag/java/",
-            "args": "${workspaceFolder}/2-rag/java/documents/"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 3 - Worker",
-            "request": "launch",
-            "mainClass": "bitovi.ToolCallingWorker",
-            "projectName": "tool-calling",
-            "cwd": "${workspaceFolder}/3-tool-calling/java/",
-            "preLaunchTask": "Exercise 3 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 3 - Client",
-            "request": "launch",
-            "mainClass": "bitovi.ToolCallingClient",
-            "projectName": "tool-calling",
-            "cwd": "${workspaceFolder}/3-tool-calling/java/"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 4 - Worker",
-            "request": "launch",
-            "mainClass": "bitovi.McpWorker",
-            "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/java/",
-            "preLaunchTask": "Exercise 4 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 4 - Client",
-            "request": "launch",
-            "mainClass": "bitovi.McpClient",
-            "projectName": "mcp",
-            "cwd": "${workspaceFolder}/4-mcp/java/"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 5 - Worker",
-            "request": "launch",
-            "mainClass": "bitovi.AgentWorkflowWorker",
-            "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/java/",
-            "preLaunchTask": "Exercise 5 Maven Build"
-        },
-        {
-            "type": "java",
-            "name": "Exercise 5 - Client",
-            "request": "launch",
-            "mainClass": "bitovi.AgentWorkflowClient",
-            "projectName": "agent-workflow",
-            "cwd": "${workspaceFolder}/5-agent-workflow/java/",
-            "preLaunchTask": "Exercise 5 Maven Build"
-        },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 1 - Worker",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.PromptEngineeringWorker",
+        //     "projectName": "prompt-engineering",
+        //     "cwd": "${workspaceFolder}/1-prompt-engineering/java/",
+        //     "preLaunchTask": "Exercise 1 Maven Build"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 1 - Client",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.PromptEngineeringClient",
+        //     "projectName": "prompt-engineering",
+        //     "cwd": "${workspaceFolder}/1-prompt-engineering/java/"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 2 - Worker",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.RagWorker",
+        //     "projectName": "rag",
+        //     "cwd": "${workspaceFolder}/2-rag/java/",
+        //     "preLaunchTask": "Exercise 2 Maven Build"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 2 - Client",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.RagClient",
+        //     "projectName": "rag",
+        //     "cwd": "${workspaceFolder}/2-rag/java/",
+        //     "args": "${workspaceFolder}/2-rag/java/documents/"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 3 - Worker",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.ToolCallingWorker",
+        //     "projectName": "tool-calling",
+        //     "cwd": "${workspaceFolder}/3-tool-calling/java/",
+        //     "preLaunchTask": "Exercise 3 Maven Build"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 3 - Client",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.ToolCallingClient",
+        //     "projectName": "tool-calling",
+        //     "cwd": "${workspaceFolder}/3-tool-calling/java/"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 4 - Worker",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.McpWorker",
+        //     "projectName": "mcp",
+        //     "cwd": "${workspaceFolder}/4-mcp/java/",
+        //     "preLaunchTask": "Exercise 4 Maven Build"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 4 - Client",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.McpClient",
+        //     "projectName": "mcp",
+        //     "cwd": "${workspaceFolder}/4-mcp/java/"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 5 - Worker",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.AgentWorkflowWorker",
+        //     "projectName": "agent-workflow",
+        //     "cwd": "${workspaceFolder}/5-agent-workflow/java/",
+        //     "preLaunchTask": "Exercise 5 Maven Build"
+        // },
+        // {
+        //     "type": "java",
+        //     "name": "Exercise 5 - Client",
+        //     "request": "launch",
+        //     "mainClass": "bitovi.AgentWorkflowClient",
+        //     "projectName": "agent-workflow",
+        //     "cwd": "${workspaceFolder}/5-agent-workflow/java/",
+        //     "preLaunchTask": "Exercise 5 Maven Build"
+        // },
         {
             "type": "java",
             "name": "Exercise 6 - Worker",
