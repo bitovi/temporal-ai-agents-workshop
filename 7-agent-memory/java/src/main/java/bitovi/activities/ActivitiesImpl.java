@@ -90,6 +90,12 @@ public class ActivitiesImpl implements Activities {
 			List<MemoryStrategyType> strategyTypes)
 			throws ApplicationFailure {
 		try {
+
+			if (query.length() > 1000) {
+				System.out.println("Search query exceeds 1000 characters, truncating to 1000 characters");
+				query = query.substring(0, 999);
+			}
+
 			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyTypes);
 			if (response.memoryRecordSummaries().isEmpty()) {
 				return new RetrieveMemoryRecordsResult(List.of()); // empty
@@ -117,7 +123,8 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure {
-		int totalChars = context.stream().mapToInt(entry -> entry.content().length()).sum();
+		int totalChars = context.stream().mapToInt(entry -> entry.content() != null ? entry.content().length() : 0)
+				.sum();
 		int estimatedTokens = totalChars / 4;
 		return estimatedTokens;
 	}

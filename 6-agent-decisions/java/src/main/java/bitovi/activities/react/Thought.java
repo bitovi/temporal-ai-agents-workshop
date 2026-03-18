@@ -22,7 +22,6 @@ import io.temporal.failure.ApplicationFailure;
 public class Thought {
     public static ThoughtResponse execute(String promptTemplate, List<String> context) {
         try {
-            System.out.println("thoughtActivity called with context size: " + context.size());
             EventClient.emitEvent("status", "Thinking...");
 
             // Get current date

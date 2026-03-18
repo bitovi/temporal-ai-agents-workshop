@@ -32,8 +32,7 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure {
-		try {
-			System.out.println("thoughtActivity called with context size: " + context.size());
+		try {			
 			EventClient.emitEvent("status", "Thinking...", EventClient.LANE_CLIENT, null);
 
 			// Load prompt template

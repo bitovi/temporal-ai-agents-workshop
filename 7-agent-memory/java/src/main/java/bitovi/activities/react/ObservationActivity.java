@@ -21,7 +21,7 @@ public class ObservationActivity {
 
                         // If the output from the action is fairly small, we can just directly return it
                         // as the observation instead of doing a whole LLM call
-                        if (actionResult.length() < 10240) {
+                        if (actionResult.length() < 2048) {
                                 System.out.println("Action result is small, returning directly as observation");
                                 return new ObservationResponse(actionResult, new UsageMetadata(0, 0, 0));
                         }

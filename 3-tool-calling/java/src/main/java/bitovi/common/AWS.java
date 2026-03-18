@@ -147,8 +147,6 @@ public class AWS {
 
         List<ContentBlock> contentBlocks = response.output().message().content();
 
-        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
-
         // Grab any content block that has a tool call first
         if (contentBlocks.isEmpty()) {
             System.out.println("Model did not respond with any content blocks.");
@@ -184,7 +182,6 @@ public class AWS {
         }
 
         if (textResponse.length() > 0) {
-            System.out.println("Model response text: " + textResponse.toString());
             return new ModelResponse(textResponse.toString(), null);
         }
 

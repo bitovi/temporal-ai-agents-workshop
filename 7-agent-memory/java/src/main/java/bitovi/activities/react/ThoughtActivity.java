@@ -26,7 +26,6 @@ public class ThoughtActivity {
 	public static ThoughtResponse execute(String promptTemplate, List<ContextEntry> context, List<String> memoryRecords)
 			throws ApplicationFailure {
 		try {
-			System.out.println("thoughtActivity called with context size: " + context.size());
 			EventClient.emitEvent("status", "Thinking...");
 
 			// Convert ContextEntry list to XML strings for LLM prompt
@@ -49,8 +48,6 @@ public class ThoughtActivity {
 					.replace("{previousSteps}", String.join("\n", truncatedContext))
 					.replace("{memoryRecords}", String.join("\n", memoryRecords))
 					.replace("{availableActions}", availableActions);
-
-			System.out.println("[THOUGHT] systemPrompt: " + systemPrompt);
 
 			// Call Bedrock with high-quality model
 			Config config = new Config();

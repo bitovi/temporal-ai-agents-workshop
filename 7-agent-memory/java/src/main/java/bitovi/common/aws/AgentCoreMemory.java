@@ -50,9 +50,7 @@ public class AgentCoreMemory {
                                         .memoryId(MEMORY_ID)
                                         .build();
 
-                        Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
-
-                        System.out.println("Memory found: " + memory.name());
+                        Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();                        
                         return memory;
                 }
         }
