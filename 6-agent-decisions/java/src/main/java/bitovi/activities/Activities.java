@@ -4,6 +4,7 @@ import java.util.List;
 
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.FinalResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.PlanResponse;
@@ -26,7 +27,7 @@ public interface Activities {
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observationActivity(List<String> context, String actionResult) throws ApplicationFailure;
+	ObservationResponse observationActivity(String thought, String actionName, String actionInputs, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
 	CompactResponse compactActivity(List<String> context) throws ApplicationFailure;
@@ -47,5 +48,5 @@ public interface Activities {
 	PlanStepResult executePlanStep(PlanStep step, List<PlanStepResult> dependsOn) throws ApplicationFailure;
 
 	@ActivityMethod
-	String executeResponse(List<String> context) throws ApplicationFailure;
+	FinalResponse executeResponse(List<String> context) throws ApplicationFailure;
 }

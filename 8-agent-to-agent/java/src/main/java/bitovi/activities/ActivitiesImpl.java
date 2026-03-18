@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import bitovi.activities.react.ObservationActivity;
 import bitovi.activities.tools.ToolRegistry;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.ActionInput;
@@ -146,7 +147,8 @@ public class ActivitiesImpl implements Activities {
 
 			// Check if tool exists
 			if (!ToolRegistry.hasToolNamed(toolName)) {
-				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.", EventClient.LANE_CLIENT, null);
+				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.", EventClient.LANE_CLIENT,
+						null);
 				JSONObject errorResult = new JSONObject();
 				errorResult.put("name", toolName);
 				errorResult.put("input", input.parameters());
@@ -185,52 +187,11 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public ObservationResponse observationActivity(List<String> context, String actionResult)
+	public ObservationResponse observationActivity(String thought, String actionName, String actionInputs,
+			String actionResult)
 			throws ApplicationFailure {
-		try {
-			System.out.println("observationActivity called with action result length: " +
-					actionResult.length());
-			EventClient.emitEvent("status", "Observing...", EventClient.LANE_CLIENT, null);
-
-			// Load prompt template
-			String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
-
-			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
-
-			// Format prompt
-			String systemPrompt = promptTemplate
-					.replace("{previousSteps}", String.join("\n", truncatedContext))
-					.replace("{actionResult}", actionResult);
-
-			// Call Bedrock with low-quality model for cost optimization
-			Config config = new Config();
-			String modelId = config.getProperty("AWS_LOW_MODEL_ID");
-
-			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
-					systemPrompt,
-					// must start with a user message
-					List.of(new ChatMessage("user", "perform OBSERVATION")),
-					null,
-					modelId);
-
-			String observations = response.response();
-			if (observations == null || observations.isEmpty()) {
-				observations = "No observation generated";
-			}
-
-			// Emit observation event
-			EventClient.emitEvent("observation", observations, EventClient.LANE_CLIENT, null);
-
-			return new ObservationResponse(observations, response.usage());
-
-		} catch (Exception e) {
-			String errorMsg = "Error in observationActivity: " + e.getMessage();
-			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Observation error: " + errorMsg, EventClient.LANE_CLIENT, null);
-			throw ApplicationFailure.newFailure("observationActivity failed: " + e.getMessage(),
-					"ObservationActivityError");
-		}
+		String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
+		return ObservationActivity.execute(promptTemplate, thought, actionName, actionInputs, actionResult);
 	}
 
 	@Override

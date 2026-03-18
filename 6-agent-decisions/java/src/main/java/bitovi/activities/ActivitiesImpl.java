@@ -16,6 +16,7 @@ import bitovi.activities.react.Persist;
 import bitovi.activities.react.Thought;
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.FinalResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.PlanResponse;
@@ -38,10 +39,10 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public ObservationResponse observationActivity(List<String> context, String actionResult)
-			throws ApplicationFailure {
+	public ObservationResponse observationActivity(String thought, String actionName, String actionInputs,
+			String actionResult) throws ApplicationFailure {
 		String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
-		return Observation.execute(promptTemplate, context, actionResult);
+		return Observation.execute(promptTemplate, thought, actionName, actionInputs, actionResult);
 	}
 
 	@Override
@@ -57,8 +58,9 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
-		// TODO: Implement token counting based on the Context
-		return 1;
+		int totalChars = context.stream().mapToInt(String::length).sum();
+		int estimatedTokens = totalChars / 4;
+		return estimatedTokens;
 	}
 
 	@Override
@@ -73,7 +75,7 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public String executeResponse(List<String> context) throws ApplicationFailure {
+	public FinalResponse executeResponse(List<String> context) throws ApplicationFailure {
 		String promptTemplate = loadPromptTemplate("/prompts/response-prompt.txt");
 		return ExecuteResponse.execute(promptTemplate, context);
 	}

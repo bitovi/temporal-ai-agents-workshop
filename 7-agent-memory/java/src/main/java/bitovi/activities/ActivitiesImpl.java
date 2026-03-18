@@ -40,10 +40,11 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public ObservationResponse observationActivity(List<ContextEntry> context, String actionResult)
+	public ObservationResponse observationActivity(String thought, String actionName, String actionInputs,
+			String actionResult)
 			throws ApplicationFailure {
 		String promptTemplate = loadPromptTemplate("/prompts/observation-prompt.txt");
-		return ObservationActivity.execute(promptTemplate, context, actionResult);
+		return ObservationActivity.execute(promptTemplate, thought, actionName, actionInputs, actionResult);
 	}
 
 	@Override
@@ -116,9 +117,9 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure {
-		// TODO: Implement actual token counting logic, possibly by calling a tokenizer
-		// or estimating based on word count
-		return 1;
+		int totalChars = context.stream().mapToInt(entry -> entry.content().length()).sum();
+		int estimatedTokens = totalChars / 4;
+		return estimatedTokens;
 	}
 
 	/**

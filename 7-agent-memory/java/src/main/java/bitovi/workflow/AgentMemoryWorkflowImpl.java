@@ -237,7 +237,8 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				String actionResult = activities.actionActivity(action.name(), action.input());
 
 				// Get observation
-				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
+				ObservationResponse observationResponse = activities.observationActivity(thoughtResponse.thought(),
+						action.name(), actionInputJson, actionResult);
 
 				// Track usage
 				if (observationResponse.usage() != null) {

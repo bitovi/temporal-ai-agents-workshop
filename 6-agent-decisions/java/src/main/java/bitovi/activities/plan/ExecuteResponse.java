@@ -2,6 +2,7 @@ package bitovi.activities.plan;
 
 import java.util.List;
 
+import bitovi.activities.types.FinalResponse;
 import bitovi.common.AWS;
 import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
@@ -10,7 +11,7 @@ import bitovi.common.ModelUtils;
 import io.temporal.failure.ApplicationFailure;
 
 public class ExecuteResponse {
-  public static String execute(String promptTemplate, List<String> context) throws ApplicationFailure {
+  public static FinalResponse execute(String promptTemplate, List<String> context) throws ApplicationFailure {
     System.out.println("planActivity called with context size: " + context.size());
     EventClient.emitEvent("status", "Responding...");
 
@@ -26,7 +27,7 @@ public class ExecuteResponse {
     String modelId = config.getProperty("AWS_MODEL_ID");
 
     AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
-        "You are a helpful and friendly AI agent, named Hennos, making decisions based on context and available actions.",
+        "You are a helpful and friendly AI agent.",
         // Must start with a user message
         List.of(new ChatMessage("user", systemPrompt)),
         null, // No tool config needed for response
@@ -38,6 +39,6 @@ public class ExecuteResponse {
     }
 
     System.out.println("Model response: " + responseText);
-    return responseText;
+    return new FinalResponse(responseText, response.usage());
   }
 }

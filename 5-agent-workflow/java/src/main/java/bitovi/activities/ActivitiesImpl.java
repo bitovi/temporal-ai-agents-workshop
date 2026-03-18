@@ -25,6 +25,7 @@ import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
 import bitovi.common.EventClient;
 import bitovi.common.ModelUtils;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 
 public class ActivitiesImpl implements Activities {
@@ -190,6 +191,14 @@ public class ActivitiesImpl implements Activities {
 		try {
 			System.out.println("observationActivity called with action result length: " +
 					actionResult.length());
+
+			// If the output from the action is fairly small, we can just directly return it
+			// as the observation instead of doing a whole LLM call
+			if (actionResult.length() < 10240) {
+				System.out.println("Action result is small, returning directly as observation");
+				return new ObservationResponse(actionResult, new UsageMetadata(0, 0, 0));
+			}
+
 			EventClient.emitEvent("status", "Observing...");
 
 			// Load prompt template
@@ -317,8 +326,9 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public Integer getTokenUsage(List<String> context) throws ApplicationFailure {
-		// TODO: Implement token counting based on the Context
-		return 1;
+		int totalChars = context.stream().mapToInt(String::length).sum();
+		int estimatedTokens = totalChars / 4;
+		return estimatedTokens;
 	}
 
 	/**

@@ -3,11 +3,10 @@ package bitovi.activities.react;
 import java.util.List;
 
 import bitovi.activities.types.ObservationResponse;
+import bitovi.common.AWS;
+import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
 import bitovi.common.EventClient;
-import bitovi.common.aws.BedrockConverse;
-import bitovi.common.aws.BedrockConverse.ChatMessage;
-import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
 import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 
@@ -22,12 +21,11 @@ public class ObservationActivity {
                         // If the output from the action is fairly small, we can just directly return it
                         // as the observation instead of doing a whole LLM call
                         if (actionResult.length() < 10240) {
-                                System.out.println("Action result is small, returning directly as observation");
+                                System.out.println("Action result is small, returning directly as observation");                                
                                 return new ObservationResponse(actionResult, new UsageMetadata(0, 0, 0));
                         }
 
-                        EventClient.emitEvent("status", "Observing...");
-
+                        EventClient.emitEvent("status", "Observing...", EventClient.LANE_CLIENT, null);
                         // Format prompt
                         String systemPrompt = promptTemplate
                                         .replace("{thought}", thought)
@@ -39,7 +37,7 @@ public class ObservationActivity {
                         Config config = new Config();
                         String modelId = config.getProperty("AWS_LOW_MODEL_ID");
 
-                        ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
+                        AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
                                         systemPrompt,
                                         // must start with a user message
                                         List.of(new ChatMessage("user", systemPrompt)),
@@ -52,14 +50,14 @@ public class ObservationActivity {
                         }
 
                         // Emit observation event
-                        EventClient.emitEvent("observation", observations);
+                        EventClient.emitEvent("observation", observations, EventClient.LANE_CLIENT, null);
 
                         return new ObservationResponse(observations, response.usage());
 
                 } catch (Exception e) {
                         String errorMsg = "Error in observationActivity: " + e.getMessage();
                         System.err.println(errorMsg);
-                        EventClient.emitEvent("error", "Observation error: " + errorMsg);
+                        EventClient.emitEvent("error", "Observation error: " + errorMsg, EventClient.LANE_CLIENT, null);
                         throw ApplicationFailure.newFailure("observationActivity failed: " + e.getMessage(),
                                         "ObservationActivityError");
                 }

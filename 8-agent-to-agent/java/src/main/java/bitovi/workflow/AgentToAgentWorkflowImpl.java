@@ -191,7 +191,8 @@ public class AgentToAgentWorkflowImpl implements AgentToAgentWorkflow {
 				String actionResult = activities.actionActivity(action.name(), action.input());
 
 				// Get observation (distills raw action result into salient context)
-				ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
+				ObservationResponse observationResponse = activities.observationActivity(thoughtResponse.thought(),
+						action.name(), actionInputJson, actionResult);
 
 				// Track usage
 				if (observationResponse.usage() != null) {

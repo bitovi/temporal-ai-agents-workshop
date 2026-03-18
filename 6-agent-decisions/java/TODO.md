@@ -50,10 +50,10 @@ Note that the workflow result includes it's own `usage.reasoningTokens` value wh
 ```plain
 Workflow completed!
 Usage metrics:
-  Input tokens: 7619
-  Output tokens: 1507
-  Reasoning tokens: 953
-  Total tokens: 9126
+  Input tokens: 5725
+  Output tokens: 2053
+  Reasoning tokens: 1594
+  Total tokens: 7778
 ```
 
 ## Part B - Plan and Execute Example
@@ -88,16 +88,16 @@ Click on individual activities to inspect the input and output of each step.
 
 Note that the workflow result includes it's own `usage.reasoningTokens` value. This time it represents the reasoning tokens used during the single planning phase, as the execution phase does not perform any reasoning.
 
-TODO: Update these values with correct ones from the P&E Workflow.
-
 ```plain
 Workflow completed!
 Usage metrics:
-  Input tokens: 7619
-  Output tokens: 1507
-  Reasoning tokens: 953
-  Total tokens: 9126
+  Input tokens: 1437
+  Output tokens: 1149
+  Reasoning tokens: 949
+  Total tokens: 2586
 ```
+
+For this simple math problem example, the Plan and Execute Agent uses only 2500 tokens total compared to the 7700 tokens used by the ReAct Agent!
 
 ## Part C - Experiment
 

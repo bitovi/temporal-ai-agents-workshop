@@ -15,13 +15,7 @@
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import * as dotenv from 'dotenv'
-import {
-  AgentCard,
-  TaskStatusUpdateEvent,
-  TextPart,
-  Message,
-  AGENT_CARD_PATH,
-} from '@a2a-js/sdk'
+import { AgentCard, TaskStatusUpdateEvent, TextPart, Message, AGENT_CARD_PATH } from '@a2a-js/sdk'
 import {
   InMemoryTaskStore,
   AgentExecutor,
@@ -29,7 +23,12 @@ import {
   ExecutionEventBus,
   DefaultRequestHandler,
 } from '@a2a-js/sdk/server'
-import { agentCardHandler, jsonRpcHandler, restHandler, UserBuilder } from '@a2a-js/sdk/server/express'
+import {
+  agentCardHandler,
+  jsonRpcHandler,
+  restHandler,
+  UserBuilder,
+} from '@a2a-js/sdk/server/express'
 
 dotenv.config()
 
@@ -158,7 +157,10 @@ async function main() {
 
   // Standard A2A endpoints
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({ agentCardProvider: requestHandler }))
-  app.use('/a2a/jsonrpc', jsonRpcHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }))
+  app.use(
+    '/a2a/jsonrpc',
+    jsonRpcHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication })
+  )
   app.use('/a2a/rest', restHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }))
 
   // Health check

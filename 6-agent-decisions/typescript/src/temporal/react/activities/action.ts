@@ -25,8 +25,6 @@ export async function ReactAction(
 
   try {
     const result = await tool.invoke(input.input);
-
-    // TODO: Check if 'result' is too large for the LLM to handle. May need to truncate!
     return {
       result: result,
       error: false,

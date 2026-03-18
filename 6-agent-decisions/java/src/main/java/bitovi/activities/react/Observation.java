@@ -7,22 +7,30 @@ import bitovi.common.AWS;
 import bitovi.common.AWS.ChatMessage;
 import bitovi.common.Config;
 import bitovi.common.EventClient;
-import bitovi.common.ModelUtils;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 
 public class Observation {
-    public static ObservationResponse execute(String promptTemplate, List<String> context, String actionResult) {
+    public static ObservationResponse execute(String promptTemplate, String thought, String actionName,
+            String actionInputs, String actionResult) {
         try {
             System.out.println("observationActivity called with action result length: " +
                     actionResult.length());
+
+            // If the output from the action is fairly small, we can just directly return it
+            // as the observation instead of doing a whole LLM call
+            if (actionResult.length() < 10240) {
+                System.out.println("Action result is small, returning directly as observation");
+                return new ObservationResponse(actionResult, new UsageMetadata(0, 0, 0, 0));
+            }
+
             EventClient.emitEvent("status", "Observing...");
-                    
-            // Truncate context
-            List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
 
             // Format prompt
             String instructions = promptTemplate
-                    .replace("{previousSteps}", String.join("\n", truncatedContext))
+                    .replace("{thought}", thought)
+                    .replace("{actionName}", actionName)
+                    .replace("{actionInputs}", actionInputs.toString())
                     .replace("{actionResult}", actionResult);
 
             // Call Bedrock with low-quality model for cost optimization

@@ -23,7 +23,8 @@ public interface Activities {
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observationActivity(List<ContextEntry> context, String actionResult) throws ApplicationFailure;
+	ObservationResponse observationActivity(String thought, String actionName, String actionInputs, String actionResult)
+			throws ApplicationFailure;
 
 	@ActivityMethod
 	CompactResponse compactActivity(List<ContextEntry> context) throws ApplicationFailure;
@@ -35,8 +36,9 @@ public interface Activities {
 	void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure;
 
 	@ActivityMethod
-	Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure;	
+	Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure;
 
 	@ActivityMethod
-	RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, List<MemoryStrategyType> strategyTypes) throws ApplicationFailure;
+	RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, List<MemoryStrategyType> strategyTypes)
+			throws ApplicationFailure;
 }

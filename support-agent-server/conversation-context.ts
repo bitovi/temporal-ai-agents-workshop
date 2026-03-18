@@ -1,4 +1,4 @@
-import { Message, ContentBlock } from '@aws-sdk/client-bedrock-runtime';
+import { Message, ContentBlock } from "@aws-sdk/client-bedrock-runtime";
 
 /**
  * Manages conversation context using Bedrock's native Message format.
@@ -15,22 +15,26 @@ export class ConversationContext {
 
   addUserMessage(text: string): void {
     this.messages.push({
-      role: 'user',
+      role: "user",
       content: [{ text }],
     });
   }
 
   addAssistantMessage(content: ContentBlock[]): void {
     this.messages.push({
-      role: 'assistant',
+      role: "assistant",
       content,
     });
   }
 
   addToolResult(toolUseId: string, content: string): void {
     const lastMessage = this.messages[this.messages.length - 1];
-    
-    if (lastMessage && lastMessage.role === 'user' && lastMessage.content?.some(block => block.toolResult)) {
+
+    if (
+      lastMessage &&
+      lastMessage.role === "user" &&
+      lastMessage.content?.some((block) => block.toolResult)
+    ) {
       lastMessage.content!.push({
         toolResult: {
           toolUseId,
@@ -39,7 +43,7 @@ export class ConversationContext {
       });
     } else {
       this.messages.push({
-        role: 'user',
+        role: "user",
         content: [
           {
             toolResult: {
@@ -62,7 +66,7 @@ export class ConversationContext {
 
   estimateTokenCount(): number {
     let totalChars = 0;
-    
+
     for (const message of this.messages) {
       for (const block of message.content || []) {
         if (block.text) {
@@ -74,18 +78,18 @@ export class ConversationContext {
         }
       }
     }
-    
+
     return Math.ceil(totalChars / 4);
   }
 
   truncateOldest(): void {
     if (this.messages.length <= 2) {
-      console.warn('[ConversationContext] Cannot truncate - too few messages');
+      console.warn("[ConversationContext] Cannot truncate - too few messages");
       return;
     }
 
-    if (this.messages.length >= 3) {
-      console.log('[ConversationContext] Truncating oldest message pair');
+    if (this.messages.length >= 5) {
+      console.log("[ConversationContext] Truncating oldest message pair");
       this.messages.splice(1, 2);
     }
   }

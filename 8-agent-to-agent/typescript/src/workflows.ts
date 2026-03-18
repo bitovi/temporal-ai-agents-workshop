@@ -14,15 +14,16 @@
 import { proxyActivities } from '@temporalio/workflow'
 import type * as activities from './activities'
 
-const { thoughtActivity, actionActivity, observationActivity } =
-  proxyActivities<typeof activities>({
+const { thoughtActivity, actionActivity, observationActivity } = proxyActivities<typeof activities>(
+  {
     startToCloseTimeout: '2 minutes',
     retry: {
       backoffCoefficient: 1,
       initialInterval: '3 seconds',
       maximumAttempts: 3,
     },
-  })
+  }
+)
 
 export async function agentWorkflow(): Promise<string> {
   throw new Error('Not Implemented — see java/ for reference implementation')

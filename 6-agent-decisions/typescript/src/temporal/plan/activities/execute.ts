@@ -47,9 +47,6 @@ export async function ExecuteStep(
   console.log("Executing tool:", input.step.tool_name);
   console.log("Tool input before substitution:", input.step.tool_input);
 
-  // TODO: Perform substitutions for {{result:[id]}} in input.step.tool_input
-  // using the values we have in our dependency list input.dependsOn[{id: number, result: string}]
-
   const keys = Object.keys(input.step.tool_input);
   keys.forEach((key) => {
     const value = input.step.tool_input[key];

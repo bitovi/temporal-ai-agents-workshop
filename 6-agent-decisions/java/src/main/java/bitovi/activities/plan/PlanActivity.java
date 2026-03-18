@@ -87,6 +87,6 @@ public class PlanActivity {
     }
 
     // If we made it here, the response is valid and we can return it
-    return new PlanResponse(steps);
+    return new PlanResponse(steps, response.usage());
   }
 }

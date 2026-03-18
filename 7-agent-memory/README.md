@@ -77,6 +77,7 @@ Modern memory systems use multiple specialized strategies. Understanding when to
 A well-architected system uses multiple strategies simultaneously. Semantic facts and user preferences are queried based on relevance to the current conversation. Episodic memories provide deeper context for similar situations. Summaries offer broad continuity. The agent's memory retrieval step can query across all of these and inject the most relevant records into the working context.
 
 TODO: Come back to this section and re-order a bit around custom implementation and other existing libraries.
+
 <!--
 ### Specialized Memory Tiers
 

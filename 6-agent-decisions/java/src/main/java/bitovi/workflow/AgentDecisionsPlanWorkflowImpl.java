@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.json.JSONObject;
 
 import bitovi.activities.Activities;
+import bitovi.activities.types.FinalResponse;
 import bitovi.activities.types.PlanResponse;
 import bitovi.activities.types.PlanStep;
 import bitovi.activities.types.PlanStepResult;
@@ -32,14 +33,18 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 
 	@Override
 	public PlanWorkflowResult execute(MessagePayload msg) {
-
 		List<String> context = new ArrayList<>();
+		List<UsageMetadata> usage = new ArrayList<>();
 
 		// Add initial message to context
 		context.add("User:" + msg.message());
 
 		// Generate the Plan
 		PlanResponse plan = activities.planActivity(context);
+
+		if (plan.usageMetadata() != null) {
+			usage.add(plan.usageMetadata());
+		}
 
 		HashMap<Integer, PlanStep> stepMap = new HashMap<>();
 		HashMap<Integer, PlanStepResult> resultMap = new HashMap<>();
@@ -128,13 +133,27 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 			// If there are failed steps, we're done.
 			// TODO: Eventually we should re-plan instead of just failing.
 			if (!failed.isEmpty()) {
+				UsageMetadata failedUsage = compileUsageMetadata(usage);
 				return new PlanWorkflowResult("Plan execution failed for steps: " + failed.toString(),
-						new UsageMetadata(0, 0, 0, 0));
+						failedUsage);
 			}
 		}
 
 		// Generate final response
-		String finalResponse = activities.executeResponse(context);
-		return new PlanWorkflowResult(finalResponse, new UsageMetadata(0, 0, 0, 0));
+		FinalResponse finalResponse = activities.executeResponse(context);
+		usage.add(finalResponse.usageMetadata());
+
+		UsageMetadata finalUsage = compileUsageMetadata(usage);
+		return new PlanWorkflowResult(finalResponse.response(), finalUsage);
+	}
+
+	UsageMetadata compileUsageMetadata(List<UsageMetadata> usage) {
+		return usage.stream()
+				.reduce(new UsageMetadata(0, 0, 0, 0),
+						(acc, curr) -> new UsageMetadata(
+								acc.inputTokens() + curr.inputTokens(),
+								acc.outputTokens() + curr.outputTokens(),
+								acc.reasoningTokens() + curr.reasoningTokens(),
+								acc.totalTokens() + curr.totalTokens()));
 	}
 }

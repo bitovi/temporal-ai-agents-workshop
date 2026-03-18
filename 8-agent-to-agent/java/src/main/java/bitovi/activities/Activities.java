@@ -31,7 +31,7 @@ public interface Activities {
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
 
 	@ActivityMethod
-	ObservationResponse observationActivity(List<String> context, String actionResult) throws ApplicationFailure;
+	ObservationResponse observationActivity(String thought, String actionName, String actionInputs, String actionResult) throws ApplicationFailure;
 
 	@ActivityMethod
 	CompactResponse compactActivity(List<String> context) throws ApplicationFailure;

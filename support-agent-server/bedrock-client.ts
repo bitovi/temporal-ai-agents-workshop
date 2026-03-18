@@ -1,10 +1,10 @@
-import { 
-  BedrockRuntimeClient, 
-  ConverseCommand, 
-  Tool, 
-  Message, 
-  ContentBlock 
-} from '@aws-sdk/client-bedrock-runtime';
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+  Tool,
+  Message,
+  ContentBlock,
+} from "@aws-sdk/client-bedrock-runtime";
 
 export interface ToolUse {
   toolUseId: string;
@@ -21,8 +21,8 @@ export interface BedrockResponse {
 const client = new BedrockRuntimeClient({
   region: process.env.AWS_REGION as string,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
     sessionToken: process.env.AWS_SESSION_TOKEN || undefined,
   },
 });
@@ -38,9 +38,11 @@ const client = new BedrockRuntimeClient({
 export async function callBedrockWithTools(
   messages: Message[],
   systemPrompt: string,
-  tools: Tool[]
+  tools: Tool[],
 ): Promise<BedrockResponse> {
-  console.log(`[Bedrock] Sending ${messages.length} message(s) with ${tools.length} tool(s) to model ${process.env.AWS_MODEL_ID}`);
+  console.log(
+    `[Bedrock] Sending ${messages.length} message(s) with ${tools.length} tool(s) to model ${process.env.AWS_MODEL_ID}`,
+  );
 
   const command = new ConverseCommand({
     modelId: process.env.AWS_MODEL_ID as string,
@@ -53,10 +55,14 @@ export async function callBedrockWithTools(
 
   try {
     const response = await client.send(command);
-    
+
     const outputMessage = response.output?.message;
-    if (!outputMessage || !outputMessage.content || outputMessage.content.length === 0) {
-      console.warn('[Bedrock] Empty response from Bedrock API');
+    if (
+      !outputMessage ||
+      !outputMessage.content ||
+      outputMessage.content.length === 0
+    ) {
+      console.warn("[Bedrock] Empty response from Bedrock API");
       return { stopReason: response.stopReason };
     }
 
@@ -66,23 +72,29 @@ export async function callBedrockWithTools(
 
     const textBlocks = outputMessage.content.filter((block) => block.text);
     if (textBlocks.length > 0) {
-      result.text = textBlocks.map((block) => block.text).join('\n');
-      console.log(`[Bedrock] Received text response: ${result.text.substring(0, 100)}...`);
+      result.text = textBlocks.map((block) => block.text).join("\n");
+      console.log(
+        `[Bedrock] Received text response: ${result.text.substring(0, 100)}...`,
+      );
     }
 
-    const toolUseBlocks = outputMessage.content.filter((block) => block.toolUse);
+    const toolUseBlocks = outputMessage.content.filter(
+      (block) => block.toolUse,
+    );
     if (toolUseBlocks.length > 0) {
       result.toolUses = toolUseBlocks.map((block) => ({
         toolUseId: block.toolUse!.toolUseId!,
         name: block.toolUse!.name!,
         input: block.toolUse!.input as Record<string, any>,
       }));
-      console.log(`[Bedrock] Received ${result.toolUses.length} tool use request(s)`);
+      console.log(
+        `[Bedrock] Received ${result.toolUses.length} tool use request(s)`,
+      );
     }
 
     return result;
   } catch (error) {
-    console.error('[Bedrock] API call failed:', error);
+    console.error("[Bedrock] API call failed:", error);
     throw error;
   }
 }

@@ -3,7 +3,7 @@ import {
   executeCheckBillingHistory,
   executeVerifyIdentity,
   executeApplyResolution,
-} from './support-tools';
+} from "./support-tools";
 
 /**
  * Routes tool names to their executor functions.
@@ -14,32 +14,32 @@ import {
  */
 export function executeTool(
   toolName: string,
-  toolInput: Record<string, any>
+  toolInput: Record<string, any>,
 ): string {
   console.log(`[ToolExecutor] Executing tool: ${toolName}`);
   console.log(`[ToolExecutor] Input:`, JSON.stringify(toolInput, null, 2));
 
   try {
     switch (toolName) {
-      case 'lookup_account':
+      case "lookup_account":
         return executeLookupAccount(toolInput);
-      
-      case 'check_billing_history':
+
+      case "check_billing_history":
         return executeCheckBillingHistory(toolInput);
-      
-      case 'verify_identity':
+
+      case "verify_identity":
         return executeVerifyIdentity(toolInput);
-      
-      case 'apply_resolution':
+
+      case "apply_resolution":
         return executeApplyResolution(toolInput);
-      
+
       default:
         const errorMsg = `Unknown tool: ${toolName}`;
         console.error(`[ToolExecutor] ${errorMsg}`);
         return JSON.stringify({ error: errorMsg });
     }
   } catch (error) {
-    const errorMsg = `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    const errorMsg = `Tool execution failed: ${error instanceof Error ? error.message : "Unknown error"}`;
     console.error(`[ToolExecutor] ${errorMsg}`, error);
     return JSON.stringify({ error: errorMsg });
   }
