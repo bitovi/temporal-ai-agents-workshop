@@ -52,8 +52,9 @@ public class EnvironmentSetupWorkflowImpl implements EnvironmentSetupWorkflow {
 		logger.info("checkQdrantConnection");
 		qdrantActivites.checkQdrantConnection();
 
-		logger.info("checkS3Connection");
-		s3Activities.checkS3Connection();
+		// Not needed for advanced ai workshop
+		// logger.info("checkS3Connection");
+		// s3Activities.checkS3Connection();
 
 		logger.info("checkMockMcpServerConnection");
 		mockMcpServerActivities.checkMockMcpServerConnection();

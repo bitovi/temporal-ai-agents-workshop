@@ -1,5 +1,7 @@
 package bitovi.activities;
 
+import java.util.List;
+
 import org.json.JSONObject;
 
 import bitovi.common.Config;
@@ -11,7 +13,9 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.BedrockAgentCoreControlClient;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.GetMemoryRequest;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.ListMemoriesRequest;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.Memory;
+import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemorySummary;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -162,6 +166,18 @@ public class BedrockImpl implements Bedrock {
 					"BedrockClientError");
 		}
 
+		ListMemoriesRequest listMemoriesRequest = ListMemoriesRequest.builder().build();
+		try {
+			List<MemorySummary> memories = bedrockAgentCoreControlClient.listMemories(listMemoriesRequest).memories();
+			if (!memories.isEmpty()) {
+				for (MemorySummary memorySummary : memories) {
+					System.out.println("Found Bedrock Memory Resource: " + memorySummary.id());
+				}
+			}
+		} catch (Exception e) {
+			System.err.println("Failed to list Bedrock memories: " + e.getMessage());
+		}
+
 		GetMemoryRequest getRequest = GetMemoryRequest.builder()
 				.memoryId(AWS_BEDROCK_AGENTCORE_MEMORY_ID)
 				.build();
@@ -169,7 +185,7 @@ public class BedrockImpl implements Bedrock {
 		try {
 			Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
 			return "Bedrock Memory connection successful: " + memory.name();
-			
+
 		} catch (Exception e) {
 			throw ApplicationFailure.newNonRetryableFailure(
 					"Failed to get Bedrock memory: " + e.getMessage(),
