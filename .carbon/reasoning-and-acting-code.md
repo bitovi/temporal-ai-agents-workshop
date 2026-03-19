@@ -2,16 +2,9 @@
 
 ```java
 List<String> context = new ArrayList<>();
-Workflow.await(() -> !pendingMsgs.isEmpty());
-while (true) {
-    // Process all pending messages
-    if (!pendingMsgs.isEmpty()) {
-        for (MessagePayload msg : pendingMsgs) {
-            context.add(formatUserMessageContext(msg));
-        }
-        pendingMsgs.clear();
-    }
+context.add(formatUserMessageContext(input));
 
+while (true) {
     ThoughtResponse thoughts = activities.thoughtActivity(context);
     if (thoughts.type().equals("answer")) {
         return thoughts.answer();
@@ -24,7 +17,10 @@ while (true) {
         context.add(formatActionContext(action.name(), action.input()));
 
         String actionResult = activities.actionActivity(action.name(), action.input());
-        ObservationResponse observationResponse = activities.observationActivity(context, actionResult);
+
+        ObservationResponse observationResponse = activities.observationActivity(
+            thoughts.thought(), action.name(), action.input(), actionResult
+        );
 
         context.add(formatObservationContext(observationResponse.observations()));
     }

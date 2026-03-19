@@ -9,6 +9,10 @@ PlanStatus status = buildPlanStatus(plan);
 
 // Main event loop
 while (true) {
+    if (hasFailedDependencies(status)) {
+        return activities.executeResponse(context); // Here we should re-plan, or after a certain number of retries, give up.
+    }
+
     List<PlanStep> pending = filterStepsWithMetDependencies(plan.steps(), status.results(), status.failed());
     if (pending.isEmpty()) {
         break;
@@ -26,6 +30,7 @@ while (true) {
             context.add(formatPlanStepResultContext(result));
             status.results().put(result.id(), result);
         } else {
+            context.add(formatFailedPlanStepResultContext(result));
             status.failed().add(result.id());
         }
     }
