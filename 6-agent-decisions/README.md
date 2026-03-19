@@ -169,7 +169,7 @@ for (const planStep of plan.steps) {
 const answer = await respondActivity(context, plan, results);
 ```
 
-Plan-and-Execute aims to use LLMs more efficiently. 
+Plan-and-Execute aims to use LLMs more efficiently.
 The planning step gets the full reasoning power of a large model, but each execution step operates with a minimal prompt focused on a single task — making those calls faster and cheaper.
 The plan also helps prevent drift, keeping the agent on track toward the original goal rather than getting sidetracked by intermediate results.
 
@@ -210,6 +210,71 @@ ChatCompletionRequest request = new ChatCompletionRequest.Builder()
         .reasoningEffort(ReasoningEffort.HIGH) // Or LOW, MEDIUM, XHIGH, etc.
         .build();
 ```
+
+#### Challenges in Long Context Reasoning
+
+One important topic to touch on here is how long context lengths impact the reasoning capabilities of large language models. This requires taking a look at how Transformer models, the uderlying architecture behind nearly every modern LLM, actually processes information. Specifically, we need to understand the self-attention mechanism and how it scales with context length.
+
+_Attention is All You Need_
+
+One of the major breakthroughs in Transformer models is the idea of Attention, described in the paper "Attention is All You Need" by researchers at Google in 2017.
+
+At the core of every Transformer is the self-attention mechanism. When a model processes a sequence of tokens, each token computes an "attention score" against every other token in the sequence. These scores determine how much influence each token has on the representation of every other token. In simplified terms: attention is how the model decides what to pay attention to.
+
+The attention scores are computed via a softmax function across all tokens in the context window. This means attention is inherently a competitive resource — the scores must sum to 1 across the full sequence. As the number of tokens grows, the attention budget gets spread thinner. A critical piece of information buried in token 50,000 of a 200,000-token context is competing for attention weight against 199,999 other tokens.
+
+This mechanism works remarkably well for typical prompt lengths. But as context grows into the tens or hundreds of thousands of tokens, several practical problems emerge.
+
+_Context Rot_
+
+"Context rot" is a term coined by Anthropic to describe a phenomenon where model quality degrades as context length increases. As the number of tokens in the context window grows, the model's ability to accurately recall and reason over that context decreases. But the reality is more nuanced than just "more tokens = worse performance."
+
+What we'd expect: If context rot were purely about attention dilution, models should struggle with basic retrieval tasks in long contexts — finding a specific fact ("needle") hidden in a large body of irrelevant text ("haystack"). But frontier models actually score 90%+ on needle-in-a-haystack benchmarks like RULER, even at very long context lengths. The models can find information in large contexts.
+
+What actually happens: The degradation shows up on tasks that require reasoning over large contexts, not just retrieving from them. Tasks like aggregating information across thousands of entries, tracking state changes over long sequences, or synthesizing insights from distributed evidence across a large document. The model can find any individual piece of information, but struggles to hold and manipulate many pieces simultaneously.
+
+This suggests context rot is caused by a combination of factors, not just attention dilution:
+
+- Attention score dilution: With more tokens competing for attention weight, the model's ability to maintain sharp focus on the most relevant information decreases. Critical relationships between distant tokens can get "washed out" in the noise.
+- Lost in the middle: Research has shown that models attend more strongly to tokens near the beginning and end of their context window, with weaker attention to information in the middle. This "U-shaped" attention pattern means that where information appears in the context matters almost as much as whether it's there at all.
+- Training data distribution: Models are trained predominantly on sequences much shorter than their maximum context window. Ultra-long sequences are statistically rare in training data, making them effectively out-of-distribution at inference time. The model has less practice reasoning over very long inputs.
+- Positional encoding limitations: Transformers use positional encodings to understand token ordering. Techniques like RoPE (Rotary Position Embeddings) and ALiBi have extended positional awareness, but extrapolating to positions far beyond training lengths still introduces degradation.
+- MoE routing bottlenecks: For Mixture-of-Experts models (used by many frontier LLMs), the routing layer that selects which expert processes each token can become a bottleneck at extreme context lengths. The RLM authors noted this was a bigger factor than attention itself in some cases.
+
+_Why This Matters for Agent Architecture_
+
+Context rot is not just an academic concern. It has direct practical implications for how we build agents:
+
+- ReAct loops accumulate context. In the ReAct architecture described earlier, the model sees the entire conversation history — every thought, action, and observation — on each iteration. After 10+ iterations of tool calls and observations, the context can grow substantially, and the model's reasoning quality in later iterations may degrade compared to earlier ones. This is one reason why a ReAct agent might "forget" its original goal or start making worse decisions in later iterations of a long-running task.
+- Plan and Execute mitigates this by design. The Plan and Execute architecture naturally reduces the context rot problem. The planning step gets the full context and reasoning power, but each execution step operates with a minimal, focused prompt for a single task. The executor doesn't need to hold the entire problem history — just the specific step it's executing. This is one of its key architectural advantages over ReAct for complex, multi-step tasks.
+- Reasoning effort settings interact with context length. When we use higher reasoning effort (as discussed in the Model Provider Reasoning Effort section), the model generates more internal reasoning tokens. These tokens also consume context window space and attention budget. For very long contexts, there's a tension between wanting deep reasoning and the additional context pressure that reasoning tokens create.
+
+This is a fundamental motivation for building multi-agent systems, which we will talk a lot more about in the later sections.
+
+#### Recursive Language Models: Treating Context as an Environment
+
+One of the most interesting recent developments in how LLMs handle reasoning and complexity over long contexts is the concept of Recursive Language Models (RLMs). The idea is to treat the context as an external environment and allow the LLM to programmatically examine, decompose, and recursively call itself over snippets of the context. This approach enables the model to process inputs much longer than its native context window and can significantly improve performance on complex tasks.
+
+Rather than feeding a long prompt directly into a model's context window, the input is stored as a variable in a Python REPL environment. With this approach the model can write code to programmatically inspect, transform, and recursively perform sub-queries over that data. The model can treat the prompt as something to interact with rather than something to consume all at once.
+
+From the outside, an RLM call looks identical to a normal LLM API call. We pass in a query and context, and you get back a string response. But under the hood, the model is orchestrating its own recursive decomposition of the problem.
+
+The RLM stores the, potentially enormous, context as a Python variable in a REPL. The model receives only the query and a reference to that variable. It can then:
+
+- Peek at subsets of the data (e.g., print(context[:2000]))
+- Search using regex, keyword matching, or Python string operations
+- Transform the data with arbitrary Python code
+- Recursively call itself (or a smaller/cheaper model) over slices of the data
+
+When the Root model spawns a recursive query, that sub-Model gets its own fresh context window with only the subset of data it needs. The sub-Model's result is passed back to the root LM as a return value.
+
+One of the most important and compelling aspects of RLMs is that the model can develop its own strategies for working with data. We don't need to define a fixed chunking strategy or retrieval pipeline. In fact, the Recursive Language Models (RLM) paper documents several patterns that emerge naturally:
+
+- Peeking: The Root Model starts by inspecting the first few thousand characters of the context to understand its structure — exactly like a programmer opening a new dataset and running `head()`.
+- Grepping: To narrow the search space, the model uses regex patterns or keyword matching over the context. This is far cheaper and faster than semantic retrieval, and the model decides when it's appropriate.
+- Partitioning + Mapping: For tasks requiring semantic understanding across the full context, the model chunks the data and launches parallel recursive sub-calls over each chunk. For example, if asked to classify thousands of entries, the root LM might partition into groups of 100 and ask sub-calls to label each group, then aggregate.
+- Summarization: The model naturally summarizes intermediate results from sub-calls, condensing information before making final decisions. It only summarizes when it determines it's the right strategy.
+- Programmatic Solutions: For tasks that are fundamentally computational, the RLM can bypass the LLM entirely for that portion and just write Python code to compute the answer directly.
 
 #### Techniques for Optimizing Decision Making
 

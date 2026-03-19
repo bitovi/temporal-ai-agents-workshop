@@ -1,4 +1,4 @@
-# Exercise 8 - Agent to Agent
+# Exercise 8 - Multi-Agent Orchestration
 
 ## Goals
 
@@ -7,6 +7,42 @@ The goal of this exercise is to understand how to configure multiple LLM-based a
 Implementing agent-to-agent communication allows for the creation of more sophisticated AI systems that can leverage the strengths of different models or specialized agents to achieve better outcomes.
 
 ## What you need to know
+
+Single-agent systems have limitations. One single Agent trying to handle research, reasoning, code generation, customer support, billing systems, and validation simultaneously tends to be mediocre at all of them. As the amount of information in the models context grows, quality often degrades. This "context rot" can be mitigated by multi-agent orchestration, which addresses this by breaking down complex tasks across specialized agents, each operating within its own focused context window.
+
+- Specialization over genereralization
+  - Each agent can be tuned via system prompts, model selection, and tool definitions for a specific domain.
+  - A billing agent doesn't need to understand account verification logic, and vice versa. This mirrors how human teams organize around expertise.
+
+- Parallelization
+  - Tasks that don't depend on each other can be executed in parallel. We saw this idea in the Plan & Execute Architecture! 
+  - While our amount of computation stays the same, we can achieve faster results by running independent tasks concurrently across multiple agents.
+
+- Context window management
+  - Each agent gets a fresh context window.
+  - A research sub-agent can chew through hundreds of documents without polluting the orchestrator's context.
+  - Only the distilled summary flows back up.
+  - This is one of the primary reasons tools like GitHub Copilot and Claude Code use sub-agents as part of their architecture, to keep the main conversation clean and focused.
+
+- Fault tolerance
+  - If one agent fails or produces an error, the orchestrator can retry the task with a different agent or ask a human for intervention.
+
+The most common practice in these multi-agent systems is to have a top level supervisor or orchestrator agent that then delegates tasks to specialized sub-agents. The orchestrator manages the overall workflow, monitors progress, and handles errors, while the sub-agents focus on their specific tasks.
+
+In our exercise later we will see this pattern in action, with our chat AI Agent interacting with a Customer Support Agent on behalf of a user over the Agent2Agent Protocol.
+
+### Real World Example: GitHub Copilot and Claude Code
+
+Both GitHub Copilot and Claude Code are great examples of multi-agent orchestration in a developer tool that many of us now use daily. These tools can spawn sub-agents, each with its own context window, system prompt, tool definitions, and independent execution. The main agent acts as an orchestrator, delegating focused subtasks to these sub-agents and receiving back concise results. 
+
+This solves two common problems. The first is the always growing context window. A sub-agent can explore dozens of files, run multiple web searches, or analyze a large codebase without any of that intermediate work accumulating in the main conversation. Only the final summary returns to the parent.
+
+The other is parallel execution. Multiple sub-agents can run simultaneously. For example, when researching a topic, Claude Code might spawn one agent per competitor or one per section of a codebase, then synthesize all results.
+
+Claude Code ships with built-in sub-agents (like Task for general-purpose work and Explore for codebase navigation) but also supports user-defined custom sub-agents configured as Markdown files with YAML frontmatter specifying the agent's description, system prompt, allowed tools, and permission mode. Notably, sub-agents cannot spawn their own sub-agents — this prevents infinite nesting and keeps the architecture manageable.
+This pattern — an orchestrator coordinating specialized workers with isolated contexts — is the same fundamental architecture we're using in this exercise. The difference is that Claude Code's sub-agents are all local instances of Claude, while our system uses A2A to communicate across agent boundaries (different runtimes, different languages, potentially different organizations).
+
+## Agent-to-Agent Protocol
 
 The Agent-to-Agent Protocol is an open standard created by Google that enables AI Agents to seamlessly communicate and collaborate with each other in a structured way. The A2A Protocol is now managed by the Linux Foundation. Under the Linux Foundation’s governance, the hope is that A2A will remain vendor neutral, emphasize inclusive contributions and continue the protocol’s focus on extensibility, security and real-world usability across industries.
 
@@ -68,7 +104,8 @@ The support agent in this exercise advertises itself via an agent card at `.well
 ```ts
 const agentCard: AgentCard = {
   name: "Riot Games Support Agent",
-  description: "Handles billing inquiries, refunds, and account issues for Riot Games.",
+  description:
+    "Handles billing inquiries, refunds, and account issues for Riot Games.",
   protocolVersion: "0.3.0",
   url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`,
   skills: [
