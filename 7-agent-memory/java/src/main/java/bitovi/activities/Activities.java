@@ -9,6 +9,7 @@ import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContextEntry;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.failure.ApplicationFailure;
@@ -41,4 +42,12 @@ public interface Activities {
 	@ActivityMethod
 	RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query, List<MemoryStrategyType> strategyTypes)
 			throws ApplicationFailure;
+
+	// Memory Extraction Workflow
+
+	@ActivityMethod
+	UsageMetadata extractUserPreferenceMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure;
+
+	@ActivityMethod
+	UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure;
 }

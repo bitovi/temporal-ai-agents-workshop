@@ -17,8 +17,11 @@ import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
+import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
+import bitovi.common.local.LocalMemory;
 import bitovi.workflow.types.ContextEntry;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
@@ -76,12 +79,24 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure {
-		try {
-			AgentCoreMemory.createEvent(entries);
-		} catch (Exception e) {
-			System.err.println("Error in persistMemoryActivity: " + e.getMessage());
-			throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
-					"PersistMemoryActivityError");
+		Config config = new Config();
+		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction.equals("true")) {
+			try {
+				LocalMemory.createEvent(entries);
+			} catch (Exception e) {
+				System.err.println("Error in local persistMemoryActivity: " + e.getMessage());
+				throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
+						"PersistLocalMemoryActivityError");
+			}
+		} else {
+			try {
+				AgentCoreMemory.createEvent(entries);
+			} catch (Exception e) {
+				System.err.println("Error in AgentCore persistMemoryActivity: " + e.getMessage());
+				throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
+						"PersistAgentCoreMemoryActivityError");
+			}
 		}
 	}
 
@@ -89,6 +104,12 @@ public class ActivitiesImpl implements Activities {
 	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query,
 			List<MemoryStrategyType> strategyTypes)
 			throws ApplicationFailure {
+
+		Config config = new Config();
+		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction.equals("true")) {
+			return LocalMemory.retrieveMemoryRecords(query, strategyTypes);
+		}
 		try {
 
 			if (query.length() > 1000) {
@@ -149,4 +170,16 @@ public class ActivitiesImpl implements Activities {
 		}
 	}
 
+	@Override
+	public UsageMetadata extractUserPreferenceMemories(String userId, List<ContextEntry> entries)
+			throws ApplicationFailure {
+		// TODO: Implement the logic to extract user preference memories
+		return new UsageMetadata(0, 0, 0);
+	}
+
+	@Override
+	public UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure {
+		// TODO: Implement the logic to extract semantic memories
+		return new UsageMetadata(0, 0, 0);
+	}
 }
