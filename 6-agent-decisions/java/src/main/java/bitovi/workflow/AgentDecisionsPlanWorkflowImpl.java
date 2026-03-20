@@ -76,7 +76,7 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 					break; // All steps completed successfully
 				}
 
-				// Some steps failed - attempt re-plan if attempts remain
+				// Some steps failed, return a failed result if max re-plan attempts reached
 				if (replanAttempts >= MAX_REPLAN_ATTEMPTS) {
 					return new PlanWorkflowResult(
 							"Plan execution failed after " + replanAttempts + " re-plan attempts. Failed steps: "
@@ -96,7 +96,7 @@ public class AgentDecisionsPlanWorkflowImpl implements AgentDecisionsPlanWorkflo
 					}
 				}
 
-				// Continue as New to RePlan based on the updated context
+				// Continue as New to re-Plan based on the updated context
 				PlanContinueAsNewState continueAsNewState = new PlanContinueAsNewState(replanAttempts + 1, usage,
 						context);
 				Workflow.continueAsNew(
