@@ -157,9 +157,6 @@ public class AWS {
             requestBuilder.toolConfig(toolConfig);
         }
 
-
-
-        // Configure reasoning parameters with a 2000 token budget
         Document reasoningConfig = Document.mapBuilder()
                 .putDocument("reasoningConfig", Document.mapBuilder()
                         .putString("type", "enabled")
