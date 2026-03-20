@@ -61,6 +61,12 @@ Usage metrics:
   Total tokens: 7778
 ```
 
+Take a look at the Workflow implementation which can be found in:
+
+[`AgentDecisionsReActWorkflowImpl.java`](src/main/java/bitovi/workflow/AgentDecisionsReActWorkflowImpl.java)
+
+Take a look at how the core loop is implemented, how usage metrics are collected, and how the workflow handles inputs and outputs from the Thought, Action, and Observation activities.
+
 ## Part B - Plan and Execute Example
 
 Now lets try an example implementation of a Plan and Execute Agent. This time we have a single planning phase and then a separate execution phase. The execution phase does not perform any reasoning of its own, it simply executes the plan that was created during the planning phase.
@@ -103,6 +109,12 @@ Usage metrics:
 ```
 
 For this simple math problem example, the Plan and Execute Agent uses only 2500 tokens total compared to the 7700 tokens used by the ReAct Agent!
+
+Take a look at the Workflow implementation which can be found in:
+
+[`AgentDecisionsPlanWorkflowImpl.java`](src/main/java/bitovi/workflow/AgentDecisionsPlanWorkflowImpl.java)
+
+Take a look at how the core loop is implemented, how usage metrics are collected, and how the workflow handles inputs and outputs from the Plan and Execute activities.
 
 ## Part C - Experiment
 
