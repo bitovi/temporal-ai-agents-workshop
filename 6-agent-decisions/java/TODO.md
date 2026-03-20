@@ -12,6 +12,11 @@ You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ct
 ![image](../../.images/vscode-cmd-menu.png)
 
 Select the appropriate task from the list to run.
+
+- Sync Environments
+- Docker Compose Down
+- Docker Compose Up
+
 ![image](../../.images/vscode-run-task.png)
 
 3. Launch: Exercise 6 - Worker

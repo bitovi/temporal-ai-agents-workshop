@@ -56,6 +56,14 @@ All other systems will be run locally using the **Docker Compose Up** task.
 
 To stop and clean up the running services, use the **Docker Compose Down** task.
 
+You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+![image](../.images/vscode-cmd-menu.png)
+
+Select the appropriate task from the list to run.
+
+![image](../.images/vscode-run-task.png)
+
+
 ## VSCode Launch Configurations
 
 Each Exercise has (at least) two launch configurations configured:
