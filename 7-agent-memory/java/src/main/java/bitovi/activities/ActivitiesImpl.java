@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import bitovi.activities.react.ActionActivity;
@@ -108,7 +109,13 @@ public class ActivitiesImpl implements Activities {
 		Config config = new Config();
 		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
 		if (useLocalExtraction.equals("true")) {
-			return LocalMemory.retrieveMemoryRecords(query, strategyTypes);
+			try {
+				return LocalMemory.retrieveMemoryRecords(query, strategyTypes);
+			} catch (Exception e) {
+				System.err.println("Error in local retrieveMemoryRecordsActivity: " + e.getMessage());
+				throw ApplicationFailure.newFailure("retrieveMemoryRecordsActivity failed: " + e.getMessage(),
+						"RetrieveLocalMemoryRecordsActivityError");
+			}
 		}
 		try {
 
@@ -136,9 +143,9 @@ public class ActivitiesImpl implements Activities {
 			}
 			return new RetrieveMemoryRecordsResult(memoryRecords);
 		} catch (Exception e) {
-			System.err.println("Error in retrieveMemoryRecordsActivity: " + e.getMessage());
+			System.err.println("Error in AgentCore retrieveMemoryRecordsActivity: " + e.getMessage());
 			throw ApplicationFailure.newFailure("retrieveMemoryRecordsActivity failed: " + e.getMessage(),
-					"RetrieveMemoryRecordsActivityError");
+					"RetrieveAgentCoreMemoryRecordsActivityError");
 		}
 	}
 
@@ -173,13 +180,24 @@ public class ActivitiesImpl implements Activities {
 	@Override
 	public UsageMetadata extractUserPreferenceMemories(String userId, List<ContextEntry> entries)
 			throws ApplicationFailure {
-		// TODO: Implement the logic to extract user preference memories
-		return new UsageMetadata(0, 0, 0);
+		System.out.println("extractUserPreferenceMemories called with userId: " + userId + " and entries: " + entries);
+		return LocalMemory.extractUserPreferenceMemoriesImpl(entries);
 	}
 
 	@Override
 	public UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure {
-		// TODO: Implement the logic to extract semantic memories
-		return new UsageMetadata(0, 0, 0);
+		System.out.println("extractSemanticMemories called with userId: " + userId + " and entries: " + entries);
+		return LocalMemory.extractSemanticMemoriesImpl(entries);
+	}
+
+	@Override
+	public void initializeMemoryStorage(String userId) throws ApplicationFailure {
+		System.out.println("initializeMemoryStorage called with userId: " + userId);
+		try {
+			LocalMemory.initializeMemoryStorage();
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailure("initializeMemoryStorage failed: " + e.getMessage(),
+					"InitializeMemoryStorageError");
+		}
 	}
 }

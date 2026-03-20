@@ -60,6 +60,11 @@
             <artifactId>jtokkit</artifactId>
             <version>1.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.qdrant</groupId>
+            <artifactId>client</artifactId>
+            <version>1.14.1</version>
+        </dependency>        
     </dependencies>
 
     <build>

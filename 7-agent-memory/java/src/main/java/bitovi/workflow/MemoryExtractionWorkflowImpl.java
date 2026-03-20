@@ -34,6 +34,10 @@ public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
     public WorkflowResult execute(MemoryExtractionWorkflowInput input) {
         this.userId = input.userId();
 
+        // Initialize memory storage for this user, if it doesnt exist already
+
+        activities.initializeMemoryStorage(userId);
+
         // Process the pending context entries
 
         while (!pending.isEmpty()) {

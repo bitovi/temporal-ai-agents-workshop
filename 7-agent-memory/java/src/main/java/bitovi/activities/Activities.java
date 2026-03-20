@@ -46,8 +46,11 @@ public interface Activities {
 	// Memory Extraction Workflow
 
 	@ActivityMethod
-	UsageMetadata extractUserPreferenceMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure;
+	UsageMetadata extractUserPreferenceMemories(String userId,List<ContextEntry> entries) throws ApplicationFailure;
 
 	@ActivityMethod
 	UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure;
+
+	@ActivityMethod
+	void initializeMemoryStorage(String userId) throws ApplicationFailure;
 }
