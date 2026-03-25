@@ -99,8 +99,9 @@ public class RawEventHelper {
                     .setOrderBy(Points.OrderBy.newBuilder().setKey("created_at").setDirection(Direction.Desc))
                     .build()).get();
         } catch (InterruptedException | ExecutionException ex) {
-            System.getLogger(VectorDatabaseClient.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            System.err.println("Failed to raw message embeddings: " + ex.getMessage());
         }
+        
         List<ContextEntry> payloads = new ArrayList<>();
 
         if (scrollResponse == null) {
@@ -116,11 +117,9 @@ public class RawEventHelper {
             Instant createdAt = Instant.parse(payloadMap.get("created_at").getStringValue());
 
             if (role.equals(Role.USER)) {
-                payloads.add(new ContextEntry(createdAt, role, payload, ContextEntryType.USER_MESSAGE,
-                        null, null, null));
+                payloads.add(ContextEntry.fromUser(payload, createdAt));
             } else {
-                payloads.add(new ContextEntry(createdAt, role, payload, ContextEntryType.ANSWER,
-                        null, null, null));
+                payloads.add(ContextEntry.fromAnswer(payload, createdAt));
             }
         }
         return payloads;
