@@ -4,6 +4,7 @@ import java.util.List;
 
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
@@ -18,7 +19,8 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrat
 @ActivityInterface
 public interface Activities {
 	@ActivityMethod
-	ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords) throws ApplicationFailure;
+	ThoughtResponse thoughtActivity(List<ContextEntry> context, List<LabeledMemoryRecord> memoryRecords)
+			throws ApplicationFailure;
 
 	@ActivityMethod
 	String actionActivity(String toolName, ActionInput input) throws ApplicationFailure;
@@ -34,7 +36,7 @@ public interface Activities {
 	void persistActivity(List<PersistMessage> messages) throws ApplicationFailure;
 
 	@ActivityMethod
-	void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure;
+	void persistMemoryActivity(List<ContextEntry> entries, String sessionId) throws ApplicationFailure;
 
 	@ActivityMethod
 	Integer getTokenUsage(List<ContextEntry> context) throws ApplicationFailure;
@@ -46,11 +48,10 @@ public interface Activities {
 	// Memory Extraction Workflow
 
 	@ActivityMethod
-	UsageMetadata extractUserPreferenceMemories(String userId,List<ContextEntry> entries) throws ApplicationFailure;
+	UsageMetadata extractUserPreferenceMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure;
 
 	@ActivityMethod
-	UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure;
-
-	@ActivityMethod
-	void initializeMemoryStorage(String userId) throws ApplicationFailure;
+	UsageMetadata extractSemanticMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure;
 }

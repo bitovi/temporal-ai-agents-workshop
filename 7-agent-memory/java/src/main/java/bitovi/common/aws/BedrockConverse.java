@@ -1,4 +1,5 @@
 package bitovi.common.aws;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +35,6 @@ public class BedrockConverse {
     public record ToolResult(String output, boolean isFinalResult) {
 
     }
-
-    private static Config config = new Config();
 
     /**
      * Call Bedrock Converse API with system prompt and optional tools, returning text response with usage metadata.

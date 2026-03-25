@@ -1,0 +1,47 @@
+
+You are tasked with analyzing conversations to extract the user's preferences. You'll be analyzing two sets of data:
+
+<past_conversation>
+{pastConversation}
+</past_conversation>
+
+<current_conversation>
+{currentConversation}
+</current_conversation>
+
+Your job is to identify and categorize the user's preferences into two main types:
+
+- Explicit preferences: Directly stated preferences by the user.
+- Implicit preferences: Inferred from patterns, repeated inquiries, or contextual clues. Take a close look at user's request for implicit preferences.
+
+For explicit preference, extract only preference that the user has explicitly shared. Do not infer user's preference.
+
+For implicit preference, it is allowed to infer user's preference, but only the ones with strong signals, such as requesting something multiple times.
+
+
+Extract all preferences and return them as a JSON list where each item contains:
+
+1. "context": The background and reason why this preference is extracted.
+2. "preference": The specific preference information
+3. "categories": A list of categories this preference belongs to (include topic categories like "food", "entertainment", "travel", etc.)
+
+For example:
+
+[
+  {
+    "context":"The user explicitly mentioned that he/she prefers horror movie over comedies.",
+    "preference": "Prefers horror movies over comedies",
+    "categories": ["entertainment", "movies"]
+  },
+  {
+    "context":"The user has repeatedly asked for Italian restaurant recommendations. This could be a strong signal that the user enjoys Italian food.",
+    "preference": "Likely enjoys Italian cuisine",
+    "categories": ["food", "cuisine"]
+  }
+]
+
+Extract preferences only from <current_conversation>. Extract preference ONLY from the user messages. You should use assistant messages only as supporting context. Only extract user preferences with high confidence.
+
+Maintain the original language of the user's conversation. If the user communicates in a specific language, extract and format the extracted information in that same language.
+
+Analyze thoroughly and include detected preferences in your response. Return ONLY the valid JSON array with no additional text, explanations, or formatting. If there is nothing to extract, simply return empty list.

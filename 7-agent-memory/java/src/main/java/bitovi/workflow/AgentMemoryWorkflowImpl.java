@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import bitovi.activities.Activities;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
@@ -160,7 +161,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			);
 			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
 					memoryStrategies);
-			List<String> memoryRecords = retrieveResult.memoryRecords();
+			List<LabeledMemoryRecord> memoryRecords = retrieveResult.memories();
 
 			// Get thought from AI based on context and retrieved memories
 			ThoughtResponse thoughtResponse = activities.thoughtActivity(context, memoryRecords);
@@ -185,7 +186,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				persist.add(answerEntry);
 
 				// Batch persist: collect entries from most recent USER_MESSAGE to ANSWER
-				activities.persistMemoryActivity(persist);
+				activities.persistMemoryActivity(persist, Workflow.getInfo().getRunId());
 
 				// Once this has been persisted, we can clear the persist buffer
 				persist.clear();

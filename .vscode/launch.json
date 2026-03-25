@@ -215,5 +215,14 @@
             "cwd": "${workspaceFolder}/7-agent-memory/java/",
             "preLaunchTask": "Exercise 7 Maven Build"
         },
+        {
+            "type": "java",
+            "name": "Debug - Support Agent (ADK)",
+            "request": "launch",
+            "mainClass": "bitovi.SupportAgentServerADK",
+            "projectName": "support-agent-server-adk",
+            "cwd": "${workspaceFolder}/support-agent-server-adk/java/",
+            "preLaunchTask": "Support Agent Maven Build"
+        },
     ]
 }

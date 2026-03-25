@@ -31,6 +31,12 @@ The most common practice in these multi-agent systems is to have a top level sup
 
 In our exercise later we will see this pattern in action, with our chat AI Agent interacting with a Customer Support Agent on behalf of a user over the Agent2Agent Protocol.
 
+
+### Framework vs Protocol
+
+
+
+
 ### Real World Example: GitHub Copilot and Claude Code
 
 Both GitHub Copilot and Claude Code are great examples of multi-agent orchestration in a developer tool that many of us now use daily. These tools can spawn sub-agents, each with its own context window, system prompt, tool definitions, and independent execution. The main agent acts as an orchestrator, delegating focused subtasks to these sub-agents and receiving back concise results.
@@ -60,11 +66,11 @@ Both tools spawn sub-agents with their own context windows, system prompts, and 
 
 ---
 
-## 3.2 — Orchestration Patterns
+## Orchestration Patterns
 
 The five foundational patterns that all multi-agent systems map to (or hybridize). These are analogous to distributed systems patterns — the same trade-offs around coordination cost, fault isolation, throughput, and observability apply.
 
-### 3.2.1 — Orchestrator-Worker (Hub and Spoke)
+### Orchestrator-Worker (Hub and Spoke)
 
 The most widely deployed pattern in production. A central orchestrator receives tasks, decomposes them, routes subtasks to specialized workers, and aggregates results. Workers don't communicate with each other — all coordination flows through the orchestrator.
 
@@ -73,7 +79,7 @@ The most widely deployed pattern in production. A central orchestrator receives 
 - Trade-off: orchestrator is a single point of failure and potential bottleneck
 - Examples: LangGraph Supervisor, AutoGen group chat with selector agent
 
-### 3.2.2 — Handoff / Swarm (Decentralized)
+### Handoff / Swarm (Decentralized)
 
 Agents transfer control to each other explicitly via "handoff" functions. No central supervisor — each agent decides locally whether to handle a task or pass it to a peer. Originated from OpenAI's experimental Swarm framework, now production-grade in the OpenAI Agents SDK.
 
@@ -82,7 +88,7 @@ Agents transfer control to each other explicitly via "handoff" functions. No cen
 - Risk: handoff loops (Agent A → Agent B → Agent A) without guard conditions
 - Best for: high-volume, well-defined routing (customer support triage, onboarding flows)
 
-### 3.2.3 — Hierarchical (Tree-Structured Delegation)
+### Hierarchical (Tree-Structured Delegation)
 
 Multi-level delegation: a top-level manager delegates to mid-level supervisors, who delegate to leaf-level workers. Each level adds abstraction — strategy at top, tactics in middle, execution at leaves.
 
@@ -91,14 +97,14 @@ Multi-level delegation: a top-level manager delegates to mid-level supervisors, 
 - LangGraph supports this natively: supervisors that manage other supervisors
 - Google ADK models this with agent hierarchy trees (parent/sub-agent relationships)
 
-### 3.2.4 — Pipeline (Sequential Stages)
+### Pipeline (Sequential Stages)
 
 Linear assembly line — Agent A completes, passes output to Agent B, then Agent C. Deterministic, easy to debug, great for data processing workflows.
 
 - Google ADK's `SequentialAgent` primitive
 - Common in: ETL pipelines, document processing (parse → extract → summarize), content generation with review
 
-### 3.2.5 — Parallel Fan-Out / Fan-In
+### Parallel Fan-Out / Fan-In
 
 Spawn multiple agents concurrently on independent subtasks, then synthesize results. Can be combined with pipeline stages.
 
@@ -106,24 +112,24 @@ Spawn multiple agents concurrently on independent subtasks, then synthesize resu
 - Example: code review where security auditor, style enforcer, and performance analyst all review a PR simultaneously, then a synthesizer combines feedback
 - Race condition awareness: parallel agents sharing session state need unique write keys
 
-### 3.2.6 — Loop / Iterative Refinement
+### Loop / Iterative Refinement
 
 Generator-Critic pattern: one agent produces output, another reviews it against criteria, loop until quality gate passes.
 
 - Google ADK's `LoopAgent` with exit conditions
 - Common in: code generation + validation, content creation + compliance review, self-improving agents
 
-### 3.2.7 — Hybrid Patterns
+### Hybrid Patterns
 
 Most production systems combine patterns. Example: a pipeline for the main flow, but a swarm of 20 gathering agents in the research stage. Or an orchestrator-worker at the top with hierarchical teams underneath.
 
 ---
 
-## 3.3 — Communication & State Management Between Agents
+## Communication & State Management Between Agents
 
 How agents actually share information — this is where the distributed systems parallels get concrete.
 
-### 3.3.1 — Shared State / Scratchpad
+### Shared State / Scratchpad
 
 All agents read/write to a common state object. Simple, but risks context bloat and race conditions.
 
@@ -131,30 +137,30 @@ All agents read/write to a common state object. Simple, but risks context bloat 
 - Google ADK's `session.state` with key templating (`{my_key}` in instructions)
 - CrewAI's shared memory objects
 
-### 3.3.2 — Message Passing
+### Message Passing
 
 Agents communicate via structured messages. More explicit than shared state but requires defining message schemas.
 
 - AutoGen's conversation-loop pattern (AssistantAgent ↔ UserProxyAgent message passing)
 - A2A Protocol's Message/Part model (TextPart, FilePart, DataPart)
 
-### 3.3.3 — Structured Context Objects vs. Full Conversation Forwarding
+### Structured Context Objects vs. Full Conversation Forwarding
 
 - **Structured objects** (200-500 tokens): pass only what the next agent needs. LangGraph's approach.
 - **Full conversation forwarding** (5,000-20,000 tokens): every agent sees full history. Simple but expensive.
 - **Summarized context**: LLM generates compressed summary at each handoff. 70-90% token reduction but adds latency and information loss.
 
-### 3.3.4 — Context Isolation as a Feature
+### Context Isolation as a Feature
 
 Sub-agents getting fresh context windows isn't a limitation — it's the point. A research sub-agent can chew through hundreds of documents without polluting the orchestrator's context. Only the distilled summary flows back up. This is the key architectural insight behind Claude Code's sub-agent model.
 
 ---
 
-## 3.4 — Frameworks & SDKs
+## Frameworks & SDKs
 
 Survey of the major multi-agent frameworks, their philosophies, and when to use each. Focus on architectural differences rather than API tutorials.
 
-### 3.4.1 — LangGraph (LangChain)
+### LangGraph (LangChain)
 
 - Graph-based orchestration: agents as nodes, edges define control flow
 - Typed state channels — passes only state deltas, not full history (most token-efficient in benchmarks)
@@ -163,7 +169,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Checkpointed state for long-running workflows and human-in-the-loop
 - MIT licensed, Python and JS
 
-### 3.4.2 — OpenAI Agents SDK (successor to Swarm)
+### OpenAI Agents SDK (successor to Swarm)
 
 - Minimalist: four primitives — Agents, Handoffs, Guardrails, Tracing
 - Production-ready evolution of the experimental Swarm framework (March 2025)
@@ -172,7 +178,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Python and TypeScript support
 - Sessions for persistent working context, MCP server tool integration
 
-### 3.4.3 — Google Agent Development Kit (ADK)
+### Google Agent Development Kit (ADK)
 
 - Launched at Google Cloud NEXT 2025, open-sourced
 - Workflow agents: `SequentialAgent`, `ParallelAgent`, `LoopAgent` — deterministic, no LLM needed for orchestration
@@ -183,7 +189,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Same framework powering Google's Agentspace and Customer Engagement Suite
 - ADK 2.0 Alpha: graph-based workflow support
 
-### 3.4.4 — Microsoft Agent Framework (AutoGen + Semantic Kernel)
+### Microsoft Agent Framework (AutoGen + Semantic Kernel)
 
 - Direct successor combining AutoGen's multi-agent abstractions with Semantic Kernel's enterprise features
 - Graph-based workflows for explicit multi-agent orchestration
@@ -192,7 +198,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Strong enterprise integration (Azure ecosystem)
 - Python, C#, and Java
 
-### 3.4.5 — CrewAI
+### CrewAI
 
 - Role-based agent teams with built-in delegation and memory
 - Higher-level abstraction than LangGraph — define agent roles, goals, and backstories
@@ -200,7 +206,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Trade-off: higher token overhead due to agent-to-tool gap and memory management
 - Python
 
-### 3.4.6 — Comparison Matrix
+### Comparison Matrix
 
 | Framework          | Orchestration Model         | State Management                  | Language Support     | Best For                                 |
 | ------------------ | --------------------------- | --------------------------------- | -------------------- | ---------------------------------------- |
@@ -212,7 +218,7 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 
 ---
 
-## 3.5 — The Multi-Agent Trap: Failure Modes & When NOT to Multi-Agent
+## The Multi-Agent Trap: Failure Modes & When NOT to Multi-Agent
 
 Critical section — multi-agent isn't always the answer. Google DeepMind research found multi-agent networks can amplify errors 17x. Gartner predicts over 40% of agentic AI projects will be canceled by end of 2027.
 

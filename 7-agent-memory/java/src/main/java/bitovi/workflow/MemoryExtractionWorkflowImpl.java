@@ -24,7 +24,7 @@ public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
 
     private final Activities activities = Workflow.newActivityStub(Activities.class, defaultActivityOptions);
 
-    private final List<ContextEntry> pending = new ArrayList<>();
+    private final List<MemoryExtractionEventInput> pending = new ArrayList<>();
 
     private UsageMetadata totalUsageMetadata = new UsageMetadata(0, 0, 0);
 
@@ -34,21 +34,25 @@ public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
     public WorkflowResult execute(MemoryExtractionWorkflowInput input) {
         this.userId = input.userId();
 
-        // Initialize memory storage for this user, if it doesnt exist already
-
-        activities.initializeMemoryStorage(userId);
-
         // Process the pending context entries
-
         while (!pending.isEmpty()) {
-            List<ContextEntry> entriesToProcess = new ArrayList<>(pending);
+            List<MemoryExtractionEventInput> eventsToProcess = new ArrayList<>(pending);
             pending.clear();
 
-            // Run extraction for the memory types
-            UsageMetadata userPreferenceMetadata = activities.extractUserPreferenceMemories(userId, entriesToProcess);
-            UsageMetadata semanticMetadata = activities.extractSemanticMemories(userId, entriesToProcess);
+            for (MemoryExtractionEventInput event : eventsToProcess) {
+                List<ContextEntry> entriesToProcess = event.entries();
+                String sessionId = event.sessionId();
+                
+                // 
 
-            totalUsageMetadata = totalUsageMetadata.add(userPreferenceMetadata).add(semanticMetadata);
+                // Run extraction for the memory types
+                UsageMetadata userPreferenceMetadata = activities.extractUserPreferenceMemories(userId, sessionId,
+                        entriesToProcess);
+                UsageMetadata semanticMetadata = activities.extractSemanticMemories(userId, sessionId,
+                        entriesToProcess);
+
+                totalUsageMetadata = totalUsageMetadata.add(userPreferenceMetadata).add(semanticMetadata);
+            }
         }
 
         // Implement the workflow logic here
@@ -57,6 +61,6 @@ public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
 
     @Override
     public void receiveMessage(MemoryExtractionEventInput event) {
-        pending.addAll(event.entries());
+        pending.add(event);
     }
 }

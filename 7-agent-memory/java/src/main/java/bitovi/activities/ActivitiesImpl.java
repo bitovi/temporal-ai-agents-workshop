@@ -14,6 +14,7 @@ import bitovi.activities.react.ObservationActivity;
 import bitovi.activities.react.ThoughtActivity;
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
@@ -21,6 +22,9 @@ import bitovi.activities.types.ThoughtResponse;
 import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
 import bitovi.common.local.LocalMemory;
+import bitovi.common.local.RawEventHelper;
+import bitovi.common.local.SemanticHelper;
+import bitovi.common.local.UserPreferenceHelper;
 import bitovi.workflow.types.ContextEntry;
 import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
@@ -32,7 +36,7 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrat
 public class ActivitiesImpl implements Activities {
 
 	@Override
-	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords)
+	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<LabeledMemoryRecord> memoryRecords)
 			throws ApplicationFailure {
 		String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
 		return ThoughtActivity.execute(promptTemplate, context, memoryRecords);
@@ -79,12 +83,23 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure {
+	public void persistMemoryActivity(List<ContextEntry> entries, String sessionId) throws ApplicationFailure {
 		Config config = new Config();
+
+		// Save the messages to the local database in raw form.
+		try {
+			RawEventHelper.persistSessionEventsImpl(sessionId, entries);
+		} catch (InterruptedException | ExecutionException e) {
+			System.err.println("Error in RawEventHelper.persistSessionEventsImpl: " + e.getMessage());
+			throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
+					"PersistLocalMemoryActivityError");
+		}
+
+		// Pass the messages to the appropriate memory extraction system
 		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
 		if (useLocalExtraction.equals("true")) {
 			try {
-				LocalMemory.createEvent(entries);
+				LocalMemory.createEvent(entries, sessionId);
 			} catch (Exception e) {
 				System.err.println("Error in local persistMemoryActivity: " + e.getMessage());
 				throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
@@ -118,28 +133,27 @@ public class ActivitiesImpl implements Activities {
 			}
 		}
 		try {
-
 			if (query.length() > 1000) {
 				System.out.println("Search query exceeds 1000 characters, truncating to 1000 characters");
 				query = query.substring(0, 999);
 			}
 
 			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyTypes);
-			if (response.memoryRecordSummaries().isEmpty()) {
+			if (!response.hasMemoryRecordSummaries()) {
 				return new RetrieveMemoryRecordsResult(List.of()); // empty
 			}
 
-			var memoryRecords = new ArrayList<String>();
+			var memoryRecords = new ArrayList<LabeledMemoryRecord>();
+
 			for (MemoryRecordSummary memoryRecordSummary : response.memoryRecordSummaries()) {
 				MemoryStrategyType memoryStrategyType = AgentCoreMemory.getMemoryStrategyType(memoryRecordSummary);
 				MemoryContent memoryContent = memoryRecordSummary.content();
 				if (memoryContent.type() != MemoryContent.Type.TEXT) {
 					continue;
 				}
-				String text = memoryContent.text();
 
-				String typeTag = memoryStrategyType.toString().toLowerCase().replace("_", "-");
-				memoryRecords.add(String.format("<%s>%s</%s>", typeTag, text, typeTag));
+				String text = memoryContent.text();
+				memoryRecords.add(new LabeledMemoryRecord(memoryStrategyType, text));
 			}
 			return new RetrieveMemoryRecordsResult(memoryRecords);
 		} catch (Exception e) {
@@ -155,6 +169,34 @@ public class ActivitiesImpl implements Activities {
 				.sum();
 		int estimatedTokens = totalChars / 4;
 		return estimatedTokens;
+	}
+
+	@Override
+	public UsageMetadata extractUserPreferenceMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure {
+		System.out.println("extractUserPreferenceMemories called with userId: " + userId + " and entries: " + entries);
+		try {
+			String promptTemplate = loadPromptTemplate("/prompts/extract-user-pref.txt");
+			UserPreferenceHelper userPreferenceHelper = new UserPreferenceHelper();
+			return userPreferenceHelper.extractUserPreferenceMemoriesImpl(promptTemplate, sessionId, entries);
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailure("extractUserPreferenceMemories failed: " + e.getMessage(),
+					"ExtractUserPreferenceMemoriesError");
+		}
+	}
+
+	@Override
+	public UsageMetadata extractSemanticMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure {
+		System.out.println("extractSemanticMemories called with userId: " + userId + " and entries: " + entries);
+		try {
+			String promptTemplate = loadPromptTemplate("/prompts/extract-semantic.txt");
+			SemanticHelper semanticHelper = new SemanticHelper();
+			return semanticHelper.extractSemanticMemoriesImpl(promptTemplate, sessionId, entries);
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailure("extractSemanticMemories failed: " + e.getMessage(),
+					"ExtractSemanticMemoriesError");
+		}
 	}
 
 	/**
@@ -174,30 +216,6 @@ public class ActivitiesImpl implements Activities {
 			return reader.lines().collect(Collectors.joining("\n"));
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to load prompt template: " + resourcePath, e);
-		}
-	}
-
-	@Override
-	public UsageMetadata extractUserPreferenceMemories(String userId, List<ContextEntry> entries)
-			throws ApplicationFailure {
-		System.out.println("extractUserPreferenceMemories called with userId: " + userId + " and entries: " + entries);
-		return LocalMemory.extractUserPreferenceMemoriesImpl(entries);
-	}
-
-	@Override
-	public UsageMetadata extractSemanticMemories(String userId, List<ContextEntry> entries) throws ApplicationFailure {
-		System.out.println("extractSemanticMemories called with userId: " + userId + " and entries: " + entries);
-		return LocalMemory.extractSemanticMemoriesImpl(entries);
-	}
-
-	@Override
-	public void initializeMemoryStorage(String userId) throws ApplicationFailure {
-		System.out.println("initializeMemoryStorage called with userId: " + userId);
-		try {
-			LocalMemory.initializeMemoryStorage();
-		} catch (InterruptedException | ExecutionException e) {
-			throw ApplicationFailure.newFailure("initializeMemoryStorage failed: " + e.getMessage(),
-					"InitializeMemoryStorageError");
 		}
 	}
 }

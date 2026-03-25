@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import bitovi.activities.tools.ToolRegistry;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.ActionInput;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.common.Config;
 import bitovi.common.EventClient;
@@ -23,7 +24,7 @@ import bitovi.workflow.types.ContextEntry;
 import io.temporal.failure.ApplicationFailure;
 
 public class ThoughtActivity {
-	public static ThoughtResponse execute(String promptTemplate, List<ContextEntry> context, List<String> memoryRecords)
+	public static ThoughtResponse execute(String promptTemplate, List<ContextEntry> context, List<LabeledMemoryRecord> memoryRecords)
 			throws ApplicationFailure {
 		try {
 			EventClient.emitEvent("status", "Thinking...");
@@ -42,11 +43,16 @@ public class ThoughtActivity {
 			// Get available tools as XML string
 			String availableActions = ToolRegistry.getToolsAsXmlString();
 
+			// Convert LabeledMemoryRecord list to XML strings for LLM prompt
+			List<String> memoryRecordStrings = memoryRecords.stream()
+					.map(LabeledMemoryRecord::toXMLString)
+					.collect(Collectors.toList());
+
 			// Format prompt with placeholders
 			String systemPrompt = promptTemplate
 					.replace("{currentDate}", currentDate)
 					.replace("{previousSteps}", String.join("\n", truncatedContext))
-					.replace("{memoryRecords}", String.join("\n", memoryRecords))
+					.replace("{memoryRecords}", String.join("\n", memoryRecordStrings))
 					.replace("{availableActions}", availableActions);
 
 			// Call Bedrock with high-quality model
