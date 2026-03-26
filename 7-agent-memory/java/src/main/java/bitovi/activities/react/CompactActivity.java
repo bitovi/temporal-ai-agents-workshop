@@ -1,6 +1,5 @@
 package bitovi.activities.react;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,13 +12,11 @@ import bitovi.common.aws.BedrockConverse;
 import bitovi.common.aws.BedrockConverse.ChatMessage;
 import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
 import bitovi.workflow.types.ContextEntry;
-import bitovi.workflow.types.ContextEntryType;
 import io.temporal.failure.ApplicationFailure;
-import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 public class CompactActivity {
-   	public static CompactResponse execute(String promptTemplate, List<ContextEntry> context) throws ApplicationFailure {
-try {
+	public static CompactResponse execute(String promptTemplate, List<ContextEntry> context) throws ApplicationFailure {
+		try {
 			System.out.println("compactActivity called with context size: " + context.size());
 			EventClient.emitEvent("status", "Compacting...");
 
@@ -54,14 +51,7 @@ try {
 			List<ContextEntry> newContext = new ArrayList<>();
 
 			// Create SUMMARY entry with compacted content
-			ContextEntry summaryEntry = new ContextEntry(
-					Instant.now(),
-					Role.ASSISTANT,
-					compactedSummary,
-					ContextEntryType.SUMMARY,
-					null,
-					null,
-					null);
+			ContextEntry summaryEntry = ContextEntry.fromSummary(compactedSummary);
 			newContext.add(summaryEntry);
 
 			// Add last N entries from original context
@@ -88,6 +78,6 @@ try {
 			throw ApplicationFailure.newFailure("compactActivity failed: " + e.getMessage(),
 					"CompactActivityError");
 		}
-    }
- 
+	}
+
 }

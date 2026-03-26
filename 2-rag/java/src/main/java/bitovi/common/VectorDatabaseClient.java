@@ -6,22 +6,21 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import static io.qdrant.client.PointIdFactory.id;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;
+import static io.qdrant.client.ValueFactory.value;
+import static io.qdrant.client.VectorsFactory.vectors;
 import io.qdrant.client.grpc.Collections.CollectionOperationResponse;
 import io.qdrant.client.grpc.Collections.Distance;
 import io.qdrant.client.grpc.Collections.VectorParams;
+import io.qdrant.client.grpc.Common.PointId;
 import io.qdrant.client.grpc.Points;
-import io.qdrant.client.grpc.Points.PointId;
 import io.qdrant.client.grpc.Points.PointStruct;
 import io.qdrant.client.grpc.Points.RetrievedPoint;
 import io.qdrant.client.grpc.Points.SearchPoints;
 import io.qdrant.client.grpc.Points.UpdateResult;
 import io.qdrant.client.grpc.Points.UpdateStatus;
-
-import static io.qdrant.client.PointIdFactory.id;
-import static io.qdrant.client.ValueFactory.value;
-import static io.qdrant.client.VectorsFactory.vectors;
 
 public class VectorDatabaseClient {
 

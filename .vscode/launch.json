@@ -214,6 +214,6 @@
             "projectName": "agent-memory",
             "cwd": "${workspaceFolder}/7-agent-memory/java/",
             "preLaunchTask": "Exercise 7 Maven Build"
-        },
+        }
     ]
 }

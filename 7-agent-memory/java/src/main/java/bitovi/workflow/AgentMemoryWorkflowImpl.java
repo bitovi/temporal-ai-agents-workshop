@@ -1,7 +1,6 @@
 package bitovi.workflow;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,11 +10,11 @@ import org.json.JSONObject;
 import bitovi.activities.Activities;
 import bitovi.activities.types.ActionDetail;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
 import bitovi.workflow.types.ContextEntry;
-import bitovi.workflow.types.ContextEntryType;
 import bitovi.workflow.types.ContinueAsNewState;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.UsageMetadata;
@@ -24,7 +23,6 @@ import bitovi.workflow.types.WorkflowResult;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
-import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrategyType;
 
 public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
@@ -129,14 +127,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 
 				for (MessagePayload msg : pendingMsgs) {
 					// Add user message to context as structured entry
-					ContextEntry userEntry = new ContextEntry(
-							Instant.now(),
-							Role.USER,
-							msg.message(),
-							ContextEntryType.USER_MESSAGE,
-							null,
-							null,
-							null);
+					ContextEntry userEntry = ContextEntry.fromUser(msg.message());
 					context.add(userEntry);
 					persist.add(userEntry);
 				}
@@ -160,7 +151,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			);
 			RetrieveMemoryRecordsResult retrieveResult = activities.retrieveMemoryRecordsActivity(query,
 					memoryStrategies);
-			List<String> memoryRecords = retrieveResult.memoryRecords();
+			List<LabeledMemoryRecord> memoryRecords = retrieveResult.memories();
 
 			// Get thought from AI based on context and retrieved memories
 			ThoughtResponse thoughtResponse = activities.thoughtActivity(context, memoryRecords);
@@ -173,19 +164,13 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			// Check response type
 			if (thoughtResponse.type().equals("answer")) {
 				// Answer type - add to context and wait for next message
-				ContextEntry answerEntry = new ContextEntry(
-						Instant.now(),
-						Role.ASSISTANT,
-						thoughtResponse.answer(),
-						ContextEntryType.ANSWER,
-						null,
-						null,
-						null);
+				ContextEntry answerEntry = ContextEntry.fromAnswer(thoughtResponse.answer());
+
 				context.add(answerEntry);
 				persist.add(answerEntry);
 
 				// Batch persist: collect entries from most recent USER_MESSAGE to ANSWER
-				activities.persistMemoryActivity(persist);
+				activities.persistMemoryActivity(persist, Workflow.getInfo().getRunId());
 
 				// Once this has been persisted, we can clear the persist buffer
 				persist.clear();
@@ -204,14 +189,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				ActionDetail action = thoughtResponse.action();
 
 				// Add thought to context
-				ContextEntry thoughtEntry = new ContextEntry(
-						Instant.now(),
-						Role.ASSISTANT,
-						thoughtResponse.thought(),
-						ContextEntryType.THOUGHT,
-						null,
-						null,
-						null);
+				ContextEntry thoughtEntry = ContextEntry.fromThought(thoughtResponse.thought());
 				context.add(thoughtEntry);
 
 				// Serialize action input for context
@@ -223,14 +201,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				}
 
 				// Add action to context
-				ContextEntry actionEntry = new ContextEntry(
-						Instant.now(),
-						Role.ASSISTANT,
-						null,
-						ContextEntryType.ACTION,
-						action.reason(),
-						action.name(),
-						actionInputJson);
+				ContextEntry actionEntry = ContextEntry.fromAction(action.reason(), action.name(), actionInputJson);
 				context.add(actionEntry);
 
 				// Execute the action
@@ -246,15 +217,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				}
 
 				// Add observation to context
-				ContextEntry observationEntry = new ContextEntry(
-						Instant.now(),
-						Role.ASSISTANT,
-						observationResponse.observations(),
-						ContextEntryType.OBSERVATION,
-						null,
-						null,
-						null);
-
+				ContextEntry observationEntry = ContextEntry.fromObservation(observationResponse.observations());
 				context.add(observationEntry);
 			}
 		}

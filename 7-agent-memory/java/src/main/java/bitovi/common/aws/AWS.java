@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class AWS {
 
-    private static Config config = new Config();
+    private static final Config config = new Config();
 
     public static AwsCredentialsProvider getAwsCredentialsProvider() {
         String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
@@ -50,15 +50,15 @@ public class AWS {
 
     public static BedrockAgentCoreClient getBedrockAgentCoreClient() {
         return BedrockAgentCoreClient.builder()
-            .credentialsProvider(AWS.getAwsCredentialsProvider())
-            .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
-            .build();
+                .credentialsProvider(AWS.getAwsCredentialsProvider())
+                .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
+                .build();
     }
 
     public static BedrockAgentCoreControlClient getBedrockAgentCoreControlClient() {
         return BedrockAgentCoreControlClient.builder()
-            .credentialsProvider(AWS.getAwsCredentialsProvider())
-            .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
-            .build();
+                .credentialsProvider(AWS.getAwsCredentialsProvider())
+                .region(Region.of(config.getProperty("AWS_BEDROCK_AGENTCORE_MEMORY_REGION")))
+                .build();
     }
 }

@@ -13,36 +13,36 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 public class BedrockEmbed {
 
-    private static Config config = new Config();
+        private static Config config = new Config();
 
-    public static List<Float> calculateEmbedding(String input) {
-        String AWS_EMBEDDING_MODEL_ID = config.getProperty("AWS_EMBEDDING_MODEL_ID");
+        public static List<Float> calculateEmbedding(String input) {
+                String AWS_EMBEDDING_MODEL_ID = config.getProperty("AWS_EMBEDDING_MODEL_ID");
 
-        JSONObject jsonBody = new JSONObject()
-                .put("inputText", input);
+                JSONObject jsonBody = new JSONObject()
+                                .put("inputText", input);
 
-        SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
-        InvokeModelRequest request = InvokeModelRequest.builder()
-                .modelId(AWS_EMBEDDING_MODEL_ID)
-                .contentType("application/json")
-                .accept("*/*")
-                .body(body)
-                .build();
+                SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
+                InvokeModelRequest request = InvokeModelRequest.builder()
+                                .modelId(AWS_EMBEDDING_MODEL_ID)
+                                .contentType("application/json")
+                                .accept("*/*")
+                                .body(body)
+                                .build();
 
-        BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
-        InvokeModelResponse response = bedrockRuntimeClient.invokeModel(request);
+                BedrockRuntimeClient bedrockRuntimeClient = AWS.getBedrockRuntimeClient();
+                InvokeModelResponse response = bedrockRuntimeClient.invokeModel(request);
 
-        JSONObject responseJson = new JSONObject(
-                response.body().asString(StandardCharsets.UTF_8));
+                JSONObject responseJson = new JSONObject(
+                                response.body().asString(StandardCharsets.UTF_8));
 
-        List<Float> embedding = responseJson.getJSONArray("embedding").toList().stream()
-                .map(obj -> ((Number) obj).floatValue())
-                .toList();
+                List<Float> embedding = responseJson.getJSONArray("embedding").toList().stream()
+                                .map(obj -> ((Number) obj).floatValue())
+                                .toList();
 
-        if (embedding.isEmpty()) {
-            return List.of();
+                if (embedding.isEmpty()) {
+                        return List.of();
+                }
+
+                return embedding;
         }
-
-        return embedding;
-    }
 }

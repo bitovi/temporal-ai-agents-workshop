@@ -37,6 +37,7 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.SummaryMemo
 import software.amazon.awssdk.services.bedrockagentcorecontrol.model.UserPreferenceMemoryStrategyInput;
 
 public class AgentCoreMemory {
+        private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AgentCoreMemory.class);
 
         private static final Config config = new Config();
         private static final String USER_ID = config.getProperty("USER_ID");
@@ -50,7 +51,7 @@ public class AgentCoreMemory {
                                         .memoryId(MEMORY_ID)
                                         .build();
 
-                        Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();                        
+                        Memory memory = bedrockAgentCoreControlClient.getMemory(getRequest).memory();
                         return memory;
                 }
         }
@@ -92,7 +93,7 @@ public class AgentCoreMemory {
 
                         reponse.event().payload().forEach(payloadType -> {
                                 if (payloadType.conversational() != null) {
-                                        System.out.println("Stored conversational content in memory: "
+                                        logger.info("Stored conversational content in memory: "
                                                         + payloadType.conversational().content().text());
                                 }
                         });
@@ -139,6 +140,11 @@ public class AgentCoreMemory {
 
         public static RetrieveMemoryRecordsResponse retrieveMemoryRecords(String query,
                         List<MemoryStrategyType> strategyTypes) {
+                if (query.length() > 1000) {
+                        logger.warn("Search query exceeds 1000 characters, truncating to 1000 characters");
+                        query = query.substring(0, 999);
+                }
+
                 try (BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient()) {
                         List<MemoryRecordSummary> allRecords = new java.util.ArrayList<>();
 
@@ -230,29 +236,30 @@ public class AgentCoreMemory {
                                                                         .build())
                                         .build();
 
-                        System.out.println("Creating memory with request:");
-                        System.out.println("  Name: " + request.name());
-                        System.out.println("  Description: " + request.description());
-                        System.out.println("  Event Expiry Duration: " + request.eventExpiryDuration() + " days");
-                        System.out.println("  Number of strategies: " + request.memoryStrategies().size());
+                        logger.info("Creating memory with request:");
+                        logger.info("  Name: " + request.name());
+                        logger.info("  Description: " + request.description());
+                        logger.info("  Event Expiry Duration: " + request.eventExpiryDuration() + " days");
+                        logger.info("  Number of strategies: " + request.memoryStrategies().size());
 
                         CreateMemoryResponse response = controlClient.createMemory(request);
                         return response;
                 } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ValidationException e) {
-                        System.err.println("\n=== Validation Error Creating Memory ===");
-                        System.err.println("Error Message: " + e.getMessage());
-                        System.err.println("Status Code: " + e.statusCode());
-                        System.err.println("Request ID: " + e.requestId());
-                        System.err.println("Service: " + e.awsErrorDetails().serviceName());
-                        System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
-                        System.err.println("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
+                        logger.error("\n=== Validation Error Creating Memory ===");
+                        logger.error("Error Message: " + e.getMessage());
+                        logger.error("Status Code: " + e.statusCode());
+                        logger.error("Request ID: " + e.requestId());
+                        logger.error("Service: " + e.awsErrorDetails().serviceName());
+                        logger.error("Error Code: " + e.awsErrorDetails().errorCode());
+                        logger.error("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
                         if (e.awsErrorDetails().sdkHttpResponse() != null) {
-                                System.err.println(
+                                logger.error(
                                                 "HTTP Status: " + e.awsErrorDetails().sdkHttpResponse().statusCode());
                         }
-                        System.err.println("======================================\n");
+                        logger.error("======================================\n");
                         throw e;
                 } catch (Exception e) {
+                        logger.error("Unexpected error creating memory: " + e.getMessage(), e);
                         throw e;
                 }
         }
@@ -260,7 +267,7 @@ public class AgentCoreMemory {
         public static DeleteMemoryResponse deleteMemory(String memoryId) {
                 try (BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()) {
 
-                        System.out.println("Deleting memory with ID: " + memoryId);
+                        logger.info("Deleting memory with ID: " + memoryId);
 
                         DeleteMemoryRequest request = DeleteMemoryRequest.builder()
                                         .memoryId(memoryId)
@@ -269,25 +276,25 @@ public class AgentCoreMemory {
                         DeleteMemoryResponse response = controlClient.deleteMemory(request);
                         return response;
                 } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ResourceNotFoundException e) {
-                        System.err.println("\n=== Resource Not Found Error Deleting Memory ===");
-                        System.err.println("Memory ID: " + memoryId);
-                        System.err.println("Error Message: " + e.getMessage());
-                        System.err.println("Status Code: " + e.statusCode());
-                        System.err.println("Request ID: " + e.requestId());
-                        System.err.println("Service: " + e.awsErrorDetails().serviceName());
-                        System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
-                        System.err.println("================================================\n");
+                        logger.error("\n=== Resource Not Found Error Deleting Memory ===");
+                        logger.error("Memory ID: " + memoryId);
+                        logger.error("Error Message: " + e.getMessage());
+                        logger.error("Status Code: " + e.statusCode());
+                        logger.error("Request ID: " + e.requestId());
+                        logger.error("Service: " + e.awsErrorDetails().serviceName());
+                        logger.error("Error Code: " + e.awsErrorDetails().errorCode());
+                        logger.error("================================================\n");
                         throw e;
                 } catch (software.amazon.awssdk.services.bedrockagentcorecontrol.model.ValidationException e) {
-                        System.err.println("\n=== Validation Error Deleting Memory ===");
-                        System.err.println("Memory ID: " + memoryId);
-                        System.err.println("Error Message: " + e.getMessage());
-                        System.err.println("Status Code: " + e.statusCode());
-                        System.err.println("Request ID: " + e.requestId());
-                        System.err.println("Service: " + e.awsErrorDetails().serviceName());
-                        System.err.println("Error Code: " + e.awsErrorDetails().errorCode());
-                        System.err.println("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
-                        System.err.println("============================================\n");
+                        logger.error("\n=== Validation Error Deleting Memory ===");
+                        logger.error("Memory ID: " + memoryId);
+                        logger.error("Error Message: " + e.getMessage());
+                        logger.error("Status Code: " + e.statusCode());
+                        logger.error("Request ID: " + e.requestId());
+                        logger.error("Service: " + e.awsErrorDetails().serviceName());
+                        logger.error("Error Code: " + e.awsErrorDetails().errorCode());
+                        logger.error("Error Message (detailed): " + e.awsErrorDetails().errorMessage());
+                        logger.error("============================================\n");
                         throw e;
                 } catch (Exception e) {
                         throw e;

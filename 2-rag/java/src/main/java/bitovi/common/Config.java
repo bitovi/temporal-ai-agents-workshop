@@ -1,10 +1,10 @@
 package bitovi.common;
 
-import java.util.Properties;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
 
 public class Config {
 	private static Properties properties;

@@ -82,7 +82,7 @@
       "dependsOn": [
         "Sync Environments"
       ]
-    },    
+    },
     {
       "label": "Sync Environments",
       "type": "shell",
@@ -112,39 +112,6 @@
       },
       "problemMatcher": [],
       "detail": "Copies the root .env file into each exercise"
-    },
-    {
-      "label": "Nuke Environments",
-      "type": "shell",
-      "linux": {
-        "command": "sh",
-        "args": [
-          "nuke-env.sh"
-        ]
-      },
-      "windows": {
-        "command": "powershell",
-        "args": [
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          "nuke-env.ps1"
-        ]
-      },
-      "osx": {
-        "command": "sh",
-        "args": [
-          "nuke-env.sh"
-        ]
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/"
-      },
-      "problemMatcher": [],
-      "detail": "Use if things get messed up and don't seem to be working.",
-      "dependsOn": [
-        "Sync Environments"
-      ]
     },
     {
       "label": "Exercise 0 Maven Build",

@@ -5,20 +5,27 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
 import bitovi.activities.react.ActionActivity;
 import bitovi.activities.react.CompactActivity;
 import bitovi.activities.react.ObservationActivity;
 import bitovi.activities.react.ThoughtActivity;
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
+import bitovi.activities.types.LabeledMemoryRecord;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.RetrieveMemoryRecordsResult;
 import bitovi.activities.types.ThoughtResponse;
+import bitovi.common.Config;
 import bitovi.common.aws.AgentCoreMemory;
+import bitovi.common.local.LocalMemory;
+import bitovi.common.local.RawEventHelper;
+import bitovi.common.local.SemanticHelper;
+import bitovi.common.local.UserPreferenceHelper;
 import bitovi.workflow.types.ContextEntry;
+import bitovi.workflow.types.UsageMetadata;
 import io.temporal.failure.ApplicationFailure;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
@@ -28,7 +35,7 @@ import software.amazon.awssdk.services.bedrockagentcorecontrol.model.MemoryStrat
 public class ActivitiesImpl implements Activities {
 
 	@Override
-	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<String> memoryRecords)
+	public ThoughtResponse thoughtActivity(List<ContextEntry> context, List<LabeledMemoryRecord> memoryRecords)
 			throws ApplicationFailure {
 		String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
 		return ThoughtActivity.execute(promptTemplate, context, memoryRecords);
@@ -56,8 +63,6 @@ public class ActivitiesImpl implements Activities {
 	@Override
 	public void persistActivity(List<PersistMessage> messages) throws ApplicationFailure {
 		try {
-			System.out.println("persistActivity called with " + messages.size() + " messages:");
-
 			for (PersistMessage msg : messages) {
 				if ("user".equals(msg.role())) {
 					System.out.println(String.format("  %s (%s): %s",
@@ -75,13 +80,38 @@ public class ActivitiesImpl implements Activities {
 	}
 
 	@Override
-	public void persistMemoryActivity(List<ContextEntry> entries) throws ApplicationFailure {
-		try {
-			AgentCoreMemory.createEvent(entries);
-		} catch (Exception e) {
-			System.err.println("Error in persistMemoryActivity: " + e.getMessage());
-			throw ApplicationFailure.newFailure("persistMemoryActivity failed: " + e.getMessage(),
-					"PersistMemoryActivityError");
+	public void persistMemoryActivity(List<ContextEntry> entries, String sessionId) throws ApplicationFailure {
+		Config config = new Config();
+
+		// Pass the messages to the appropriate memory extraction system
+		Boolean useLocalExtraction = config.getBooleanProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction) {
+			// Save the messages to the local database in raw form.
+			try {
+				RawEventHelper.persistSessionEventsImpl(sessionId, entries);
+			} catch (InterruptedException | ExecutionException e) {
+				System.err.println("Error in RawEventHelper.persistSessionEventsImpl: " + e.getMessage());
+				throw ApplicationFailure.newFailure("persistSessionEventsImpl failed: " + e.getMessage(),
+						"PersistLocalMemoryActivityError");
+			}
+
+			// Send the messages to the local memory extraction system.
+			try {
+				LocalMemory.createEvent(entries, sessionId);
+			} catch (Exception e) {
+				System.err.println("Error in local LocalMemory.createEvent: " + e.getMessage());
+				throw ApplicationFailure.newFailure("LocalMemory.createEvent failed: " + e.getMessage(),
+						"PersistLocalMemoryActivityError");
+			}
+		} else {
+			// Send the messages to the AgentCore memory extraction system.
+			try {
+				AgentCoreMemory.createEvent(entries);
+			} catch (Exception e) {
+				System.err.println("Error in AgentCoreMemory.createEvent: " + e.getMessage());
+				throw ApplicationFailure.newFailure("AgentCoreMemory.createEvent failed: " + e.getMessage(),
+						"PersistAgentCoreMemoryActivityError");
+			}
 		}
 	}
 
@@ -89,35 +119,41 @@ public class ActivitiesImpl implements Activities {
 	public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(String query,
 			List<MemoryStrategyType> strategyTypes)
 			throws ApplicationFailure {
-		try {
 
-			if (query.length() > 1000) {
-				System.out.println("Search query exceeds 1000 characters, truncating to 1000 characters");
-				query = query.substring(0, 999);
+		Config config = new Config();
+		Boolean useLocalExtraction = config.getBooleanProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction) {
+			try {
+				return LocalMemory.retrieveMemoryRecords(query, strategyTypes);
+			} catch (Exception e) {
+				System.err.println("Error in local LocalMemory.retrieveMemoryRecords: " + e.getMessage());
+				throw ApplicationFailure.newFailure("LocalMemory.retrieveMemoryRecords failed: " + e.getMessage(),
+						"RetrieveLocalMemoryRecordsActivityError");
 			}
-
+		}
+		try {
 			RetrieveMemoryRecordsResponse response = AgentCoreMemory.retrieveMemoryRecords(query, strategyTypes);
-			if (response.memoryRecordSummaries().isEmpty()) {
+			if (!response.hasMemoryRecordSummaries()) {
 				return new RetrieveMemoryRecordsResult(List.of()); // empty
 			}
 
-			var memoryRecords = new ArrayList<String>();
+			var memoryRecords = new ArrayList<LabeledMemoryRecord>();
+
 			for (MemoryRecordSummary memoryRecordSummary : response.memoryRecordSummaries()) {
 				MemoryStrategyType memoryStrategyType = AgentCoreMemory.getMemoryStrategyType(memoryRecordSummary);
 				MemoryContent memoryContent = memoryRecordSummary.content();
 				if (memoryContent.type() != MemoryContent.Type.TEXT) {
 					continue;
 				}
-				String text = memoryContent.text();
 
-				String typeTag = memoryStrategyType.toString().toLowerCase().replace("_", "-");
-				memoryRecords.add(String.format("<%s>%s</%s>", typeTag, text, typeTag));
+				String text = memoryContent.text();
+				memoryRecords.add(new LabeledMemoryRecord(memoryStrategyType, text));
 			}
 			return new RetrieveMemoryRecordsResult(memoryRecords);
 		} catch (Exception e) {
-			System.err.println("Error in retrieveMemoryRecordsActivity: " + e.getMessage());
-			throw ApplicationFailure.newFailure("retrieveMemoryRecordsActivity failed: " + e.getMessage(),
-					"RetrieveMemoryRecordsActivityError");
+			System.err.println("Error in AgentCoreMemory.retrieveMemoryRecords: " + e.getMessage());
+			throw ApplicationFailure.newFailure("AgentCoreMemory.retrieveMemoryRecords failed: " + e.getMessage(),
+					"RetrieveAgentCoreMemoryRecordsActivityError");
 		}
 	}
 
@@ -127,6 +163,40 @@ public class ActivitiesImpl implements Activities {
 				.sum();
 		int estimatedTokens = totalChars / 4;
 		return estimatedTokens;
+	}
+
+	@Override
+	public UsageMetadata extractUserPreferenceMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure {
+		try {
+			String extractTemplate = loadPromptTemplate("/prompts/extract-user-pref.txt");
+			String consolidateTemplate = loadPromptTemplate("/prompts/consolidate-user-pref.txt");
+			UserPreferenceHelper userPreferenceHelper = new UserPreferenceHelper();
+			UsageMetadata usageMetadata = userPreferenceHelper.extractUserPreferenceMemoriesImpl(extractTemplate,
+					consolidateTemplate,
+					sessionId, entries);
+			return usageMetadata;
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailure("extractUserPreferenceMemories failed: " + e.getMessage(),
+					"ExtractUserPreferenceMemoriesError");
+		}
+	}
+
+	@Override
+	public UsageMetadata extractSemanticMemories(String userId, String sessionId, List<ContextEntry> entries)
+			throws ApplicationFailure {
+		try {
+			String promptTemplate = loadPromptTemplate("/prompts/extract-semantic.txt");
+			String consolidateTemplate = loadPromptTemplate("/prompts/consolidate-semantic.txt");
+			SemanticHelper semanticHelper = new SemanticHelper();
+			UsageMetadata usageMetadata = semanticHelper.extractSemanticMemoriesImpl(promptTemplate,
+					consolidateTemplate, sessionId,
+					entries);
+			return usageMetadata;
+		} catch (InterruptedException | ExecutionException e) {
+			throw ApplicationFailure.newFailure("extractSemanticMemories failed: " + e.getMessage(),
+					"ExtractSemanticMemoriesError");
+		}
 	}
 
 	/**
@@ -148,5 +218,4 @@ public class ActivitiesImpl implements Activities {
 			throw new RuntimeException("Failed to load prompt template: " + resourcePath, e);
 		}
 	}
-
 }

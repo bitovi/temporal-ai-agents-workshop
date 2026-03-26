@@ -176,8 +176,6 @@ public class AWS {
             return new ModelResponseWithUsage(null, extractUsageMetadata(response, null));
         }
 
-        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
-
         // Extract text content
         StringBuilder textResponse = new StringBuilder();
         for (ContentBlock block : contentBlocks) {

@@ -115,11 +115,8 @@ public class AWS {
         List<ContentBlock> contentBlocks = response.output().message().content();
 
         if (contentBlocks == null || contentBlocks.isEmpty()) {
-            System.out.println("Model did not respond with any content blocks.");
             return new ModelResponseWithUsage(null, extractUsageMetadata(response));
         }
-
-        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
 
         // Extract text content
         StringBuilder textResponse = new StringBuilder();
@@ -130,7 +127,6 @@ public class AWS {
         }
 
         if (textResponse.length() > 0) {
-            System.out.println("Model response text: " + textResponse.toString());
             return new ModelResponseWithUsage(textResponse.toString(), extractUsageMetadata(response));
         }
 
