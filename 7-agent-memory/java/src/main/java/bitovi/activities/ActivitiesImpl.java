@@ -170,7 +170,7 @@ public class ActivitiesImpl implements Activities {
 			throws ApplicationFailure {
 		try {
 			String extractTemplate = loadPromptTemplate("/prompts/extract-user-pref.txt");
-			String consolidateTemplate = loadPromptTemplate("/prompts/consolodate-user-pref.txt");
+			String consolidateTemplate = loadPromptTemplate("/prompts/consolidate-user-pref.txt");
 			UserPreferenceHelper userPreferenceHelper = new UserPreferenceHelper();
 			UsageMetadata usageMetadata = userPreferenceHelper.extractUserPreferenceMemoriesImpl(extractTemplate,
 					consolidateTemplate,
@@ -187,7 +187,7 @@ public class ActivitiesImpl implements Activities {
 			throws ApplicationFailure {
 		try {
 			String promptTemplate = loadPromptTemplate("/prompts/extract-semantic.txt");
-			String consolidateTemplate = loadPromptTemplate("/prompts/consolodate-semantic.txt");
+			String consolidateTemplate = loadPromptTemplate("/prompts/consolidate-semantic.txt");
 			SemanticHelper semanticHelper = new SemanticHelper();
 			UsageMetadata usageMetadata = semanticHelper.extractSemanticMemoriesImpl(promptTemplate,
 					consolidateTemplate, sessionId,
