@@ -71,7 +71,6 @@ public class LocalMemory {
                                 memories.add(new LabeledMemoryRecord(MemoryStrategyType.SEMANTIC,
                                                 semanticMemory.fact()));
                         }
-                        semanticHelper.close();
                 } catch (InterruptedException | ExecutionException e) {
                         logger.error("Error retrieving semantic memory records: " + e.getMessage());
                 }
@@ -87,8 +86,6 @@ public class LocalMemory {
                                 memories.add(new LabeledMemoryRecord(MemoryStrategyType.USER_PREFERENCE,
                                                 userPref.preference()));
                         }
-
-                        userPreferenceHelper.close();
 
                 } catch (InterruptedException | ExecutionException e) {
                         logger.error("Error retrieving user preference memory records: " + e.getMessage());

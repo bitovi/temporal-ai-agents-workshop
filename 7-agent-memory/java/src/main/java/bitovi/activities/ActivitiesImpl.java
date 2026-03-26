@@ -175,7 +175,6 @@ public class ActivitiesImpl implements Activities {
 			UsageMetadata usageMetadata = userPreferenceHelper.extractUserPreferenceMemoriesImpl(extractTemplate,
 					consolidateTemplate,
 					sessionId, entries);
-			userPreferenceHelper.close();
 			return usageMetadata;
 		} catch (InterruptedException | ExecutionException e) {
 			throw ApplicationFailure.newFailure("extractUserPreferenceMemories failed: " + e.getMessage(),
@@ -193,7 +192,6 @@ public class ActivitiesImpl implements Activities {
 			UsageMetadata usageMetadata = semanticHelper.extractSemanticMemoriesImpl(promptTemplate,
 					consolidateTemplate, sessionId,
 					entries);
-			semanticHelper.close();
 			return usageMetadata;
 		} catch (InterruptedException | ExecutionException e) {
 			throw ApplicationFailure.newFailure("extractSemanticMemories failed: " + e.getMessage(),

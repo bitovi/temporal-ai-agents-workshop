@@ -29,6 +29,9 @@ public record UserPreferenceMemoryRecord(UUID id, String context, String prefere
             categories[j] = categoriesArray.getString(j);
         }
 
+        // We want to try and keep this alphabetically sorted for consistency
+        Arrays.sort(categories);
+
         return new UserPreferenceMemoryRecord(id, context, preference, categories);
     }
 
@@ -58,6 +61,7 @@ public record UserPreferenceMemoryRecord(UUID id, String context, String prefere
 
     @SuppressWarnings("null")
     public Map<String, Value> vectorPayload() {
+        Arrays.sort(this.categories());
         return Map.of(
                 "preference", value(this.preference()),
                 "categories", value(Arrays.toString(this.categories())),
@@ -95,6 +99,8 @@ public record UserPreferenceMemoryRecord(UUID id, String context, String prefere
         for (int j = 0; j < categoriesArray.length(); j++) {
             categories[j] = categoriesArray.getString(j);
         }
+
+        Arrays.sort(categories);
 
         return new UserPreferenceMemoryRecord(id, context, preference, categories);
     }

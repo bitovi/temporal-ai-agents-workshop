@@ -11,7 +11,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import bitovi.common.Config;
 import static io.qdrant.client.PointIdFactory.id;
 import io.qdrant.client.QdrantClient;
-import io.qdrant.client.QdrantGrpcClient;
 import static io.qdrant.client.ValueFactory.value;
 import static io.qdrant.client.VectorsFactory.vectors;
 import io.qdrant.client.grpc.Collections.CollectionOperationResponse;
@@ -41,19 +40,13 @@ public class VectorDatabaseClient {
 
     private static final Config config = new Config();
     private static final String USER_ID = config.getProperty("USER_ID");
-    private static final String QDRANT_HOST = config.getProperty("QDRANT_HOST");
-    private static final Integer QDRANT_PORT_GRPC = config.getIntegerProperty("QDRANT_PORT_GRPC");
 
     private final QdrantClient client;
-    private final QdrantGrpcClient grpcClient;
-
     private final String collectionName;
 
     @SuppressWarnings("null")
     public VectorDatabaseClient(String suffix) throws InterruptedException, ExecutionException {
-        QdrantGrpcClient grpc = QdrantGrpcClient.newBuilder(QDRANT_HOST, QDRANT_PORT_GRPC, false)
-                .build();
-        QdrantClient temp = new QdrantClient(grpc);
+        QdrantClient temp = QdrantSingleton.getClient();
 
         // Initialize the collection name based on the user ID
         this.collectionName = USER_ID + "_" + suffix;
@@ -93,12 +86,6 @@ public class VectorDatabaseClient {
 
         // Once we've gotten here, we have ensured that the collection exists
         this.client = temp;
-        this.grpcClient = grpc;
-    }
-
-    public void close() {
-        this.client.close();
-        this.grpcClient.close();
     }
 
     @SuppressWarnings("null")

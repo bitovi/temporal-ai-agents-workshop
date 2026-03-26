@@ -47,10 +47,6 @@ public class UserPreferenceHelper {
         vdc = new VectorDatabaseClient(DATASTORE_SUFFIX);
     }
 
-    public void close() {
-        vdc.close();
-    }
-
     @SuppressWarnings("null")
     public UsageMetadata extractUserPreferenceMemoriesImpl(String extractTemplate, String consolidateTemplate,
             String sessionId,
