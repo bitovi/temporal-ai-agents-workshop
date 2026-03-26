@@ -14,8 +14,7 @@ $dirs = @(
     "5-agent-workflow",
     "6-agent-decisions",
     "7-agent-memory",
-    "8-agent-to-agent",
-    "support-agent-server-adk"
+    "8-agent-to-agent"
 )
 
 # Clean up existing .env files in the target directories
