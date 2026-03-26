@@ -34,19 +34,19 @@ public class BraveSearchTool {
 
         String query = params.get("q").toString();
         String count = params.containsKey("count") ? params.get("count").toString() : "10";
-        
+
         Config config = new Config();
         String apiKey = config.getProperty("BRAVE_SEARCH_API_KEY");
-        
+
         if (apiKey == null || apiKey.isEmpty()) {
             return "{\"error\": \"BRAVE_SEARCH_API_KEY not configured\"}";
         }
 
         try {
-            String url = "https://api.search.brave.com/res/v1/web/search?q=" + 
-                        java.net.URLEncoder.encode(query, "UTF-8") + 
-                        "&count=" + count;
-            
+            String url = "https://api.search.brave.com/res/v1/web/search?q=" +
+                    java.net.URLEncoder.encode(query, "UTF-8") +
+                    "&count=" + count;
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Accept", "application/json")

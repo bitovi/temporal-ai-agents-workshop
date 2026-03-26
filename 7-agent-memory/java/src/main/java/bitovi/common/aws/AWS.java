@@ -17,7 +17,7 @@ public class AWS {
     public static AwsCredentialsProvider getAwsCredentialsProvider() {
         String AWS_ACCESS_KEY_ID = config.getProperty("AWS_ACCESS_KEY_ID");
         String AWS_SECRET_ACCESS_KEY = config.getProperty("AWS_SECRET_ACCESS_KEY");
-        String AWS_SESSION_TOKEN = config.getNullableProperty("AWS_SESSION_TOKEN");
+        String AWS_SESSION_TOKEN = config.getProperty("AWS_SESSION_TOKEN");
 
         StaticCredentialsProvider credentialsProvider;
 

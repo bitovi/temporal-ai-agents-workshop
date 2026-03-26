@@ -89,7 +89,7 @@ public class ModelUtils {
 
     public static int MAX_CONTEXT_TOKENS() {
         Config config = new Config();
-        String maxTokensStr = config.getNullableProperty("MAX_CONTEXT_TOKENS");
+        String maxTokensStr = config.getProperty("MAX_CONTEXT_TOKENS");
         return maxTokensStr != null ? Integer.parseInt(maxTokensStr) : DEFAULT_MAX_TOKENS;
     }
 }

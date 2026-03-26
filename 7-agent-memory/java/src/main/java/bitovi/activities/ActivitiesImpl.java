@@ -84,8 +84,8 @@ public class ActivitiesImpl implements Activities {
 		Config config = new Config();
 
 		// Pass the messages to the appropriate memory extraction system
-		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
-		if (useLocalExtraction.equals("true")) {
+		Boolean useLocalExtraction = config.getBooleanProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction) {
 			// Save the messages to the local database in raw form.
 			try {
 				RawEventHelper.persistSessionEventsImpl(sessionId, entries);
@@ -121,8 +121,8 @@ public class ActivitiesImpl implements Activities {
 			throws ApplicationFailure {
 
 		Config config = new Config();
-		String useLocalExtraction = config.getProperty("LOCAL_MEMORY_EXTRACTION");
-		if (useLocalExtraction.equals("true")) {
+		Boolean useLocalExtraction = config.getBooleanProperty("LOCAL_MEMORY_EXTRACTION");
+		if (useLocalExtraction) {
 			try {
 				return LocalMemory.retrieveMemoryRecords(query, strategyTypes);
 			} catch (Exception e) {
