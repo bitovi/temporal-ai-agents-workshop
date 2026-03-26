@@ -43,33 +43,37 @@ public class VectorDatabaseClient {
     private static final String USER_ID = config.getProperty("USER_ID");
     private static final String QDRANT_HOST = config.getProperty("QDRANT_HOST");
     private static final Integer QDRANT_PORT_GRPC = config.getIntegerProperty("QDRANT_PORT_GRPC");
-    private final QdrantClient client;
 
-    private final String collectionName = USER_ID;
+    private final QdrantClient client;
+    private final QdrantGrpcClient grpcClient;
+
+    private final String collectionName;
 
     @SuppressWarnings("null")
-    public VectorDatabaseClient() throws InterruptedException, ExecutionException {
+    public VectorDatabaseClient(String suffix) throws InterruptedException, ExecutionException {
         QdrantGrpcClient grpc = QdrantGrpcClient.newBuilder(QDRANT_HOST, QDRANT_PORT_GRPC, false)
                 .build();
         QdrantClient temp = new QdrantClient(grpc);
 
         // Initialize the collection name based on the user ID
+        this.collectionName = USER_ID + "_" + suffix;
+
         List<String> existing = temp.listCollectionsAsync().get();
-        if (!existing.contains(USER_ID)) {
-            CollectionOperationResponse result = temp.createCollectionAsync(USER_ID,
+        if (!existing.contains(collectionName)) {
+            CollectionOperationResponse result = temp.createCollectionAsync(collectionName,
                     VectorParams.newBuilder()
                             .setDistance(Distance.Cosine)
                             .setSize(COLLECTION_VECTOR_SIZE)
                             .build())
                     .get();
             if (result.getResult()) {
-                System.out.println("Collection '" + USER_ID + "' created successfully.");
+                System.out.println("Collection '" + collectionName + "' created successfully.");
             } else {
-                throw new RuntimeException("Failed to create collection '" + USER_ID + "'.");
+                throw new RuntimeException("Failed to create collection '" + collectionName + "'.");
             }
 
             temp.createPayloadIndexAsync(
-                    USER_ID,
+                    collectionName,
                     "created_at",
                     PayloadSchemaType.Datetime,
                     null,
@@ -78,7 +82,7 @@ public class VectorDatabaseClient {
                     null);
 
             temp.createPayloadIndexAsync(
-                    USER_ID,
+                    collectionName,
                     "updated_at",
                     PayloadSchemaType.Datetime,
                     null,
@@ -89,6 +93,12 @@ public class VectorDatabaseClient {
 
         // Once we've gotten here, we have ensured that the collection exists
         this.client = temp;
+        this.grpcClient = grpc;
+    }
+
+    public void close() {
+        this.client.close();
+        this.grpcClient.close();
     }
 
     @SuppressWarnings("null")
@@ -108,73 +118,5 @@ public class VectorDatabaseClient {
         var builder = request.toBuilder();
         builder.setCollectionName(collectionName);
         return client.searchAsync(builder.build());
-    }
-
-    public String[] searchVectorDatabase(List<Float> vector, Integer limit,
-            Float scoreThreshold)
-            throws InterruptedException, ExecutionException {
-        @SuppressWarnings("null")
-        List<Points.ScoredPoint> points = client
-                .searchAsync(
-                        SearchPoints.newBuilder()
-                                .setCollectionName(collectionName)
-                                .addAllVector(vector)
-                                .setScoreThreshold(scoreThreshold)
-                                .setLimit(limit)
-                                .build())
-                .get();
-
-        if (points == null || points.isEmpty()) {
-            return new String[0];
-        }
-
-        String[] uuids = new String[points.size()];
-        for (int i = 0; i < points.size(); i++) {
-            var payload = points.get(i);
-            uuids[i] = payload.getId().getUuid();
-        }
-        return uuids;
-    }
-
-    @SuppressWarnings("null")
-    public ArrayList<String> getPayloadsByIds(String[] uuids)
-            throws InterruptedException, ExecutionException {
-
-        List<PointId> pointIds = new ArrayList<>();
-        for (String uuid : uuids) {
-            pointIds.add(id(UUID.fromString(uuid)));
-        }
-
-        ArrayList<String> payloads = new ArrayList<>();
-        @SuppressWarnings("null")
-        List<RetrievedPoint> points = client.retrieveAsync(collectionName, pointIds, null).get();
-        for (RetrievedPoint point : points) {
-            String payload = point.getPayloadMap().get("payload").getStringValue();
-            payloads.add(payload);
-        }
-
-        return payloads;
-    }
-
-    public void insertEmbedding(UUID uuid, List<Float> vectorData, String payload,
-            String source)
-            throws InterruptedException, ExecutionException {
-        @SuppressWarnings("null")
-        PointId pointId = id(uuid);
-        @SuppressWarnings("null")
-        PointStruct ps = PointStruct.newBuilder()
-                .setId(pointId)
-                .setVectors(vectors(vectorData))
-                .putAllPayload(
-                        Map.of(
-                                "payload", value(payload), "source", value(source), "uuid", value(uuid.toString())))
-                .build();
-
-        @SuppressWarnings("null")
-        UpdateResult updateResult = client.upsertAsync(collectionName, List.of(ps)).get();
-        if (!updateResult.getStatus().equals(UpdateStatus.Completed)) {
-            throw new RuntimeException(
-                    "Failed to insert vector with ID: " + pointId + ", Status: " + updateResult.getStatus());
-        }
     }
 }

@@ -70,9 +70,7 @@ public class ThoughtActivity {
 			if (responseText == null || responseText.isEmpty()) {
 				throw ApplicationFailure.newFailure("Empty response from model", "EmptyModelResponse");
 			}
-
-			System.out.println("Model response: " + responseText);
-
+			
 			// Parse JSON response
 			JSONObject jsonResponse = new JSONObject(responseText);
 			String thought = jsonResponse.optString("thought", "");

@@ -25,7 +25,7 @@ public class BedrockConverse {
 
     public record ModelResponse(String response, ModelToolCall toolCall) {
     }
-    
+
     public record ModelResponseWithUsage(String response, UsageMetadata usage) {
     }
 
@@ -37,20 +37,23 @@ public class BedrockConverse {
     }
 
     /**
-     * Call Bedrock Converse API with system prompt and optional tools, returning text response with usage metadata.
+     * Call Bedrock Converse API with system prompt and optional tools, returning
+     * text response with usage metadata.
      * 
-     * @param systemPrompt The system prompt to guide the AI
-     * @param messageHistory List of message history (empty for single-turn conversations)
-     * @param tools List of tools available to the AI (null for no tools)
-     * @param modelId The Bedrock model ID to use
-     * @return ModelResponseWithUsage containing the text response and usage metadata
+     * @param systemPrompt   The system prompt to guide the AI
+     * @param messageHistory List of message history (empty for single-turn
+     *                       conversations)
+     * @param tools          List of tools available to the AI (null for no tools)
+     * @param modelId        The Bedrock model ID to use
+     * @return ModelResponseWithUsage containing the text response and usage
+     *         metadata
      */
     public static ModelResponseWithUsage bedrockConverseWithUsage(
-            String systemPrompt, 
-            List<ChatMessage> messageHistory, 
+            String systemPrompt,
+            List<ChatMessage> messageHistory,
             List<Tool> tools,
             String modelId) {
-        
+
         List<Message> messages = new ArrayList<>();
 
         // Convert the chat messages to Bedrock's Message format
@@ -84,11 +87,8 @@ public class BedrockConverse {
         List<ContentBlock> contentBlocks = response.output().message().content();
 
         if (contentBlocks == null || contentBlocks.isEmpty()) {
-            System.out.println("Model did not respond with any content blocks.");
             return new ModelResponseWithUsage(null, extractUsageMetadata(response));
         }
-
-        System.out.println("Model response contained " + contentBlocks.size() + " content blocks.");
 
         // Extract text content
         StringBuilder textResponse = new StringBuilder();
@@ -99,7 +99,6 @@ public class BedrockConverse {
         }
 
         if (textResponse.length() > 0) {
-            System.out.println("Model response text: " + textResponse.toString());
             return new ModelResponseWithUsage(textResponse.toString(), extractUsageMetadata(response));
         }
 
@@ -116,10 +115,9 @@ public class BedrockConverse {
         TokenUsage usage = response.usage();
         if (usage != null) {
             return new UsageMetadata(
-                usage.inputTokens(),
-                usage.outputTokens(),
-                usage.totalTokens()
-            );
+                    usage.inputTokens(),
+                    usage.outputTokens(),
+                    usage.totalTokens());
         }
         return new UsageMetadata(0, 0, 0);
     }

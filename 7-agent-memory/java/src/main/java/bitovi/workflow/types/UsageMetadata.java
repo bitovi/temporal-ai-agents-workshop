@@ -11,4 +11,8 @@ public record UsageMetadata(
 				this.outputTokens + other.outputTokens,
 				this.totalTokens + other.totalTokens);
 	}
+
+	public static UsageMetadata empty() {
+		return new UsageMetadata(0, 0, 0);
+	}
 }

@@ -151,4 +151,5 @@ If the operation is "UpdateMemory", you need to output:
 
 Like the example, return only the list of JSON with corresponding operation. Do NOT add any explanation.
 
-
+Here are the memories to evaluate along with their relevant existing memories:
+{memories}

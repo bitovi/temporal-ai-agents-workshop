@@ -10,6 +10,9 @@ import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 
 public class AgentMemoryWorker {
+
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AgentMemoryWorker.class);
+
 	public static void main(String[] args) {
 
 		try {
@@ -27,13 +30,12 @@ public class AgentMemoryWorker {
 
 			factory.start();
 
-			System.out.println("Exercise 7 Temporal Worker started. Press Ctrl+C to exit.");
+			logger.info("Exercise 7 Temporal Worker started. Press Ctrl+C to exit.");
 
 			// Keep the worker running
 			Thread.currentThread().join();
 		} catch (Exception ex) {
-			System.err.println("Failed to start Temporal Worker: " + ex.getMessage());
-			ex.printStackTrace();
+			logger.error("Failed to start Temporal Worker: " + ex.getMessage(), ex);
 			System.exit(1);
 		}
 	}

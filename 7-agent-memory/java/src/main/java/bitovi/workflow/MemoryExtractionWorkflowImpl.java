@@ -42,8 +42,6 @@ public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
             for (MemoryExtractionEventInput event : eventsToProcess) {
                 List<ContextEntry> entriesToProcess = event.entries();
                 String sessionId = event.sessionId();
-                
-                // 
 
                 // Run extraction for the memory types
                 UsageMetadata userPreferenceMetadata = activities.extractUserPreferenceMemories(userId, sessionId,

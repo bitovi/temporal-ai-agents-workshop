@@ -75,3 +75,6 @@ Return only this JSON structure, using double quotes for all keys and string val
 
 Only include entries with AddMemory or UpdateMemory operations. Return empty memory array if no changes are needed.
 Do not return anything except the JSON format.
+
+Here are the memories to evaluate along with their relevant existing memories:
+{memories}

@@ -1,10 +1,7 @@
 package bitovi.common.local;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -18,26 +15,28 @@ import bitovi.common.aws.BedrockConverse;
 import bitovi.common.aws.BedrockConverse.ChatMessage;
 import bitovi.common.aws.BedrockConverse.ModelResponseWithUsage;
 import bitovi.common.aws.BedrockEmbed;
+import bitovi.common.local.types.UserPreferenceMemoryActions;
+import bitovi.common.local.types.UserPreferenceMemoryRecord;
 import bitovi.common.qdrant.VectorDatabaseClient;
 import bitovi.workflow.types.ContextEntry;
 import bitovi.workflow.types.UsageMetadata;
-import static io.qdrant.client.ConditionFactory.matchKeyword;
 import static io.qdrant.client.PointIdFactory.id;
-import static io.qdrant.client.ValueFactory.value;
 import static io.qdrant.client.VectorsFactory.vectors;
 import static io.qdrant.client.WithPayloadSelectorFactory.enable;
 
-import io.qdrant.client.grpc.Common.Filter;
-import io.qdrant.client.grpc.Common.PointId;
 import io.qdrant.client.grpc.Points;
 import io.qdrant.client.grpc.Points.PointStruct;
 import io.qdrant.client.grpc.Points.RetrievedPoint;
-import io.qdrant.client.grpc.Points.ScrollPoints;
+import io.qdrant.client.grpc.Points.SearchPoints;
 import io.qdrant.client.grpc.Points.UpdateResult;
 import io.qdrant.client.grpc.Points.UpdateStatus;
 import io.temporal.failure.ApplicationFailure;
 
 public class UserPreferenceHelper {
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserPreferenceHelper.class);
+
+    private static final String DATASTORE_SUFFIX = "user_pref_memories";
+
     private static final Config config = new Config();
 
     private static final String AWS_MODEL_ID = config.getProperty("AWS_MODEL_ID");
@@ -45,16 +44,21 @@ public class UserPreferenceHelper {
     private final VectorDatabaseClient vdc;
 
     public UserPreferenceHelper() throws InterruptedException, ExecutionException {
-        vdc = new VectorDatabaseClient();
+        vdc = new VectorDatabaseClient(DATASTORE_SUFFIX);
     }
 
-    private record UserPreferenceMemoryRecord(String context, String preference, String[] categories) {
+    public void close() {
+        vdc.close();
     }
 
-    public UsageMetadata extractUserPreferenceMemoriesImpl(String promptTemplate, String sessionId,
+    @SuppressWarnings("null")
+    public UsageMetadata extractUserPreferenceMemoriesImpl(String extractTemplate, String consolidateTemplate,
+            String sessionId,
             List<ContextEntry> entries)
             throws InterruptedException, ExecutionException {
-        System.out.println("extractUserPreferenceMemoriesImpl called with entries: " + entries);
+
+        // Track token usage
+        UsageMetadata usage = UsageMetadata.empty();
 
         // Convert ContextEntry list to XML strings for LLM prompt
         List<String> contextStrings = entries.stream()
@@ -65,6 +69,44 @@ public class UserPreferenceHelper {
         List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(contextStrings,
                 Math.floorDiv(ModelUtils.MAX_CONTEXT_TOKENS(), 2));
 
+        // 1. Run the Extraction Step
+        // This step takes the raw chat events and extracts user preference memories
+        // from them
+        List<UserPreferenceMemoryRecord> records = extractionStep(extractTemplate, sessionId, truncatedContext, usage);
+
+        logger.info("Extracted " + records.size() + " potential user preference memories");
+
+        // 2. Run the Consolidation Step
+        // This step takes the extracted user preference memories, and existing
+        // memories, and determines what is a new memory, what should be updated, and
+        // what should be ignored.
+        List<UserPreferenceMemoryActions> actions = consolidationStep(consolidateTemplate, records, usage);
+        logger.info("Consolidated into " + actions.size() + " user preference memory actions");
+
+        // 3. Store the resulting records in the vector database
+        // This step takes the resulting actions and update the database
+        for (UserPreferenceMemoryActions action : actions) {
+            UserPreferenceMemoryRecord record = action.memory();
+            List<Float> vectorData = BedrockEmbed.calculateEmbedding(record.context());
+
+            PointStruct ps = PointStruct.newBuilder()
+                    .setId(id(record.id()))
+                    .setVectors(vectors(vectorData))
+                    .putAllPayload(record.vectorPayload())
+                    .build();
+
+            UpdateResult updateResult = vdc.upsertAsync(List.of(ps)).get();
+            if (!updateResult.getStatus().equals(UpdateStatus.Completed)) {
+                throw new RuntimeException(
+                        "Failed to insert vector with ID: " + record.id() + ", Status: " + updateResult.getStatus());
+            }
+        }
+
+        return usage;
+    }
+
+    private List<UserPreferenceMemoryRecord> extractionStep(String promptTemplate, String sessionId,
+            List<String> truncatedContext, UsageMetadata usage) {
         // 1. Run the Extraction Step:
         List<ContextEntry> pastConversation = RawEventHelper.fetchRawChatEvents(sessionId);
 
@@ -77,8 +119,6 @@ public class UserPreferenceHelper {
                 .replace("{pastConversation}", String.join("\n", pastContextStrings))
                 .replace("{currentConversation}", String.join("\n", truncatedContext));
 
-        System.out.println("extractUserPreferenceMemoriesImpl System Prompt: " + systemPrompt);
-
         // Call Bedrock with high-quality model
         ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
                 systemPrompt,
@@ -87,115 +127,113 @@ public class UserPreferenceHelper {
                 null, // We're going to rely on structured output parsing instead
                 AWS_MODEL_ID);
 
+        usage = usage.add(response.usage());
+
         String responseText = response.response();
         if (responseText == null || responseText.isEmpty()) {
             throw ApplicationFailure.newFailure("Empty response from model", "EmptyModelResponse");
         }
 
-        System.out.println("ExtractUserPreferenceMemoriesImpl Response: " + responseText);
+        List<UserPreferenceMemoryRecord> records = new ArrayList<>();
+        JSONArray jsonArray = new JSONArray(responseText);
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject obj = jsonArray.getJSONObject(i);
+            records.add(UserPreferenceMemoryRecord.fromJson(obj));
+        }
+        return records;
+    }
 
-        List<UserPreferenceMemoryRecord> records = parseExtractUserPreferenceMemoriesResult(responseText);
-        // 2. Run the Consolodation Step:
+    private List<UserPreferenceMemoryActions> consolidationStep(String consolidateTemplate,
+            List<UserPreferenceMemoryRecord> records,
+            UsageMetadata usage) {
 
-        System.out.println("ExtractUserPreferenceMemoriesImpl Response: " + records);
+        List<String> memoryStrings = new ArrayList<>();
 
-        // TODO: Implement the consolidation step for user preference memories
-
-        // 3. Store the resulting records in the vector database
         for (UserPreferenceMemoryRecord record : records) {
-            List<Float> vector = BedrockEmbed.calculateEmbedding(record.preference());
-            System.out.println("Inserting user preference memory embedding for record: "
-                    + record.preference());
-            insertUserPreferenceMemoryEmbedding(vector, record.preference(), record.categories());
+            List<UserPreferenceMemoryRecord> relatedMemories = findRelatedMemories(record);
+            memoryStrings.add(record.toRelationXML(relatedMemories));
         }
 
-        System.out.println("ExtractUserPreferenceMemoriesImpl Usage: " + response.usage());
-        return response.usage();
-    }
+        // Format prompt with placeholders
+        String systemPrompt = consolidateTemplate.replace("{memories}", String.join("\n", memoryStrings));
 
-    private List<UserPreferenceMemoryRecord> parseExtractUserPreferenceMemoriesResult(String responseText) {
-        try {
-            // responseText is a JSON Array of objects
-            // each object has "context", "preference", and "categories" strings
-            List<UserPreferenceMemoryRecord> records = new ArrayList<>();
+        // Call Bedrock with high-quality model
+        ModelResponseWithUsage response = BedrockConverse.bedrockConverseWithUsage(
+                systemPrompt,
+                // Must start with a user message
+                List.of(new ChatMessage("user", "Perform the user-preference memory consolidation.")),
+                null, // We're going to rely on structured output parsing instead
+                AWS_MODEL_ID);
 
-            JSONArray jsonArray = new JSONArray(responseText);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject obj = jsonArray.getJSONObject(i);
-                String context = obj.getString("context");
-                String preference = obj.getString("preference");
-                JSONArray categoriesArray = obj.getJSONArray("categories");
-                String[] categories = new String[categoriesArray.length()];
-                for (int j = 0; j < categoriesArray.length(); j++) {
-                    categories[j] = categoriesArray.getString(j);
-                }
-                records.add(new UserPreferenceMemoryRecord(context, preference, categories));
-            }
+        usage = usage.add(response.usage());
 
-            return records;
-        } catch (JSONException e) {
-            System.err.println("Failed to parse user preference memory records: " + e.getMessage());
-            return new ArrayList<>();
+        String responseText = response.response();
+        if (responseText == null || responseText.isEmpty()) {
+            throw ApplicationFailure.newFailure("Empty response from model", "EmptyModelResponse");
         }
-    }
 
-    private void insertUserPreferenceMemoryEmbedding(List<Float> vectorData,
-            String payload,
-            String[] categories)
-            throws InterruptedException, ExecutionException {
-
-        UUID uuid = java.util.UUID.randomUUID();
-
-        @SuppressWarnings("null")
-        PointId pointId = id(uuid);
-
-        @SuppressWarnings("null")
-        PointStruct ps = PointStruct.newBuilder()
-                .setId(pointId)
-                .setVectors(vectors(vectorData))
-                .putAllPayload(
-                        Map.of(
-                                "payload", value(payload), "categories", value(Arrays.toString(categories)), "uuid",
-                                value(uuid.toString()), "memory_type", value("user_preference_memory")))
-                .build();
-
-        @SuppressWarnings("null")
-        UpdateResult updateResult = vdc.upsertAsync(List.of(ps)).get();
-        if (!updateResult.getStatus().equals(UpdateStatus.Completed)) {
-            throw new RuntimeException(
-                    "Failed to insert vector with ID: " + pointId + ", Status: " + updateResult.getStatus());
+        JSONArray jsonArray = new JSONArray(responseText);
+        List<UserPreferenceMemoryActions> actions = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject obj = jsonArray.getJSONObject(i);
+            actions.add(UserPreferenceMemoryActions.fromJson(obj));
         }
+
+        return actions;
     }
 
-    @SuppressWarnings("null")
-    public List<String> getUserPreferenceMemoryPayloads() {
-        @SuppressWarnings("null")
+    public List<UserPreferenceMemoryRecord> getUserPreferenceMemoryPayloads() {
         Points.ScrollResponse scrollResponse = null;
         try {
-            scrollResponse = vdc.scrollAsync(ScrollPoints.newBuilder()
-                    .setFilter(
-                            Filter.newBuilder()
-                                    .addAllShould(
-                                            List.of(matchKeyword("memory_type", "user_preference_memory")))
-                                    .build())
+            scrollResponse = vdc.scrollAsync(UserPreferenceMemoryRecord.vectorScrollSearch()).get();
+        } catch (InterruptedException | ExecutionException ex) {
+            logger.error("Failed to search user preference memory embeddings: " + ex.getMessage(), ex);
+        }
+
+        if (scrollResponse == null) {
+            return new ArrayList<>();
+        }
+
+        List<RetrievedPoint> points = scrollResponse.getResultList();
+        List<UserPreferenceMemoryRecord> payloads = new ArrayList<>();
+
+        for (RetrievedPoint point : points) {
+            try {
+                payloads.add(UserPreferenceMemoryRecord.fromRetrievedPoint(point));
+            } catch (JSONException e) {
+                logger.error("Failed to parse retrieved point: " + e.getMessage(), e);
+            }
+        }
+        return payloads;
+    }
+
+    private List<UserPreferenceMemoryRecord> findRelatedMemories(UserPreferenceMemoryRecord record) {
+        // Here we should find related memories based on the memory categories
+        List<Float> vector = BedrockEmbed.calculateEmbedding(String.join(" ", record.categories()));
+
+        // Search the vector database for related memories based on the embedding vector
+        List<UserPreferenceMemoryRecord> relatedMemories = new ArrayList<>();
+        List<Points.ScoredPoint> searchResponse = null;
+        try {
+            searchResponse = vdc.searchAsync(SearchPoints.newBuilder()
+                    .addAllVector(vector)
+                    .setScoreThreshold(0.75f)
+                    .setLimit(5)
                     .setWithPayload(enable(true))
                     .build()).get();
         } catch (InterruptedException | ExecutionException ex) {
-            System.err.println("Failed to search user preference memory embeddings: " + ex.getMessage());
+            logger.error("Failed to search user preference memory embeddings: " + ex.getMessage(), ex);
         }
-
-        List<String> payloads = new ArrayList<>();
-
-        if (scrollResponse == null) {
-            return payloads;
+        if (searchResponse != null) {
+            for (Points.ScoredPoint scoredPoint : searchResponse) {
+                try {
+                    relatedMemories.add(UserPreferenceMemoryRecord.fromScoredPoint(scoredPoint));
+                } catch (JSONException e) {
+                    logger.error("Failed to parse retrieved point: " + e.getMessage(), e);
+                }
+            }
         }
+        return relatedMemories;
 
-        var points = scrollResponse.getResultList();
-
-        for (RetrievedPoint point : points) {
-            String payload = point.getPayloadMap().get("payload").getStringValue();
-            payloads.add(payload);
-        }
-        return payloads;
     }
 }

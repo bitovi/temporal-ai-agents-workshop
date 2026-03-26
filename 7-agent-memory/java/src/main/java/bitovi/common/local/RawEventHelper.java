@@ -10,7 +10,6 @@ import java.util.concurrent.ExecutionException;
 import bitovi.common.aws.BedrockEmbed;
 import bitovi.common.qdrant.VectorDatabaseClient;
 import bitovi.workflow.types.ContextEntry;
-import bitovi.workflow.types.ContextEntryType;
 import static io.qdrant.client.ConditionFactory.matchKeyword;
 import static io.qdrant.client.PointIdFactory.id;
 import static io.qdrant.client.ValueFactory.value;
@@ -30,6 +29,9 @@ import io.qdrant.client.grpc.Points.UpdateStatus;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 public class RawEventHelper {
+
+    private static final String DATASTORE_SUFFIX = "raw_events";
+
     /**
      * This function should persist the session events for the given sessionId and
      * entries into
@@ -73,7 +75,7 @@ public class RawEventHelper {
                                 "updated_at", value(Instant.now().toString())))
                 .build();
 
-        VectorDatabaseClient vdc = new VectorDatabaseClient();
+        VectorDatabaseClient vdc = new VectorDatabaseClient(DATASTORE_SUFFIX);
         UpdateResult updateResult = vdc.upsertAsync(List.of(ps)).get();
         if (!updateResult.getStatus().equals(UpdateStatus.Completed)) {
             throw new RuntimeException(
@@ -87,7 +89,7 @@ public class RawEventHelper {
         Points.ScrollResponse scrollResponse = null;
         try {
             // Query to return X number of results, ordered by date descending
-            VectorDatabaseClient vdc = new VectorDatabaseClient();
+            VectorDatabaseClient vdc = new VectorDatabaseClient(DATASTORE_SUFFIX);
             scrollResponse = vdc.scrollAsync(ScrollPoints.newBuilder()
                     .setFilter(
                             Filter.newBuilder()
@@ -101,7 +103,7 @@ public class RawEventHelper {
         } catch (InterruptedException | ExecutionException ex) {
             System.err.println("Failed to raw message embeddings: " + ex.getMessage());
         }
-        
+
         List<ContextEntry> payloads = new ArrayList<>();
 
         if (scrollResponse == null) {
