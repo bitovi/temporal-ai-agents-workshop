@@ -10,9 +10,11 @@ First let's run the existing implementation of an agent with Long-Term Memory (L
 4. Run Task: Docker Compose Up
 
 You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+
 ![image](../../.images/vscode-cmd-menu.png)
 
 Select the appropriate task from the list to run.
+
 ![image](../../.images/vscode-run-task.png)
 
 5. Launch: Exercise 7 - Worker
@@ -21,6 +23,7 @@ Select the appropriate task from the list to run.
 You can access the VSCode 'Run and Debug' panel by pressing `Cmd+Shift+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux) and selecting the appropriate launch configuration.
 
 At the top of the panel, you can select the configuration to launch.
+
 ![image](../../.images/vscode-run-menu.png)
 
 Let's open the latest workflow in the [temporal ui](http://localhost:8233/) so we can observe the behavior of the agent.
@@ -35,7 +38,7 @@ If we open the [Chat Web UI](http://localhost:3000/) and start a conversation, a
 
 ![image](../../.images/agent-chat-ui-memory-empty.png)
 
-## Part B - Building Long-Term Memory
+## Part B - Building Long-Term Memory with AgentCore
 
 Now let's interact with the agent to build up some Long-Term Memory and observe how it persists across conversations.
 The goal here is to teach the agent about your personal preferences and domain-specific knowledge so it can tailor its responses in future conversations.
@@ -81,7 +84,7 @@ AWS Bedrock AgentCore provides several built-in memory strategy types. The follo
 | `SUMMARIZATION`   | Condensed per-session summaries covering key topics, tasks, and decisions discussed                     |
 | `EPISODIC`        | Structured records of meaningful interaction moments, organized for efficient retrieval across sessions |
 
-> **Note:** These four strategies are the built-in options AWS provides, but Bedrock AgentCore also supports custom memory strategies if you need to store and retrieve information in a way that doesn't fit the defaults.
+As we saw in the slides, AgentCore Memory does also allow for custom memory strategies if you need to store and retrieve information in a way that doesn't fit the defaults.
 
 ### Listing all memory records
 
@@ -151,10 +154,47 @@ Then restart the worker.
 
 Start a new conversation and ask the same questions again.
 
-With `EPISODIC` and `SUMMARIZATION` enabled the agent now has access to structured interaction records and condensed session summaries, giving it a much richer picture of your conversation history. Compare the responses to what you saw in Step 1.
+With `EPISODIC` and `SUMMARIZATION` enabled the agent now has access to structured interaction records and condensed session summaries, giving it a much richer picture of your conversation history.
 
-## Part E - Custom Memory Implementations
+Compare the responses to what you saw in Step 1.
 
-To get a little more hands on, we can experiment with a completely custom Memory Extraction workflow implemented in Temporal. This solution does not use AgentCore Memory at all.
+## Part E - Building Long-Term Memory with Local Memory Extraction
 
-TODO: Implement this if we have time.
+Experiment with the Local Memory Extraction Workflow by setting `LOCAL_MEMORY_EXTRACTION=true` in your `.env` file and then restarting the worker.
+
+You can find the source code for the Local Memory Extraction Workflow in [`MemoryExtractionWorkflowImpl.java`](src/main/java/bitovi/workflow/MemoryExtractionWorkflowImpl.java). 
+
+For Semantic Memory Extraction you can refer to [`SemanticHelper.java`](src/main/java/bitovi/common/local/SemanticHelper.java).
+
+For User Preference Memory Extraction you can refer to [`UserPreferenceHelper.java`](src/main/java/bitovi/common/local/UserPreferenceHelper.java).
+
+Now let's interact with the agent to build up some Long-Term Memory and observe how it persists across conversations.
+
+1. Open the [Chat Web UI](http://localhost:3000/) and start a conversation.
+
+![image](../../.images/agent-chat-ui.png)
+
+2. Tell your agent about some of your personal preferences. Here are some examples that might help:
+
+- **Communication Tone**: "I prefer short, bullet-point answers" or "Use a very formal tone".
+- **Skill Level**: "Explain things to me like I'm a beginner" or "Assume I have a PhD in Physics".
+- **Avoidance Lists**: "Never suggest recipes containing peanuts" or "Don't mention politics".
+
+3. Share some facts or domain knowledge with your agent. Here are some examples that might help:
+
+- **Acronyms**: "In our company, 'TL' always means Team Lead, not Tech Lead".
+- **Projects**: "Project Nighthawk is the internal codename for our mobile app rewrite launching in Q3".
+- **Definitions**: "When we say 'the platform', we mean our internal developer tooling monorepo, not the customer-facing product".
+
+4. After a few minutes, start a completely new conversation.
+5. Interact with the agent. Observe that the agent should be able to "remember" your personal preferences from a previous conversation.
+
+![image](../../.images/agent-chat-ui-memory-exists.png)
+
+6. Open the [Qdrant Dashboard](http://localhost:6333/dashboard#/collections) and inspect the stored vectors. You should see entries corresponding to the facts and preferences you shared with the agent.
+
+![image](../../.images/qdrant-local-memory.png)
+
+7. Take a look at the Temporal Web UI at [http://localhost:8233](http://localhost:8233) and inspect the workflows. You should see new workflow instances corresponding to the memory extraction and storage processes triggered by your interactions with the agent.
+
+![image](../../.images/temporal-memory-extraction.png)

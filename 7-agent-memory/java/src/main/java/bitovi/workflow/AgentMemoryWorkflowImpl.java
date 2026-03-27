@@ -141,6 +141,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 			String query = context.stream()
 					.map(ContextEntry::toXMLString)
 					.collect(Collectors.joining("\n"));
+
 			// TODO_MEMORY: Uncomment MemoryStrategyType.EPISODIC and SUMMARIZATION to
 			// enable richer memory context (Part D)
 			List<MemoryStrategyType> memoryStrategies = List.of(
@@ -169,7 +170,7 @@ public class AgentMemoryWorkflowImpl implements AgentMemoryWorkflow {
 				context.add(answerEntry);
 				persist.add(answerEntry);
 
-				// Batch persist: collect entries from most recent USER_MESSAGE to ANSWER
+				// Collect entries from most recent USER_MESSAGE to ANSWER
 				activities.persistMemoryActivity(persist, Workflow.getInfo().getRunId());
 
 				// Once this has been persisted, we can clear the persist buffer

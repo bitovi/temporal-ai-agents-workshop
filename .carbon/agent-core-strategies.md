@@ -1,3 +1,7 @@
+# AgentCore Memory Strategies
+
+## AgentCore Memory Event Creation
+
 ```java
 public static void createEvent(List<ContextEntry> entries) {
     BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient();
@@ -28,22 +32,21 @@ public static void createEvent(List<ContextEntry> entries) {
 
 ```java
 public static CreateMemoryResponse createMemory() {
-    BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()
+    BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient();
 
     CreateMemoryRequest request = CreateMemoryRequest.builder()
-                    .name(MEMORY_ID)
-                    .description("This is an example that handles only Semantic Memories")
-                    .eventExpiryDuration(30) // We can expire events after some number of days, if we want
-                    .memoryStrategies(
-                        MemoryStrategyInput.builder()
-                            .semanticMemoryStrategy(
-                                SemanticMemoryStrategyInput.builder()
-                                    .name("Semantic")
-                                    .description("Stores factual information and concepts")
-                                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                            .build())
-                        .build())
-                    .build();
+        .name(MEMORY_ID)
+        .description("This is an example that handles only Semantic Memories")
+        .eventExpiryDuration(365)
+        .memoryStrategies(MemoryStrategyInput.builder()
+            .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
+                .name("Semantic")
+                .description("Stores factual information and concepts")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+            .build())
+        .build())
+    .build();
+
     CreateMemoryResponse response = controlClient.createMemory(request);
     return response;
 }
@@ -56,19 +59,18 @@ public static CreateMemoryResponse createMemory() {
     BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()
 
     CreateMemoryRequest request = CreateMemoryRequest.builder()
-                    .name(MEMORY_ID)
-                    .description("This is an example that handles only User Preference Memories")
-                    .eventExpiryDuration(30) // Events expire after 30 days
-                    .memoryStrategies(
-                        MemoryStrategyInput.builder()
-                            .userPreferenceMemoryStrategy(
-                                UserPreferenceMemoryStrategyInput.builder()
-                                    .name("Preference")
-                                    .description("Tracks user preferences and choices")
-                                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                                .build())
-                        .build())
-                    .build();
+        .name(MEMORY_ID)
+        .description("This is an example that handles only User Preference Memories")
+        .eventExpiryDuration(365)
+        .memoryStrategies(MemoryStrategyInput.builder()
+            .userPreferenceMemoryStrategy(UserPreferenceMemoryStrategyInput.builder()
+                .name("Preference")
+                .description("Tracks user preferences and choices")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+            .build())
+        .build())
+    .build();
+
     CreateMemoryResponse response = controlClient.createMemory(request);
     return response;
 }
@@ -81,23 +83,20 @@ public static CreateMemoryResponse createMemory() {
     BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient()
 
     CreateMemoryRequest request = CreateMemoryRequest.builder()
-                    .name(MEMORY_ID)
-                    .description("This is an example that handles only Episodic Memories")
-                    .eventExpiryDuration(30) // Events expire after 30 days
-                    .memoryStrategies(
-                        MemoryStrategyInput.builder()
-                            .episodicMemoryStrategy(
-                                EpisodicMemoryStrategyInput.builder()
-                                    .name("Episodic")
-                                    .description("Stores temporal sequences of events")
-                                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
-                                    .reflectionConfiguration(
-                                        EpisodicReflectionConfigurationInput.builder()
-                                            .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
-                                        .build())
-                                    .build())
-                                .build())
-                    .build();
+        .name(MEMORY_ID)
+        .description("This is an example that handles only Episodic Memories")
+        .eventExpiryDuration(365)
+        .memoryStrategies(MemoryStrategyInput.builder()
+            .episodicMemoryStrategy(EpisodicMemoryStrategyInput.builder()
+                .name("Episodic")
+                .description("Stores temporal sequences of events")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+                .reflectionConfiguration(EpisodicReflectionConfigurationInput.builder()
+                    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+                .build())
+            .build())
+        .build())
+    .build();
 
     CreateMemoryResponse response = controlClient.createMemory(request);
     return response;
@@ -113,20 +112,41 @@ public static CreateMemoryResponse createMemory() {
     CreateMemoryRequest request = CreateMemoryRequest.builder()
         .name(MEMORY_ID)
         .description("This is an example that handles only Summary Memories")
-        .eventExpiryDuration(30) // Events expire after 30 days
-        .memoryStrategies(
-            MemoryStrategyInput.builder()
-                .summaryMemoryStrategy(
-                    SummaryMemoryStrategyInput.builder()
-                        .name("Summary")
-                        .description("Maintains summarized conversation history")
-                        .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
-                    .build())
-                .build())
-            .build();
+        .eventExpiryDuration(365)
+        .memoryStrategies(MemoryStrategyInput.builder()
+            .summaryMemoryStrategy(SummaryMemoryStrategyInput.builder()
+                .name("Summary")
+                .description("Maintains summarized conversation history")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"))
+            .build())
+        .build())
+    .build();
+
     CreateMemoryResponse response = controlClient.createMemory(request);
     return response;
 }
+```
+
+## Custom Strategy Memory
+
+```java
+MemoryStrategyInput.builder()
+    .customMemoryStrategy(CustomMemoryStrategyInput.builder()
+        .name("Travel Facts")
+        .configuration(CustomConfigurationInput.builder()
+            .semanticOverride(SemanticOverrideConfigurationInput.builder()
+                .extraction(SemanticOverrideExtractionConfigurationInput.builder()
+                    .appendToPrompt("""
+                        You are tasked with analyzing conversations to
+                        extract the user's travel preferences...
+                        """)
+                .build())
+            .build())
+        .build())
+    .description("Custom memory strategy for extracting travel preferences")
+    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+    .build())
+.build()
 ```
 
 ## Original Code
