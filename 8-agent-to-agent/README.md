@@ -8,153 +8,45 @@ Implementing agent-to-agent communication allows for the creation of more sophis
 
 ## What you need to know
 
-Single-agent systems have limitations. One single Agent trying to handle research, reasoning, code generation, customer support, billing systems, and validation simultaneously tends to be mediocre at all of them. As the amount of information in the models context grows, quality often degrades. This "context rot" can be mitigated by multi-agent orchestration, which addresses this by breaking down complex tasks across specialized agents, each operating within its own focused context window.
+Single-agent systems have limitations. One single Agent trying to handle research, reasoning, code generation, customer support, billing systems, and validation simultaneously tends to be mediocre at all of them. As the amount of information in the models context grows, quality often degrades.
 
-- Specialization over genereralization
-  - Each agent can be tuned via system prompts, model selection, and tool definitions for a specific domain.
-  - A billing agent doesn't need to understand account verification logic, and vice versa. This mirrors how human teams organize around expertise.
+This can often be mitigated by multi-agent orchestration, which addresses this by breaking down complex tasks across specialized agents, each operating within its own focused context window
 
-- Parallelization
-  - Tasks that don't depend on each other can be executed in parallel. We saw this idea in the Plan & Execute Architecture!
-  - While our amount of computation stays the same, we can achieve faster results by running independent tasks concurrently across multiple agents.
+### Specialization Over Generalization
 
-- Context window management
-  - Each agent gets a fresh context window.
-  - A research sub-agent can chew through hundreds of documents without polluting the orchestrator's context.
-  - Only the distilled summary flows back up.
-  - This is one of the primary reasons tools like GitHub Copilot and Claude Code use sub-agents as part of their architecture, to keep the main conversation clean and focused.
+By specializing agents for their specific tasks, we can achieve higher quality results. Each agent can focus on a narrow domain, with a clear understanding of its responsibilities and limitations.
 
-- Fault tolerance
-  - If one agent fails or produces an error, the orchestrator can retry the task with a different agent or ask a human for intervention.
+Each agent can be tuned via system prompts, model selection, and tool definitions for a specific domain.
 
-The most common practice in these multi-agent systems is to have a top level supervisor or orchestrator agent that then delegates tasks to specialized sub-agents. The orchestrator manages the overall workflow, monitors progress, and handles errors, while the sub-agents focus on their specific tasks.
+For example, a billing agent doesn't need to understand account verification logic, and vice versa. This mirrors how human teams organize around expertise.
 
-In our exercise later we will see this pattern in action, with our chat AI Agent interacting with a Customer Support Agent on behalf of a user over the Agent2Agent Protocol.
+Sometimes we DO expect our humans, or agents, to generalize across domains, but this is usually less efficient and can lead to lower quality results compared to specialized agents.
 
+### Parallelization
 
-### Framework vs Protocol
+When we have multiple agents working on different parts of a task, we can take advantage of parallelization to speed up the overall process. We saw this general idea in the Plan & Execute Architecture!
 
+This doesnt do anything to increase or decrease the total amount of computation required for a task, but it allows us to complete the task faster by leveraging multiple agents to work concurrently.
 
+### Context Window Management
 
+Context Windows have come up in every exercise so far, as they are a critical factor in determining how much information an agent can consider at once. Proper management of context windows is essential for maintaining the quality and relevance of the agent's responses.
 
-### Real World Example: GitHub Copilot and Claude Code
+Splitting tasks across multiple agents allows each agent to operate within its own context window, preventing the main orchestrator's context from becoming overloaded.
 
-Both GitHub Copilot and Claude Code are great examples of multi-agent orchestration in a developer tool that many of us now use daily. These tools can spawn sub-agents, each with its own context window, system prompt, tool definitions, and independent execution. The main agent acts as an orchestrator, delegating focused subtasks to these sub-agents and receiving back concise results.
+Each agent gets its own context window, allowing it to process information independently without affecting the main orchestrator's context. Only a final distilled summary flows back up to the orchestrator agent.
 
-This solves two common problems. The first is the always growing context window. A sub-agent can explore dozens of files, run multiple web searches, or analyze a large codebase without any of that intermediate work accumulating in the main conversation. Only the final summary returns to the parent.
+> Note: We can see this technique in action in tools like GitHub Copilot and Claude Code, where sub-agents are used to manage context windows effectively! Allowing the main agent to stay focused on the high-level plan, leaving the exploration of the codebase, research, and other detailed tasks to the sub-agents.
 
-The other is parallel execution. Multiple sub-agents can run simultaneously. For example, when researching a topic, Claude Code might spawn one agent per competitor or one per section of a codebase, then synthesize all results.
+If one of the sub-agents fails or produces an error, the orchestrator can handle the situation gracefully without affecting the overall task or polluting the main context window with error messages or incomplete information.
 
-Claude Code ships with built-in sub-agents (like Task for general-purpose work and Explore for codebase navigation) but also supports user-defined custom sub-agents configured as Markdown files with YAML frontmatter specifying the agent's description, system prompt, allowed tools, and permission mode. Notably, sub-agents cannot spawn their own sub-agents — this prevents infinite nesting and keeps the architecture manageable.
-This pattern — an orchestrator coordinating specialized workers with isolated contexts — is the same fundamental architecture we're using in this exercise. The difference is that Claude Code's sub-agents are all local instances of Claude, while our system uses A2A to communicate across agent boundaries (different runtimes, different languages, potentially different organizations).
+## Framework vs Protocol
 
-# Section 3: Multi-Agent Systems
+There are two main approaches to building multi-agent systems: frameworks and protocols.
 
-## 3.1 — Why Multi-Agent?
+Framework level approaches often implement an orchestrator that manages multiple sub-agents, handling task delegation, context management, and error handling. These agents run, often, within the same runtime environment and can share resources directly. The sub-agents are typically tightly coupled with the orchestrator and are not designed to operate independently outside of the framework.
 
-Transition from the single-agent architectures covered in Sections 1 & 2. Establish the core motivations:
-
-- **Context window management / "context rot"** — Callback to the Section 1 discussion. As tool counts, instructions, and conversation history grow, a single agent's quality degrades. Sub-agents operate in isolated context windows, keeping each agent focused. Only distilled results flow back up. This is arguably the #1 reason production tools like Claude Code and GitHub Copilot use sub-agents.
-- **Specialization over generalization** — Each agent can have its own system prompt, model selection, tool definitions, and domain focus. A billing agent doesn't need account verification tools cluttering its context, and vice versa.
-- **Parallelization** — Independent subtasks can execute concurrently across multiple agents. Callback to Plan & Execute from Section 1 — the DAG-based task plan naturally maps to parallel agent execution.
-- **Fault isolation** — If one agent fails, the orchestrator can retry, substitute, or escalate without crashing the whole workflow.
-- **Distributed development** — Different teams can own and maintain individual agents independently, composing them into a larger system with clear API boundaries.
-
-### Real-World Example: Claude Code & GitHub Copilot Sub-Agents
-
-Both tools spawn sub-agents with their own context windows, system prompts, and tool definitions. The main agent acts as an orchestrator — delegating focused subtasks and receiving back concise results. Claude Code ships with built-in sub-agents (Task for general work, Explore for codebase navigation) and supports user-defined custom sub-agents via Markdown files with YAML frontmatter. Notably, sub-agents cannot spawn their own sub-agents — preventing infinite nesting.
-
----
-
-## Orchestration Patterns
-
-The five foundational patterns that all multi-agent systems map to (or hybridize). These are analogous to distributed systems patterns — the same trade-offs around coordination cost, fault isolation, throughput, and observability apply.
-
-### Orchestrator-Worker (Hub and Spoke)
-
-The most widely deployed pattern in production. A central orchestrator receives tasks, decomposes them, routes subtasks to specialized workers, and aggregates results. Workers don't communicate with each other — all coordination flows through the orchestrator.
-
-- Orchestrator maintains global state, handles error recovery
-- Workers are stateless and focused on a single capability
-- Trade-off: orchestrator is a single point of failure and potential bottleneck
-- Examples: LangGraph Supervisor, AutoGen group chat with selector agent
-
-### Handoff / Swarm (Decentralized)
-
-Agents transfer control to each other explicitly via "handoff" functions. No central supervisor — each agent decides locally whether to handle a task or pass it to a peer. Originated from OpenAI's experimental Swarm framework, now production-grade in the OpenAI Agents SDK.
-
-- Lightweight, stateless between calls
-- Agents declare handoff targets; framework enforces valid paths
-- Risk: handoff loops (Agent A → Agent B → Agent A) without guard conditions
-- Best for: high-volume, well-defined routing (customer support triage, onboarding flows)
-
-### Hierarchical (Tree-Structured Delegation)
-
-Multi-level delegation: a top-level manager delegates to mid-level supervisors, who delegate to leaf-level workers. Each level adds abstraction — strategy at top, tactics in middle, execution at leaves.
-
-- Enables 50+ agent deployments across business domains
-- Each supervisor manages a "team" of agents
-- LangGraph supports this natively: supervisors that manage other supervisors
-- Google ADK models this with agent hierarchy trees (parent/sub-agent relationships)
-
-### Pipeline (Sequential Stages)
-
-Linear assembly line — Agent A completes, passes output to Agent B, then Agent C. Deterministic, easy to debug, great for data processing workflows.
-
-- Google ADK's `SequentialAgent` primitive
-- Common in: ETL pipelines, document processing (parse → extract → summarize), content generation with review
-
-### Parallel Fan-Out / Fan-In
-
-Spawn multiple agents concurrently on independent subtasks, then synthesize results. Can be combined with pipeline stages.
-
-- Google ADK's `ParallelAgent` primitive
-- Example: code review where security auditor, style enforcer, and performance analyst all review a PR simultaneously, then a synthesizer combines feedback
-- Race condition awareness: parallel agents sharing session state need unique write keys
-
-### Loop / Iterative Refinement
-
-Generator-Critic pattern: one agent produces output, another reviews it against criteria, loop until quality gate passes.
-
-- Google ADK's `LoopAgent` with exit conditions
-- Common in: code generation + validation, content creation + compliance review, self-improving agents
-
-### Hybrid Patterns
-
-Most production systems combine patterns. Example: a pipeline for the main flow, but a swarm of 20 gathering agents in the research stage. Or an orchestrator-worker at the top with hierarchical teams underneath.
-
----
-
-## Communication & State Management Between Agents
-
-How agents actually share information — this is where the distributed systems parallels get concrete.
-
-### Shared State / Scratchpad
-
-All agents read/write to a common state object. Simple, but risks context bloat and race conditions.
-
-- LangGraph's typed state channels (pass only necessary state deltas, not full history)
-- Google ADK's `session.state` with key templating (`{my_key}` in instructions)
-- CrewAI's shared memory objects
-
-### Message Passing
-
-Agents communicate via structured messages. More explicit than shared state but requires defining message schemas.
-
-- AutoGen's conversation-loop pattern (AssistantAgent ↔ UserProxyAgent message passing)
-- A2A Protocol's Message/Part model (TextPart, FilePart, DataPart)
-
-### Structured Context Objects vs. Full Conversation Forwarding
-
-- **Structured objects** (200-500 tokens): pass only what the next agent needs. LangGraph's approach.
-- **Full conversation forwarding** (5,000-20,000 tokens): every agent sees full history. Simple but expensive.
-- **Summarized context**: LLM generates compressed summary at each handoff. 70-90% token reduction but adds latency and information loss.
-
-### Context Isolation as a Feature
-
-Sub-agents getting fresh context windows isn't a limitation — it's the point. A research sub-agent can chew through hundreds of documents without polluting the orchestrator's context. Only the distilled summary flows back up. This is the key architectural insight behind Claude Code's sub-agent model.
-
----
+The other approach is protocol-based. Here we allow our agent to communicate with external agents that may be running in entirely different runtime environments, possibly written in different programming languages, and managed by different organizations. We will look more at the Agent2Agent Protocol later in this section.
 
 ## Frameworks & SDKs
 
@@ -206,71 +98,235 @@ Survey of the major multi-agent frameworks, their philosophies, and when to use 
 - Trade-off: higher token overhead due to agent-to-tool gap and memory management
 - Python
 
-### Comparison Matrix
+## Multi-Agent System Patterns
 
-| Framework          | Orchestration Model         | State Management                  | Language Support     | Best For                                 |
-| ------------------ | --------------------------- | --------------------------------- | -------------------- | ---------------------------------------- |
-| LangGraph          | Graph-based                 | Checkpointed state channels       | Python, JS           | Complex workflows, orchestrator-worker   |
-| OpenAI Agents SDK  | Handoff-based               | Sessions                          | Python, TS           | Lightweight routing, swarm patterns      |
-| Google ADK         | Hierarchy + Workflow agents | Session state with key templating | Python, TS, Go, Java | Structured pipelines, parallel execution |
-| MS Agent Framework | Graph + Conversation        | Session-based, event-sourced      | Python, C#, Java     | Enterprise, Azure integration            |
-| CrewAI             | Role-based teams            | Shared memory                     | Python               | Rapid prototyping, team-oriented tasks   |
+We can take a lot of inspiration from distributed systems when designing multi-agent systems. The same trade-offs around coordination cost, fault isolation, throughput, and observability apply.
 
----
+### Orchestrator-Worker (Hub and Spoke)
 
-## The Multi-Agent Trap: Failure Modes & When NOT to Multi-Agent
+The most widely deployed pattern in production. A central orchestrator receives tasks, decomposes them, routes subtasks to specialized workers, and aggregates results. Workers don't communicate with each other — all coordination flows through the orchestrator.
 
-Critical section — multi-agent isn't always the answer. Google DeepMind research found multi-agent networks can amplify errors 17x. Gartner predicts over 40% of agentic AI projects will be canceled by end of 2027.
+- Orchestrator maintains global state, handles error recovery
+- Workers are stateless and focused on a single capability
+- Trade-off: orchestrator is a single point of failure and potential bottleneck
+- Examples: LangGraph Supervisor, AutoGen group chat with selector agent
 
-- **Start with a single agent** — only go multi-agent when you hit concrete limitations (too many tools, context overflow, need for parallelization)
-- **Cascading failures** — one agent's bad output becomes another's bad input. Each handoff is an error amplification point.
-- **Coordination overhead** — every additional agent adds latency from routing decisions and context management
-- **Observability challenges** — debugging "why did the user end up at Agent F instead of Agent D?" requires production-grade distributed tracing
-- **The single-agent ceiling test** — if your agent works well with fewer tools and a focused system prompt, you don't need multi-agent. Refactor the prompt before reaching for orchestration.
+### Handoff / Swarm (Decentralized)
 
----
+Agents transfer control to each other explicitly via "handoff" functions. No central supervisor — each agent decides locally whether to handle a task or pass it to a peer. Originated from OpenAI's experimental Swarm framework, now production-grade in the OpenAI Agents SDK.
 
-## 3.6 — Connecting to Temporal
+- Lightweight, stateless between calls
+- Agents declare handoff targets; framework enforces valid paths
+- Risk: handoff loops (Agent A → Agent B → Agent A) without guard conditions
+- Best for: high-volume, well-defined routing (customer support triage, onboarding flows)
+
+### Hierarchical (Tree-Structured Delegation)
+
+Multi-level delegation: a top-level manager delegates to mid-level supervisors, who delegate to leaf-level workers. Each level adds abstraction — strategy at top, tactics in middle, execution at leaves.
+
+- Enables 50+ agent deployments across business domains
+- Each supervisor manages a "team" of agents
+- LangGraph supports this natively: supervisors that manage other supervisors
+- Google ADK models this with agent hierarchy trees (parent/sub-agent relationships)
+
+### Pipeline (Sequential Stages)
+
+Linear assembly line — Agent A completes, passes output to Agent B, then Agent C. Deterministic, easy to debug, great for data processing workflows.
+
+- Google ADK's `SequentialAgent` primitive
+- Common in: ETL pipelines, document processing (parse → extract → summarize), content generation with review
+
+### Parallel Fan-Out / Fan-In
+
+Spawn multiple agents concurrently on independent subtasks, then synthesize results. Can be combined with pipeline stages.
+
+- Google ADK's `ParallelAgent` primitive
+- Example: code review where security auditor, style enforcer, and performance analyst all review a PR simultaneously, then a synthesizer combines feedback
+- Race condition awareness: parallel agents sharing session state need unique write keys
+
+### Loop / Iterative Refinement
+
+Generator-Critic pattern: one agent produces output, another reviews it against criteria, loop until quality gate passes.
+
+- Google ADK's `LoopAgent` with exit conditions
+- Common in: code generation + validation, content creation + compliance review, self-improving agents
+
+## Communication & State Management Between Agents
+
+How agents actually share information — this is where the distributed systems parallels get concrete.
+
+### Shared State / Scratchpad
+
+All agents read/write to a common state object. Simple, but risks context bloat and race conditions.
+
+- LangGraph's typed state channels (pass only necessary state deltas, not full history)
+- Google ADK's `session.state` with key templating (`{my_key}` in instructions)
+- CrewAI's shared memory objects
+
+### Message Passing
+
+Agents communicate via structured messages. More explicit than shared state but requires defining message schemas.
+
+- AutoGen's conversation-loop pattern (AssistantAgent ↔ UserProxyAgent message passing)
+- A2A Protocol's Message/Part model (TextPart, FilePart, DataPart)
+
+### Context Isolation as a Feature
+
+Sub-agents getting fresh context windows isn't a limitation — it's the point. A research sub-agent can chew through hundreds of documents without polluting the orchestrator's context. Only the distilled summary flows back up. This is the key architectural insight behind Claude Code's sub-agent model.
+
+### When NOT to Multi-Agent
+
+Like any distributed system, multi-agent architectures introduce complexity that can outweigh their benefits if not carefully managed. Most projects should always start with a single agent and only move to a multi-agent setup when there are clear, unavoidable limitations that a single agent cannot address.
+
+There are several failure modes to be aware of:
+
+- **Cascading failures**
+  - One agent's bad output becomes another's bad input.
+  - Each handoff is an error amplification point.
+
+- **Coordination overhead**
+  - Every additional agent adds latency from routing decisions and context management
+
+- **Observability challenges**
+  - Debugging "why did the user end up at Agent F instead of Agent D?" requires production-grade distributed tracing
+
+- **The single-agent ceiling test**
+  - If your agent works well with fewer tools and a focused system prompt, you don't need multi-agent. Refactor the prompt before reaching for orchestration.
+
+## Practical Examples
+
+Claude Code & GitHub Copilot both make use of multi-agent architectures to manage complex tasks.
+
+Both tools spawn sub-agents with their own context windows, system prompts, and tool definitions. The main agent acts as an orchestrator, delegating focused subtasks and receiving back concise results.
+
+Claude Code ships with built-in sub-agents
+
+- 'General Purpose' Agent for general work
+- 'Explore' Agent for codebase navigation
+- 'Plan' Agent that acts as a software architect, building implementation plans
+- 'claude-code-guide' Agent for assisting with using Claude Code itself, documentation, and usage
+- 'Verification' Agent, an adversarial agent that attempts to break implementations and find edge cases
+
+Each of these sub-agents are specialized for a particular type of task, allowing the main orchestrator agent to delegate work efficiently and maintain a clean separation of concerns.
+
+Simple Sub-Agents are spawned using this Tool Call:
+
+```js
+{
+  description:
+    "Launch a sub-agent to handle a task. Available types: general-purpose, Explore, Plan.",
+  input_schema: {
+    type: "object",
+    properties: {
+      description: {
+        type: "string",
+        description: "A short (3-5 word) description of the task",
+      },
+      prompt: {
+        type: "string",
+        description: "The task for the agent to perform",
+      },
+      subagent_type: {
+        type: "string",
+        enum: ["general-purpose", "Explore", "Plan"],
+        description: "Agent type",
+      },
+      model: {
+        type: "string",
+        enum: ["sonnet", "opus", "haiku"],
+        description: "Optional model override",
+      },
+    },
+    required: ["description", "prompt"],
+  },
+}
+```
+
+More complex multi-step Agents can also be created:
+
+```js
+{
+  description: `Launch a new agent to handle complex, multi-step tasks autonomously.
+    Available agent types:
+    - general-purpose: For complex tasks requiring multiple tools. Has access to all tools.
+    - Explore: Fast, read-only agent for searching codebases. Uses haiku model.
+    - Plan: Software architect for designing implementation plans. Read-only.
+    - claude-code-guide: Documentation expert for Claude Code/API. Read-only, uses haiku.
+    - verification: Adversarial agent that tries to break implementations. Cannot modify project files.
+
+    Guidelines:
+    - Use Explore for quick searches and codebase navigation
+    - Use Plan for designing implementation strategies
+    - Use general-purpose for tasks that require writing code or running commands
+    - Use verification after implementing features to validate they work
+    - Use run_in_background for tasks that don't need immediate results
+    - Use isolation: "worktree" for tasks that modify code (prevents messing up main repo)`,
+  input_schema: {
+    type: "object",
+    properties: {
+      description: {
+        type: "string",
+        description: "A short (3-5 word) description of the task",
+      },
+      prompt: {
+        type: "string",
+        description: "The task for the agent to perform",
+      },
+      subagent_type: {
+        type: "string",
+        enum: [
+          "general-purpose",
+          "Explore",
+          "Plan",
+          "claude-code-guide",
+          "verification",
+        ],
+        description: "The type of agent to use",
+      },
+      model: {
+        type: "string",
+        enum: ["sonnet", "opus", "haiku"],
+        description: "Optional model override",
+      },
+      run_in_background: {
+        type: "boolean",
+        description:
+          "Run agent in background. Returns immediately with agent ID.",
+      },
+      isolation: {
+        type: "string",
+        enum: ["worktree"],
+        description: "Isolation mode. 'worktree' creates a git worktree.",
+      },
+    },
+    required: ["description", "prompt"],
+  },
+}
+```
+
+## Take Advantage of Temporal
 
 Bridge to your existing Temporal-based architecture from Exercises 1-7. How do these multi-agent patterns map to Temporal's primitives?
 
-- **Orchestrator-Worker** → Temporal Workflow as orchestrator, Activities or Child Workflows as workers
-- **Parallel Fan-Out** → `Promise.all()` on multiple Activity invocations
-- **Pipeline** → Sequential Activity execution within a Workflow
-- **Hierarchical** → Parent Workflows delegating to Child Workflows
-- **Handoffs** → Signal-based communication between Workflows
-- **State** → Temporal's event-sourced Workflow state replaces framework-specific state management
-- **Fault tolerance** → Temporal's built-in retry policies, timeouts, and saga patterns
+Temporal solves a lot of problems around normal distributed systems concerns like state management, fault tolerance, and orchestration. We can take advantage of these features when designing multi-agent systems as well, no need to reinvent the wheel when we get these for free from Temporal.
 
-Advantage of Temporal over framework-built-in orchestration: durable execution, replay, versioning, and observability come for free. You're not reinventing distributed systems plumbing.
+- **Orchestrator-Worker**
+  - Temporal Workflow as orchestrator
+  - Activities or Child Workflows as workers
+- **Parallel Fan-Out**
+  - `Promise.all()` on multiple Activity invocations
+- **Pipeline**
+  - Sequential Activity execution within a Workflow
+- **Hierarchical**
+  - Parent Workflows delegating to Child Workflows
+- **Handoffs**
+  - Signal-based communication between Workflows
+- **State**
+  - Temporal's event-sourced Workflow state replaces framework-specific state management
+- **Fault tolerance**
+  - Temporal's built-in retry policies, timeouts, and usage of saga patterns
 
----
-
-## 3.7 — Distributed Multi-Agent: The Agent2Agent Protocol
-
-_[Existing A2A content from Exercise 8 goes here]_
-
-Transition: Everything in 3.2-3.6 assumes agents are co-located — same runtime, same process, same organization. A2A extends multi-agent to the distributed case: different runtimes, different languages, potentially different organizations.
-
-- A2A vs MCP positioning (complementary, not competing)
-- Agent Cards as service discovery
-- Task lifecycle and state machine
-- Sentinel tools and input-required pausing
-- The A2A + Temporal integration in the exercise
-
----
-
-## 3.8 — Practical Exercise
-
-The existing Exercise 8 implementation: personal assistant agent (Java/Temporal) communicating with a remote Riot Games support agent (TypeScript) over A2A.
-
-### Potential Extensions / Discussion Topics
-
-- Add a local sub-agent pattern: have the personal assistant spawn a focused sub-agent to summarize the A2A conversation before presenting results to the user
-- Implement parallel fan-out: query multiple remote agents simultaneously (e.g., billing agent + account agent) and synthesize results
-- Compare: what would this look like with LangGraph Supervisor vs. your Temporal implementation?
-
-## Agent-to-Agent Protocol
+## The Agent2Agent Protocol
 
 The Agent-to-Agent Protocol is an open standard created by Google that enables AI Agents to seamlessly communicate and collaborate with each other in a structured way. The A2A Protocol is now managed by the Linux Foundation. Under the Linux Foundation’s governance, the hope is that A2A will remain vendor neutral, emphasize inclusive contributions and continue the protocol’s focus on extensibility, security and real-world usability across industries.
 
@@ -375,3 +431,7 @@ The support agent uses **sentinel tools** (`request_verification`, `request_info
 - [A2A JS SDK](https://github.com/a2aproject/a2a-js)
 - [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk)
 - [A2A Sample Agents](https://github.com/a2aproject/a2a-samples)
+
+## Multi-Agent Communication Implemetation
+
+TODO: Example pulled from out existing source code demo

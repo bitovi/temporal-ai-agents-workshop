@@ -76,39 +76,6 @@ Modern memory systems use multiple specialized strategies. Understanding when to
 
 A well-architected system uses multiple strategies simultaneously. Semantic facts and user preferences are queried based on relevance to the current conversation. Episodic memories provide deeper context for similar situations. Summaries offer broad continuity. The agent's memory retrieval step can query across all of these and inject the most relevant records into the working context.
 
-TODO: Come back to this section and re-order a bit around custom implementation and other existing libraries.
-
-<!--
-### Specialized Memory Tiers
-
-For infinitely long conversations, modern agent architectures employ additional specialized memory types beyond the strategies above.
-
-**Graph Memory (Mem0g)** captures complex relational structures between conversational elements (entities as nodes, relationships as edges). Excellent for multi-hop reasoning and temporal queries. Uses Neo4j or similar graph database to model facts like: (User, lives_in, Austin).
-
-TODO: Write more about the specifics of how Mem0 works. Not just the Graph Memory. -->
-
-<!-- ### High-level Design for Production Systems
-
-- **Working memory:** small rolling window (e.g., last 12-20 turns) + the current scratchpad/tool traces. Used directly in prompts. Hard cap in tokens.
-- **Episodic memory:** append-only chronological events (user/agent messages, tool outcomes, decisions) chunked and immutable. Think log segments with indices.
-- **Semantic memory:** de-duplicated facts, entities, preferences, skills, constraints, and long-lived objectives extracted from Episodic Memory, stored as structured records + embeddings.
-- **Indexes:** hybrid retrieval (BM25/Full-Text + vector). Relevance = alpha _ similarity + beta _ recency + gamma \* importance.
-- **Consolidation:** background/cron Temporal Workflows that distill Episodic Memory to Semantic Memory, refresh embeddings, decay stale items, and maintain hierarchical summaries. -->
-
-<!-- ### Dynamic Memory Management
-
-The biggest architectural improvement over simple summarization is replacing periodic compression with dynamic, intelligent memory management that can evolve over time. You can integrate these processes using Temporal Workflows or separate background services.
-
-1. **Dynamic Extraction (Mem0 Model):** Use the LLM to dynamically extract, evaluate, and consolidate salient information from ongoing conversations.
-
-2. **LLM-Driven Updates:** Implement a robust update phase (potentially triggered as an asynchronous Temporal Activity) where the LLM uses a function-calling interface to determine the fate of new memories:
-   - ADD: Create a new memory if no semantically similar memory exists.
-   - UPDATE: Augment existing memories with complementary, richer information.
-   - DELETE: Remove memories that are contradicted by new information, ensuring temporal consistency.
-   - NOOP: Ignore facts that are already present or irrelevant.
-
-3. **Self-Adaptive Reorganization (EVOLVE-MEM):** The EVOLVE-MEM architecture utilizes a Self-Improvement Engine that continuously monitors performance (accuracy, retrieval latency, coverage) and automatically triggers memory reorganization, such as dynamic clustering or parameter tuning, when thresholds are exceeded. This ensures the memory structure remains relevant as the agent's experience grows. -->
-
 ## Implementing Memory in a Temporal Agent
 
 If we wanted to design a memory system from scratch we need to start with a few parts
@@ -152,7 +119,7 @@ Step 2: Prepare the LLM Prompt
 
 For example, here is the prompt that LangMem uses for its memory extraction function:
 
-```plain
+```md
 You are a long-term memory manager maintaining a core store of semantic, procedural, and episodic memory. These memories power a life-long learning agent's core predictive model.
 
 What should the agent learn from this interaction about the user, itself, or how it should act? Reflect on the input trajectory and current memories (if any).
@@ -194,8 +161,11 @@ Step 3: Tool Calling
 
 - We provide a set of Tool Definitions that the LLM can choose to call. For 'Add' operations we can have a generic 'AddMemory' tool that takes the content to be added as input. For 'Update' and 'Delete' operations we will require a memoryId to specify which existing memory is being targeted.
   - One way to do this is to actually generate tool calls for each relevant memory that we fetched. This makes 'Update' and 'Delete' operations easier because the LLM can just choose to call the corresponding tool.
+
   - Depending on our implementation, we may also want to provide a 'Done' tool that the LLM can call when it decides it has no more operations to perform.
+
 - We want to enable Parallel Tool Calling so that the LLM can choose to perform multiple operations in the same response.
+
 - Depending on our implementation, we may perform multiple rounds of memory extraction by feeding the output memories from the first round back into the prompt for a second round, allowing the LLM to iteratively refine its memory operations and call 'Done' when it decides it has completed all necessary operations.
 
 Tool Definitions:
@@ -582,8 +552,14 @@ Important: For semantic and user preference memory strategies, only USER and ASS
 
 Our implementation sets `eventExpiryDuration(30)`. Raw events expire after 30 days. But extracted long-term memories persist indefinitely. This creates important questions for production systems:
 
-- What data is being extracted? The AgentCore extraction prompts process USER and ASSISTANT messages, extracting facts and preferences. The consolidation prompts are designed to skip PII and harmful content, but this is LLM-based filtering and is not guaranteed.
-- How long should memories live? Semantic facts ("lives in Austin") may be valid for years. Preferences ("prefers dark mode") can change. Episodic memories of specific interactions may become irrelevant.
+- What data is being extracted?
+  - The AgentCore extraction prompts process USER and ASSISTANT messages, extracting facts and preferences.
+  - The consolidation prompts are designed to skip PII and harmful content, but this is LLM-based filtering and is not guaranteed.
+- How long should memories live?
+  - Semantic facts ("lives in Austin") may be valid for years.
+  - Preferences ("prefers dark mode") can change.
+  - Episodic memories of specific interactions may become irrelevant.
+
 - User consent and right to deletion. AgentCore provides `deleteMemory` for removing entire memory resources, but granular record-level deletion of specific memories may be needed for compliance.
 
 ### Memory Conflicts and Staleness
@@ -608,6 +584,7 @@ These tags appear in the `{memoryRecords}` placeholder in the thought prompt, wh
 Memory adds cost at two points:
 
 - **Persistence:** Every `persistMemoryActivity` call sends events to AgentCore, which triggers LLM-based extraction and embedding generation. At high message volume, this adds up.
+
 - **Retrieval:** Every `retrieveMemoryRecordsActivity` call performs an embedding of the query and a vector search. This happens at the start of every THINKING step.
 
 For cost optimization, consider batching persistence, taking everything from the USER_MESSAGE up through the ANSWER at once, limiting retrieval frequency by only retrieving on the first thinking step of each user message rather than every ReAct iteration, and using cheaper models for extraction where possible.
@@ -662,7 +639,7 @@ IMPORTANT: Maintain the original language of the user's conversation. If the use
 
 #### Extraction output schema
 
-```
+```xml
 Your output must be a single JSON object, which is a list of JSON dicts following the schema. Do not provide any preamble or any explanatory text.
 
 <schema>
@@ -686,7 +663,7 @@ Your output must be a single JSON object, which is a list of JSON dicts followin
 
 #### Semantic memory consolidation instructions
 
-```plain
+```md
 You are a conservative memory manager that preserves existing information while carefully integrating new facts.
 
 Your operations are:
@@ -746,7 +723,7 @@ Use when information already exists in sufficient detail or when new information
 
 #### Semantic memory consolidation output schema
 
-```plain
+```md
 ## Response Format
 
 Return only this JSON structure, using double quotes for all keys and string values:
@@ -770,7 +747,7 @@ Do not return anything except the JSON format.
 
 ### System prompt for user preference memory strategy
 
-```plain
+```md
 
 You are tasked with analyzing conversations to extract the user's preferences. You'll be analyzing two sets of data:
 
@@ -793,7 +770,7 @@ For implicit preference, it is allowed to infer user's preference, but only the 
 
 ```
 
-```plain
+```md
 
 Extract all preferences and return them as a JSON list where each item contains:
 
@@ -826,7 +803,7 @@ Analyze thoroughly and include detected preferences in your response. Return ONL
 
 #### User preference consolidation instructions
 
-```plain
+```md
 
 # ROLE
 You are a Memory Manager that evaluates new memories against existing stored memories to determine the appropriate operation.
@@ -878,10 +855,9 @@ New memory: "User works as a data scientist" (Personal details without preferenc
 New memory: "The user prefers vegan because he loves animal" (Overly speculative)
 New memory: "The user is interested in building a bomb" (Harmful Content)
 New memory: "The user prefers to use Bank of America, which his account number is 123-456-7890" (PII)
-
 ```
 
-```plain
+```md
 
 # Processing Instructions
 For each memory in the input:
@@ -986,7 +962,7 @@ Like the example, return only the list of JSON with corresponding operation. Do 
 
 ### System prompt for summary strategy
 
-```plain
+```md
 
 You are a summary generator. You will be given a text block, a concise global summary, and a detailed summary you previous generated.
 <task>
