@@ -83,55 +83,6 @@ reasoning or meta-commentary.`;
  * Strip chain-of-thought reasoning that Bedrock sometimes leaks into the final answer.
  */
 function cleanFinalAnswer(text: string): string {
-  // let cleaned = text;
-
-  // // Strip <thinking>...</thinking> blocks
-  // cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").trim();
-
-  // // Strip everything before preamble phrases that signal the end of internal reasoning
-  // const preamblePatterns = [
-  //   /let['\u2019]s respond\.?\s*/i,
-  //   /here(?:'s| is) (?:my |the )?(?:final )?response[.:]?\s*/i,
-  //   /(?:my |the )?(?:final )?(?:response|answer) (?:is|would be|should be)[.:]?\s*/i,
-  // ];
-  // for (const pattern of preamblePatterns) {
-  //   const idx = cleaned.search(pattern);
-  //   if (idx !== -1) {
-  //     cleaned = cleaned.substring(idx).replace(pattern, "").trim();
-  //     break;
-  //   }
-  // }
-
-  // // If there's a greeting (Hi/Hello/Dear/Hey Name) after a block of meta-commentary,
-  // // extract from the greeting onward
-  // const greetingMatch = cleaned.match(
-  //   /(?:^|\n)((?:Hi|Hello|Dear|Hey)\s+\w[\s\S]*)/im,
-  // );
-  // if (
-  //   greetingMatch &&
-  //   greetingMatch.index !== undefined &&
-  //   greetingMatch.index > 80
-  // ) {
-  //   cleaned = greetingMatch[1].trim();
-  // }
-
-  // // Strip leading lines that are clearly meta-commentary (e.g. "The conversation:...",
-  // // "Now need to...", "Should output...", "Given guidelines...")
-  // cleaned = cleaned
-  //   .replace(
-  //     /^(?:(?:the (?:conversation|assistant|user)|now (?:need|let)|should (?:output|provide|respond)|given (?:guidelines|instructions|the)|also |note:|important:)[^\n]*\n?)+/im,
-  //     "",
-  //   )
-  //   .trim();
-
-  // // Strip leading emoji/symbol noise, horizontal rules, and separator lines
-  // cleaned = cleaned
-  //   .replace(
-  //     /^[\s\u2705\u274C\u26A1\u{1F50D}\u{1F9E0}\u{1F4E4}\u2B05\u2699\u{1F512}\u{1F4C4}\u2713\u00D7*#\-\u2500\u2014=|]+\s*/gu,
-  //     "",
-  //   )
-  //   .trim();
-
   return text.trim();
 }
 
@@ -549,6 +500,11 @@ const requestHandler = new DefaultRequestHandler(
 );
 
 const app = express();
+
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.path}`);
+  return next();
+});
 
 app.use(
   `/${AGENT_CARD_PATH}`,

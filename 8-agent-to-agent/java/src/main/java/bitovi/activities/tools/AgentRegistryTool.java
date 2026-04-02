@@ -12,94 +12,79 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
-/**
- * A tool that searches an agent registry to find remote A2A agents by keyword.
- *
- * In a production system this would call a real discovery service or use the
- * A2A protocol's .well-known/agent-card.json endpoint on known hosts.
- * For this demo, we use a hardcoded in-memory list to simulate agent discovery.
- *
- * The LLM calls this tool first to find out which agents are available,
- * then uses a2a_send_message to communicate with the chosen agent.
- */
 public class AgentRegistryTool {
     private static final Gson gson = new Gson();
 
-    /** An entry in the agent registry. */
     public record AgentEntry(
-        String name,
-        String url,
-        String description,
-        List<String> tags
-    ) {}
+            String name,
+            String url,
+            String description,
+            List<String> tags) {
+    }
 
     /** The mock registry — in production this would be a real service. */
     private static final List<AgentEntry> REGISTRY = List.of(
-        new AgentEntry(
-            "Riot Games Support Agent",
-            "http://localhost:4000",
-            "Handles billing inquiries, refunds, and account issues for Riot Games.",
-            List.of("support", "billing", "refunds", "account", "riot games", "gaming")
-        ),
-        new AgentEntry(
-            "Travel Planner Agent",
-            "http://localhost:6001",
-            "Plans trips, searches flights and hotels, builds itineraries, and provides destination recommendations.",
-            List.of("travel", "flights", "hotels", "itinerary", "vacation", "booking", "destinations")
-        ),
-        new AgentEntry(
-            "Code Review Agent",
-            "http://localhost:6002",
-            "Reviews pull requests, identifies bugs and security issues, suggests improvements, and enforces coding standards.",
-            List.of("code review", "pull request", "bugs", "security", "linting", "engineering", "software")
-        ),
-        new AgentEntry(
-            "Finance Agent",
-            "http://localhost:6003",
-            "Tracks expenses, analyzes budgets, provides investment summaries, and generates financial reports.",
-            List.of("finance", "budget", "expenses", "investments", "reports", "accounting", "money")
-        ),
-        new AgentEntry(
-            "Calendar & Scheduling Agent",
-            "http://localhost:6004",
-            "Manages calendars, schedules meetings across time zones, resolves conflicts, and sends reminders.",
-            List.of("calendar", "scheduling", "meetings", "time zones", "reminders", "availability")
-        ),
-        new AgentEntry(
-            "Research Agent",
-            "http://localhost:6005",
-            "Conducts deep research on topics, summarizes academic papers, and compiles citation-backed reports.",
-            List.of("research", "papers", "academic", "citations", "summarization", "knowledge")
-        )
-    );
+            new AgentEntry(
+                    "Riot Games Support Agent",
+                    "http://localhost:4000",
+                    "Handles billing inquiries, refunds, and account issues for Riot Games.",
+                    List.of("support", "billing", "refunds", "account", "riot games", "gaming")),
+            new AgentEntry(
+                    "Travel Planner Agent",
+                    "http://localhost:6001",
+                    "Plans trips, searches flights and hotels, builds itineraries, and provides destination recommendations.",
+                    List.of("travel", "flights", "hotels", "itinerary", "vacation", "booking", "destinations")),
+            new AgentEntry(
+                    "Code Review Agent",
+                    "http://localhost:6002",
+                    "Reviews pull requests, identifies bugs and security issues, suggests improvements, and enforces coding standards.",
+                    List.of("code review", "pull request", "bugs", "security", "linting", "engineering", "software")),
+            new AgentEntry(
+                    "Finance Agent",
+                    "http://localhost:6003",
+                    "Tracks expenses, analyzes budgets, provides investment summaries, and generates financial reports.",
+                    List.of("finance", "budget", "expenses", "investments", "reports", "accounting", "money")),
+            new AgentEntry(
+                    "Calendar & Scheduling Agent",
+                    "http://localhost:6004",
+                    "Manages calendars, schedules meetings across time zones, resolves conflicts, and sends reminders.",
+                    List.of("calendar", "scheduling", "meetings", "time zones", "reminders", "availability")),
+            new AgentEntry(
+                    "Research Agent",
+                    "http://localhost:6005",
+                    "Conducts deep research on topics, summarizes academic papers, and compiles citation-backed reports.",
+                    List.of("research", "papers", "academic", "citations", "summarization", "knowledge")));
 
-    /**
-     * Search the registry for agents matching a query string.
-     * If query is omitted or empty, returns all registered agents.
-     */
-    public static String execute(String toolName, Map<String, Object> toolUseInput) {
-        Map<String, Object> params = toolUseInput;
+    private static ToolInput validateToolInput(Map<String, Object> toolUseInput) {
         if (toolUseInput.containsKey("map") && toolUseInput.get("map") instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> nested = (Map<String, Object>) toolUseInput.get("map");
-            params = nested;
+            if (nested.containsKey("query") && nested.get("query") != null) {
+                return new ToolInput(nested.get("query").toString());
+            }
         }
 
-        String query = "";
-        if (params != null && params.containsKey("query") && params.get("query") != null) {
-            query = params.get("query").toString().trim().toLowerCase();
-        }
+        return new ToolInput(null);
+    }
 
-        boolean listAll = query.isEmpty();
-        if (listAll) {
+    private record ToolInput(String query, boolean listAll) {
+        public ToolInput(String query) {
+            this(query, query == null || query.trim().isEmpty());
+        }
+    }
+
+    public static String execute(String toolName, Map<String, Object> toolUseInput) {
+        ToolInput input = validateToolInput(toolUseInput);
+
+        if (input.listAll()) {
             System.out.println("[AgentRegistryTool] Listing all agents");
         } else {
-            System.out.println("[AgentRegistryTool] Searching for: " + query);
+            System.out.println("[AgentRegistryTool] Searching for: " + input.query());
         }
 
         List<Map<String, Object>> results = new ArrayList<>();
         for (AgentEntry agent : REGISTRY) {
-            if (listAll || matches(agent, query)) {
+            if (matches(agent, input)) {
                 Map<String, Object> entry = new HashMap<>();
                 entry.put("name", agent.name());
                 entry.put("url", agent.url());
@@ -113,23 +98,42 @@ public class AgentRegistryTool {
         return gson.toJson(Map.of("agents", results));
     }
 
-    private static boolean matches(AgentEntry agent, String query) {
+    private static boolean matches(AgentEntry agent, ToolInput input) {
+        if (input.listAll()) {
+            return true;
+        }
+
+        String query = input.query().toLowerCase();
+
         // Match against the full query first
         String nameLower = agent.name().toLowerCase();
         String descLower = agent.description().toLowerCase();
-        if (nameLower.contains(query)) return true;
-        if (descLower.contains(query)) return true;
-        for (String tag : agent.tags()) {
-            if (tag.toLowerCase().contains(query) || query.contains(tag.toLowerCase())) return true;
+        if (nameLower.contains(query)) {
+            return true;
         }
+
+        if (descLower.contains(query)) {
+            return true;
+        }
+
+        for (String tag : agent.tags()) {
+            if (tag.toLowerCase().contains(query) || query.contains(tag.toLowerCase())) {
+                return true;
+            }
+        }
+
         // Also match if ANY individual word in the query matches
         String[] words = query.split("\\s+");
         for (String word : words) {
-            if (word.length() < 2) continue; // skip tiny words
-            if (nameLower.contains(word)) return true;
-            if (descLower.contains(word)) return true;
+            if (word.length() < 2)
+                continue; // skip tiny words
+            if (nameLower.contains(word))
+                return true;
+            if (descLower.contains(word))
+                return true;
             for (String tag : agent.tags()) {
-                if (tag.toLowerCase().contains(word)) return true;
+                if (tag.toLowerCase().contains(word))
+                    return true;
             }
         }
         return false;
@@ -140,7 +144,7 @@ public class AgentRegistryTool {
         queryProp.put("type", Document.fromString("string"));
         queryProp.put("description", Document.fromString(
                 "Optional keyword or phrase to filter agents (e.g. 'billing', 'books', 'support'). "
-                + "Omit or leave empty to list all available agents."));
+                        + "Omit or leave empty to list all available agents."));
 
         Map<String, Document> properties = new HashMap<>();
         properties.put("query", Document.fromMap(queryProp));

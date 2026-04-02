@@ -352,6 +352,7 @@ The Agent2Agent protocol consists of several building blocks for agent interacti
 
 - Task
   - A task represents a unit of work needed to accomplish a request. It has a unique ID and progresses through a lifecycle of defined states (submitted, working, input-required, completed, failed). Tasks are useful for multi-turn processing or long-running agent-to-agent collaboration.
+
 - Message
   - As a fundamental unit of communication, a message depicts a single exchange or turn in a conversation. It contains one or more parts holding the actual content.
 

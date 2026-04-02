@@ -3,28 +3,18 @@ package bitovi.activities;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import bitovi.activities.react.ActionActivity;
+import bitovi.activities.react.CompactActivity;
 import bitovi.activities.react.ObservationActivity;
-import bitovi.activities.tools.ToolRegistry;
-import bitovi.activities.types.ActionDetail;
+import bitovi.activities.react.ThoughtActivity;
 import bitovi.activities.types.ActionInput;
 import bitovi.activities.types.CompactResponse;
 import bitovi.activities.types.ObservationResponse;
 import bitovi.activities.types.PersistMessage;
 import bitovi.activities.types.ThoughtResponse;
-import bitovi.common.AWS;
-import bitovi.common.AWS.ChatMessage;
-import bitovi.common.Config;
-import bitovi.common.EventClient;
 import bitovi.common.ModelUtils;
 import io.temporal.failure.ApplicationFailure;
 
@@ -32,157 +22,14 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public ThoughtResponse thoughtActivity(List<String> context) throws ApplicationFailure {
-		try {			
-			EventClient.emitEvent("status", "Thinking...", EventClient.LANE_CLIENT, null);
-
-			// Load prompt template
-			String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
-
-			// Get current date
-			String currentDate = LocalDate.now().toString();
-
-			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
-
-			// Get available tools as XML string
-			String availableActions = ToolRegistry.getToolsAsXmlString();
-
-			// Format prompt with placeholders
-			String systemPrompt = promptTemplate
-					.replace("{currentDate}", currentDate)
-					.replace("{previousSteps}", String.join("\n", truncatedContext))
-					.replace("{availableActions}", availableActions);
-
-			// Call Bedrock with high-quality model
-			Config config = new Config();
-			String modelId = config.getProperty("AWS_MODEL_ID");
-
-			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
-					systemPrompt,
-					// Must start with a user message
-					List.of(new ChatMessage("user", "perform THOUGHT")),
-					null, // No tool config needed for thought
-					modelId);
-
-			String responseText = response.response();
-			if (responseText == null || responseText.isEmpty()) {
-				throw ApplicationFailure.newFailure("Empty response from model", "EmptyModelResponse");
-			}
-
-			System.out.println("Model response: " + responseText);
-
-			// Parse JSON response
-			JSONObject jsonResponse = new JSONObject(responseText);
-			String thought = jsonResponse.optString("thought", "");
-
-			// Determine type based on fields present
-			String type;
-			String answer = null;
-			ActionDetail action = null;
-
-			if (jsonResponse.has("answer")) {
-				type = "answer";
-				answer = jsonResponse.getString("answer");
-				// Emit events for answer type
-				EventClient.emitEvent("thought", thought, EventClient.LANE_CLIENT, null);
-				EventClient.emitEvent("answer", answer, EventClient.LANE_CLIENT, EventClient.LANE_USER);
-			} else if (jsonResponse.has("action")) {
-				type = "action";
-				JSONObject actionObj = jsonResponse.getJSONObject("action");
-				String name = actionObj.getString("name");
-				String reason = actionObj.optString("reason", "");
-
-				// Parse input as Map and wrap in ActionInput
-				Object inputObj = actionObj.get("input");
-				Map<String, Object> inputMap;
-				if (inputObj instanceof JSONObject) {
-					inputMap = ((JSONObject) inputObj).toMap();
-				} else if (inputObj instanceof Map) {
-					inputMap = (Map<String, Object>) inputObj;
-				} else {
-					// Fallback for unexpected input types
-					System.out.println("Warning: Unexpected input type " + inputObj.getClass().getName() +
-							", wrapping in 'value' key");
-					inputMap = new HashMap<>();
-					inputMap.put("value", inputObj);
-				}
-
-				// Validate non-null before creating ActionInput
-				if (inputMap == null) {
-					inputMap = new HashMap<>();
-				}
-
-				ActionInput actionInput = new ActionInput(inputMap);
-				action = new ActionDetail(name, reason, actionInput);
-
-				// Emit events for action type
-				EventClient.emitEvent("thought", thought, EventClient.LANE_CLIENT, null);
-			} else {
-				throw ApplicationFailure.newFailure("Invalid response format: missing 'answer' or 'action'",
-						"InvalidResponseFormat");
-			}
-
-			return new ThoughtResponse(type, thought, answer, action, response.usage());
-
-		} catch (JSONException e) {
-			String errorMsg = "Error parsing JSON response: " + e.getMessage();
-			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Thought error: " + errorMsg, EventClient.LANE_CLIENT, null);
-			throw ApplicationFailure.newFailure("Failed to parse model response: " + e.getMessage(),
-					"ThoughtActivityError");
-		} catch (Exception e) {
-			String errorMsg = "Error in thoughtActivity: " + e.getMessage();
-			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Thought error: " + errorMsg, EventClient.LANE_CLIENT, null);
-			throw ApplicationFailure.newFailure("thoughtActivity failed: " + e.getMessage(),
-					"ThoughtActivityError");
-		}
+		// Load prompt template
+		String promptTemplate = loadPromptTemplate("/prompts/thought-prompt.txt");
+		return ThoughtActivity.thoughtActivity(promptTemplate, context);
 	}
 
 	@Override
 	public String actionActivity(String toolName, ActionInput input) throws ApplicationFailure {
-		try {
-			System.out.println("actionActivity called with tool: " + toolName);
-
-			// Check if tool exists
-			if (!ToolRegistry.hasToolNamed(toolName)) {
-				EventClient.emitEvent("error", "Tool with name " + toolName + " not found.", EventClient.LANE_CLIENT,
-						null);
-				JSONObject errorResult = new JSONObject();
-				errorResult.put("name", toolName);
-				errorResult.put("input", input.parameters());
-				errorResult.put("error", "Tool not found");
-				return errorResult.toString();
-			}
-
-			// Get parameters from ActionInput
-			Map<String, Object> inputMap = input.parameters();
-
-			// Execute tool
-			try {
-				EventClient.emitEvent("action", "Invoked tool " + toolName +
-						" with input " + new JSONObject(inputMap).toString(), EventClient.LANE_CLIENT, null);
-				EventClient.emitEvent("status", "Acting...", EventClient.LANE_CLIENT, null);
-
-				String result = ToolRegistry.executeTool(toolName, inputMap);
-				System.out.println("Tool execution successful: " + toolName);
-				return result;
-			} catch (Exception e) {
-				String errorMsg = "Error executing tool " + toolName + ": " + e.getMessage();
-				System.err.println(errorMsg);
-				EventClient.emitEvent("error", errorMsg, EventClient.LANE_CLIENT, null);
-				JSONObject errorResult = new JSONObject();
-				errorResult.put("name", toolName);
-				errorResult.put("input", inputMap);
-				errorResult.put("error", e.getMessage());
-				return errorResult.toString();
-			}
-
-		} catch (Exception e) {
-			System.err.println("Error in actionActivity: " + e.getMessage());
-			throw ApplicationFailure.newFailure("actionActivity failed: " + e.getMessage(),
-					"ActionActivityError");
-		}
+		return ActionActivity.execute(toolName, input);
 	}
 
 	@Override
@@ -195,63 +42,8 @@ public class ActivitiesImpl implements Activities {
 
 	@Override
 	public CompactResponse compactActivity(List<String> context) throws ApplicationFailure {
-		try {
-			System.out.println("compactActivity called with context size: " + context.size());
-			EventClient.emitEvent("status", "Compacting...", EventClient.LANE_CLIENT, null);
-
-			// Load prompt template
-			String systemPromptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
-
-			// Truncate context
-			List<String> truncatedContext = ModelUtils.truncateContextToTokenLimit(context);
-
-			// Format prompt
-			String systemPrompt = systemPromptTemplate
-					.replace("{contextHistory}", String.join("\n", truncatedContext));
-
-			// Call Bedrock with low-quality model for cost optimization
-			Config config = new Config();
-			String modelId = config.getProperty("AWS_LOW_MODEL_ID");
-
-			AWS.ModelResponseWithUsage response = AWS.bedrockConverseWithUsage(
-					systemPrompt,
-					List.of(new ChatMessage("user", "perform COMPACTION")),
-					null,
-					modelId);
-
-			String compactedSummary = response.response();
-			if (compactedSummary == null || compactedSummary.isEmpty()) {
-				compactedSummary = "Context summary";
-			}
-
-			// Build result: [compactedSummary, ...last 3 entries]
-			List<String> newContext = new ArrayList<>();
-			newContext.add(compactedSummary);
-
-			// Add last N entries from original context
-			int entriesToKeep = Math.min(3, context.size());
-			if (entriesToKeep > 0) {
-				List<String> recentEntries = context.subList(
-						context.size() - entriesToKeep,
-						context.size());
-				newContext.addAll(recentEntries);
-			}
-
-			System.out.println("Context compacted from " + context.size() + " to " +
-					newContext.size() + " entries");
-
-			// Emit compact event
-			EventClient.emitEvent("compact", "Context compacted", EventClient.LANE_CLIENT, null);
-
-			return new CompactResponse(newContext, response.usage());
-
-		} catch (Exception e) {
-			String errorMsg = "Error in compactActivity: " + e.getMessage();
-			System.err.println(errorMsg);
-			EventClient.emitEvent("error", "Compact error: " + errorMsg, EventClient.LANE_CLIENT, null);
-			throw ApplicationFailure.newFailure("compactActivity failed: " + e.getMessage(),
-					"CompactActivityError");
-		}
+		String systemPromptTemplate = loadPromptTemplate("/prompts/compact-prompt.txt");
+		return CompactActivity.compactActivity(systemPromptTemplate, context);
 	}
 
 	@Override

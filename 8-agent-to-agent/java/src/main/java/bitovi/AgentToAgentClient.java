@@ -4,13 +4,13 @@ import java.time.LocalDateTime;
 
 import bitovi.common.Config;
 import bitovi.common.TemporalClient;
+import bitovi.common.WorkflowHelper;
+import bitovi.common.WorkflowHelper.FinalWorkflowResult;
 import bitovi.workflow.AgentToAgentWorkflow;
 import bitovi.workflow.types.MessagePayload;
 import bitovi.workflow.types.WorkflowInput;
-import bitovi.workflow.types.WorkflowResult;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
 
 /**
  * Client that starts the Agent-to-Agent workflow and sends it a test message.
@@ -52,28 +52,15 @@ public class AgentToAgentClient {
 		// Send test message signal
 		MessagePayload testMessage = new MessagePayload(
 				"TestUser",
-				// TODO_A2A: Experiment with different questions (billing issues, refund requests, etc.)
+				// TODO_A2A: Experiment with different questions (billing issues, refund
+				// requests, etc.)
 				"What purchases have I made from Riot recently?",
 				LocalDateTime.now().toString());
 		workflow.receiveMessage(testMessage);
 
 		System.out.println("Sent message signal");
 
-		// Because the Workflow is designed to run forever and wait for signals
-		// we can poll to see if a final result has been produced.
-		String finalAnswerReceived = null;
-		while (finalAnswerReceived == null) {
-			Thread.sleep(1000);
-			finalAnswerReceived = workflow.getAnswer();
-		}
-
-		// Send exit signal
-		workflow.requestExit();
-
-		System.out.println("Sent exit signal");
-
-		// Get result
-		WorkflowResult result = WorkflowStub.fromTyped(workflow).getResult(WorkflowResult.class);
+		FinalWorkflowResult result = WorkflowHelper.await(workflow);
 
 		System.out.println("Workflow completed!");
 		System.out.println("Usage metrics:");
@@ -82,6 +69,6 @@ public class AgentToAgentClient {
 		System.out.println("  Total tokens: " + result.usage().totalTokens());
 
 		// Return the final answer
-		System.out.println("Final answer received from workflow: " + finalAnswerReceived);
+		System.out.println("Final answer received from workflow: " + result.finalAnswer());
 	}
 }

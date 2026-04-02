@@ -116,7 +116,7 @@
     {
       "label": "Exercise 0 Maven Build",
       "type": "shell",
-      "command": "mvn compile",
+      "command": "mvn clean compile",
       "options": {
         "cwd": "${workspaceFolder}/0-environment-setup/java"
       },
@@ -124,7 +124,7 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile",
+      "detail": "Runs mvn clean compile",
       "dependsOn": [
         "Sync Environments"
       ]
@@ -132,7 +132,7 @@
     // {
     //   "label": "Exercise 1 Maven Build",
     //   "type": "shell",
-    //   "command": "mvn compile",
+    //   "command": "mvn clean compile",
     //   "options": {
     //     "cwd": "${workspaceFolder}/1-prompt-engineering/java"
     //   },
@@ -140,7 +140,7 @@
     //     "kind": "build",
     //   },
     //   "problemMatcher": [],
-    //   "detail": "Runs mvn compile",
+    //   "detail": "Runs mvn clean compile",
     //   "dependsOn": [
     //     "Sync Environments"
     //   ]
@@ -148,7 +148,7 @@
     // {
     //   "label": "Exercise 2 Maven Build",
     //   "type": "shell",
-    //   "command": "mvn compile",
+    //   "command": "mvn clean compile",
     //   "options": {
     //     "cwd": "${workspaceFolder}/2-rag/java"
     //   },
@@ -156,7 +156,7 @@
     //     "kind": "build",
     //   },
     //   "problemMatcher": [],
-    //   "detail": "Runs mvn compile",
+    //   "detail": "Runs mvn clean compile",
     //   "dependsOn": [
     //     "Sync Environments"
     //   ]
@@ -164,7 +164,7 @@
     // {
     //   "label": "Exercise 3 Maven Build",
     //   "type": "shell",
-    //   "command": "mvn compile",
+    //   "command": "mvn clean compile",
     //   "options": {
     //     "cwd": "${workspaceFolder}/3-tool-calling/java"
     //   },
@@ -172,7 +172,7 @@
     //     "kind": "build",
     //   },
     //   "problemMatcher": [],
-    //   "detail": "Runs mvn compile",
+    //   "detail": "Runs mvn clean compile",
     //   "dependsOn": [
     //     "Sync Environments"
     //   ]
@@ -180,7 +180,7 @@
     // {
     //   "label": "Exercise 4 Maven Build",
     //   "type": "shell",
-    //   "command": "mvn compile",
+    //   "command": "mvn clean compile",
     //   "options": {
     //     "cwd": "${workspaceFolder}/4-mcp/java"
     //   },
@@ -188,7 +188,7 @@
     //     "kind": "build",
     //   },
     //   "problemMatcher": [],
-    //   "detail": "Runs mvn compile",
+    //   "detail": "Runs mvn clean compile",
     //   "dependsOn": [
     //     "Sync Environments"
     //   ]
@@ -196,7 +196,7 @@
     // {
     //   "label": "Exercise 5 Maven Build",
     //   "type": "shell",
-    //   "command": "mvn compile",
+    //   "command": "mvn clean compile",
     //   "options": {
     //     "cwd": "${workspaceFolder}/5-agent-workflow/java"
     //   },
@@ -204,7 +204,7 @@
     //     "kind": "build",
     //   },
     //   "problemMatcher": [],
-    //   "detail": "Runs mvn compile",
+    //   "detail": "Runs mvn clean compile",
     //   "dependsOn": [
     //     "Sync Environments"
     //   ]
@@ -212,7 +212,7 @@
     {
       "label": "Exercise 6 Maven Build",
       "type": "shell",
-      "command": "mvn compile",
+      "command": "mvn clean compile",
       "options": {
         "cwd": "${workspaceFolder}/6-agent-decisions/java"
       },
@@ -220,7 +220,7 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile",
+      "detail": "Runs mvn clean compile",
       "dependsOn": [
         "Sync Environments"
       ]
@@ -228,7 +228,7 @@
     {
       "label": "Exercise 7 Maven Build",
       "type": "shell",
-      "command": "mvn compile",
+      "command": "mvn clean compile",
       "options": {
         "cwd": "${workspaceFolder}/7-agent-memory/java"
       },
@@ -236,7 +236,7 @@
         "kind": "build",
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile",
+      "detail": "Runs mvn clean compile",
       "dependsOn": [
         "Sync Environments"
       ]
@@ -244,7 +244,7 @@
     {
       "label": "Exercise 8 Maven Build",
       "type": "shell",
-      "command": "mvn compile",
+      "command": "mvn clean compile",
       "options": {
         "cwd": "${workspaceFolder}/8-agent-to-agent/java"
       },
@@ -253,7 +253,7 @@
         "isDefault": true
       },
       "problemMatcher": [],
-      "detail": "Runs mvn compile",
+      "detail": "Runs mvn clean compile",
       "dependsOn": [
         "Sync Environments"
       ]
