@@ -34,9 +34,18 @@ public class ThoughtActivity {
             // Get available tools as XML string
             String availableActions = ToolRegistry.getToolsAsXmlString();
 
+            // For demo purposes, user profile is hardcoded.
+            // In a real application, this would be fetched.
+            String userProfile = """
+                    Email: 'mrepka@bitovi.com'
+                    Player Name: 'ValorantAce99'
+                    Player ID: '#8821'
+                    """;
+
             // Format prompt with placeholders
             String systemPrompt = promptTemplate
                     .replace("{currentDate}", currentDate)
+                    .replace("{userProfile}", userProfile)
                     .replace("{previousSteps}", String.join("\n", truncatedContext))
                     .replace("{availableActions}", availableActions);
 

@@ -71,7 +71,7 @@ const supportAgentCard: AgentCard = {
   supportsAuthenticatedExtendedCard: true,
 };
 
-// 3. Set up and run the server
+// 2. Set up and run the server
 const agentExecutor = new SupportAgentExecutor();
 const requestHandler = new DefaultRequestHandler(
   supportAgentCard,
@@ -86,14 +86,17 @@ app.use((req, res, next) => {
   return next();
 });
 
+// 3. Set up the HTTP routes for the agent card and A2A Protocol over HTTP
 app.use(
   `/${AGENT_CARD_PATH}`,
   agentCardHandler({ agentCardProvider: requestHandler }),
 );
+
 app.use(
   "/a2a/jsonrpc",
   jsonRpcHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }),
 );
+
 app.use(
   "/a2a/rest",
   restHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }),
@@ -103,6 +106,7 @@ app.listen(HTTP_PORT, "0.0.0.0", () => {
   console.log(`🚀 HTTP Server started on http://0.0.0.0:${HTTP_PORT}`);
 });
 
+// 4. Set up the gRPC server for the A2A protocol over gRPC
 const server = new Server();
 server.addService(
   A2AService,

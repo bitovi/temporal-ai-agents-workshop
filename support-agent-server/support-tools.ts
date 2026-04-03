@@ -31,7 +31,7 @@ interface MockAccount {
 
 const MOCK_ACCOUNTS: Record<string, MockAccount> = {
   "#8821": {
-    email: "mark@example.com",
+    email: "mrepka@bitovi.com",
     paymentLast4: "4242",
     playerName: "ValorantAce99",
     charges: [
@@ -50,7 +50,7 @@ const MOCK_ACCOUNTS: Record<string, MockAccount> = {
     ],
   },
   "#9932": {
-    email: "alex@example.com",
+    email: "alex@bitovi.com",
     paymentLast4: "1111",
     playerName: "NovaShard",
     charges: [
