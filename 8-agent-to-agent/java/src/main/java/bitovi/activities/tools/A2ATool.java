@@ -6,27 +6,64 @@ import java.util.Map;
 
 import bitovi.activities.a2a.A2AHandler;
 import bitovi.activities.a2a.A2AHelpers;
-import bitovi.activities.a2a.types.A2APayload;
+import bitovi.activities.a2a.A2ARegistry;
+import bitovi.activities.a2a.A2ARegistry.AgentConnection;
 import bitovi.activities.a2a.types.A2ARequestInput;
+import bitovi.common.EventClient;
+import io.a2a.A2A;
+import io.a2a.spec.Message;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolInputSchema;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 
 public class A2ATool {
-
         public static String execute(String toolName, Map<String, Object> toolUseInput) {
                 A2ARequestInput params = A2AHelpers.validateToolParams(toolUseInput);
-                try {
-                        A2APayload payload = A2APayload.fromParams(params);
-                        return A2AHandler.execute(payload);
-                } catch (Exception e) {
-                        System.err.println("[A2ATool] Error executing tool " + toolName + ": " + e.getMessage());
-                        return "[Error] Failed to execute tool " + toolName + ": " + e.getMessage();
+                if (params.existingTask()) {
+                        try {
+                                System.out.println("[A2ATool] Resuming agent at " + params.agentUrl() + ": "
+                                                + params.message());
+
+                                Message message = A2A.createUserTextMessage(params.message(),
+                                                params.contextId(),
+                                                params.taskId());
+                                AgentConnection conn = A2ARegistry.getOrCreateConnection(params.agentUrl());
+                                EventClient.emitEvent("a2a_task_resumed", params.message(),
+                                                EventClient.LANE_CLIENT, EventClient.LANE_REMOTE,
+                                                Map.of("taskId", params.taskId(), "agentName",
+                                                                conn.card().name()));
+                                return A2AHandler.sendAndCollect(conn, message);
+                        } catch (Exception e) {
+                                System.err.println(
+                                                "[A2ATool] Error resuming task " + params.taskId() + " at "
+                                                                + params.agentUrl() + ": " + e.getMessage());
+                                return "[Error] Failed to resume task " + params.taskId() + " at "
+                                                + params.agentUrl() + ": " + e.getMessage();
+                        }
+                } else {
+                        try {
+                                System.out.println("[A2ATool] Contacting agent at " + params.agentUrl() + ": "
+                                                + params.message());
+                                Message message = A2A.toUserMessage(params.message());
+                                AgentConnection conn = A2ARegistry.getOrCreateConnection(params.agentUrl());
+                                EventClient.emitEvent("a2a_task_submitted", params.message(),
+                                                EventClient.LANE_CLIENT, EventClient.LANE_REMOTE,
+                                                Map.of("message", params.message(), "agentName", conn.card().name()));
+
+                                return A2AHandler.sendAndCollect(conn, message);
+                        } catch (Exception e) {
+                                System.err.println(
+                                                "[A2ATool] Error contacting agent at " + params.agentUrl() + ": "
+                                                                + e.getMessage());
+                                return "[Error] Failed to contact agent at " + params.agentUrl() + ": "
+                                                + e.getMessage();
+                        }
                 }
         }
 
         // ── Bedrock tool definition ──────────────────────────────────────────
+
         public static Tool getBedrockTool() {
                 Map<String, Document> agentUrlProp = new HashMap<>();
                 agentUrlProp.put("type", Document.fromString("string"));
