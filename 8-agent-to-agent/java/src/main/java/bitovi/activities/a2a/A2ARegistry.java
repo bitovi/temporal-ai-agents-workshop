@@ -23,7 +23,6 @@ public class A2ARegistry {
     }
 
     // ── Client lifecycle ─────────────────────────────────────────────────
-
     public static AgentConnection getOrCreateConnection(String agentUrl) throws Exception {
         AgentConnection existing = connections.get(agentUrl);
         if (existing != null)

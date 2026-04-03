@@ -162,7 +162,7 @@ Compare the responses to what you saw in Step 1.
 
 Experiment with the Local Memory Extraction Workflow by setting `LOCAL_MEMORY_EXTRACTION=true` in your `.env` file and then restarting the worker.
 
-You can find the source code for the Local Memory Extraction Workflow in [`MemoryExtractionWorkflowImpl.java`](src/main/java/bitovi/workflow/MemoryExtractionWorkflowImpl.java). 
+You can find the source code for the Local Memory Extraction Workflow in [`MemoryExtractionWorkflowImpl.java`](src/main/java/bitovi/workflow/MemoryExtractionWorkflowImpl.java).
 
 For Semantic Memory Extraction you can refer to [`SemanticHelper.java`](src/main/java/bitovi/common/local/SemanticHelper.java).
 

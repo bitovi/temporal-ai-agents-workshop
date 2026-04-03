@@ -2,17 +2,36 @@
 
 ## Part A - Initial Example
 
-First let's run the existing implementation and see the personal assistant agent communicate with a remote Riot Games support agent via the A2A protocol.
+First let's run the existing implementation and see the local agent communicate with a remote Riot Games support agent via the A2A protocol. In this case the remote agent is hosted in our running Docker Compose environment, but it could just as easily be a third-party agent running on a public endpoint.
 
 1. Run Task: Sync Environments
 2. Run Task: Docker Compose Down
 3. Run Task: Docker Compose Up
+
+You can access the VSCode 'Run Task' menu by pressing `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and typing "Run Task".
+
+![image](../../.images/vscode-cmd-menu.png)
+
+Select the appropriate task from the list to run.
+
+![image](../../.images/vscode-run-task.png)
+
+
 4. Launch: Exercise 8 - Worker
 5. Launch: Exercise 8 - Client
+
+You can access the VSCode 'Run and Debug' panel by pressing `Cmd+Shift+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux) and selecting the appropriate launch configuration.
+
+At the top of the panel, you can select the configuration to launch.
+
+![image](../../.images/vscode-run-menu.png)
 
 The client (`AgentToAgentClient.java`) sends a simple question: *"What purchases have I made from Riot recently?"*
 
 Let's open the latest workflow in the [Temporal UI](http://localhost:8233/) so we can observe the agent's behavior.
+
+![image](../../.images/agent-to-agent-temporal.png)
+
 
 Notice how the workflow loops through the THOUGHT, ACTION, and OBSERVATION activities - the same ReAct pattern from previous exercises.
 
@@ -24,6 +43,14 @@ Click on the **Action Activity** to see the tool calls:
 
 Look at the observation that comes back - it contains structured JSON with the response from the remote agent. The personal assistant never sees the support agent's internal tools or reasoning, only the final result.
 
+
+Action Activity: `search_agent_registry`
+![image](../../.images/agent-to-agent-temporal-search-registry.png)
+
+Action Activity: `a2a_send_message`
+![image](../../.images/agent-to-agent-temporal-send-message.png)
+
+
 ## Part B - Interactive Billing Dispute
 
 Now let's try the full multi-turn A2A experience using the Chat Web UI. This is where A2A really shines - the support agent will pause mid-conversation to ask for identity verification, demonstrating the `input-required` state.
@@ -31,6 +58,9 @@ Now let's try the full multi-turn A2A experience using the Chat Web UI. This is 
 1. Make sure Docker Compose is still running (from Part A)
 2. Make sure Exercise 8 - Worker is still running (from Part A)
 3. Open the [Chat Web UI](http://localhost:3000/)
+
+![image](../../.images/agent-chat-ui.png)
+
 4. Tell the agent something like:
 
    > "I got charged twice for the Battle Pass in Valorant. Can you help?"
