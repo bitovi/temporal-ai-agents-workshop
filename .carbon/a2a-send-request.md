@@ -170,3 +170,45 @@ public static String process(AgentConnection conn, Message message) {
     return buildResult(errorRef, resultJsonRef, collectedArtifacts);
 }
 ```
+
+## TaskArtifactUpdateEvent Handler
+
+```java
+List<Map<String, Object>> collectedArtifacts = Collections.synchronizedList(new ArrayList<>());
+
+if (ue instanceof TaskArtifactUpdateEvent taue) {
+    Artifact artifact = taue.getArtifact();
+    Map<String, Object> artifactMap = new HashMap<>();
+    if (artifact.parts() != null) {
+        for (Part<?> part : artifact.parts()) {
+            if (part instanceof DataPart dataPart) {
+                artifactMap.put("title", artifact.name());
+                artifactMap.put("data", dataPart.getData());
+            } else if (part instanceof TextPart textPart) {
+                artifactMap.put("title", artifact.name());
+                artifactMap.put("text", textPart.getText());
+            }
+        }
+    }
+    collectedArtifacts.add(artifactMap);
+}
+
+```
+
+## Build Result Method
+
+```java
+public static String buildResult(AtomicReference<String> errorRef, AtomicReference<String> resultJsonRef, List<Map<String, Object>> collectedArtifacts) {
+    String resultJson = resultJsonRef.get();
+    if (resultJson != null) {
+        return gson.toJson(Map.of("status", "success", "message", resultJson, "artifacts", collectedArtifacts));
+    }
+
+    String error = errorRef.get();
+    if (error != null) {
+        return gson.toJson(Map.of("status", "failed", "message", "Error: " + error));
+    }
+
+    return gson.toJson(Map.of("status", "failed", "message", "No response received from agent"));
+}
+```
