@@ -21,12 +21,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.Tool;
  * the call here for execution.
  */
 public class ToolRegistry {
-
-    /** Map of tool names → execution functions. */
     private static final Map<String, BiFunction<String, Map<String, Object>, String>> toolExecutors = new HashMap<>();
 
     static {
-        // A2A agent discovery and communication
+        // A2A agent discovery and communication tools
         toolExecutors.put("search_agent_registry", AgentRegistryTool::execute);
         toolExecutors.put("a2a_send_message", A2ATool::execute);
     }

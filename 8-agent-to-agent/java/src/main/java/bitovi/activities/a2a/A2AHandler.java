@@ -1,6 +1,7 @@
 package bitovi.activities.a2a;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class A2AHandler {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<String> errorRef = new AtomicReference<>();
         AtomicReference<String> resultJsonRef = new AtomicReference<>();
-        List<Map<String, Object>> collectedArtifacts = new ArrayList<>();
+        List<Map<String, Object>> collectedArtifacts = Collections.synchronizedList(new ArrayList<>());
         String agentName = conn.card().name();
 
         // Capture workflowId on the activity thread — streaming callbacks run on the
