@@ -1,10 +1,6 @@
-# Exercise 0 - Environment Setup
-
 ## Goals
 
 The goal of this exercise is to ensure your local development envrionment is successfully set up to accomplish all of the exercises in this workshop. The exercise will explain how to set up the necessary tools, configure environment variables, and verify that the local services are running correctly.
-
-## What you need to know
 
 ## Prerequisites
 
