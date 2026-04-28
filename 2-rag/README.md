@@ -19,17 +19,25 @@ RAG can improve the generated text output from the model in both of these areas 
 
 ## How it works
 
-The first step is to create a vector representation of the information you want to use. This is typically done by taking the text from documents, webpages, or other sources and converting it into a numerical format that can be stored in a vector database. This process is often referred to as "embedding" and involves using a model to transform the text into a vector of numbers that captures its semantic meaning.
+If we start with a bunch of documents, we first need to break them down into a manageable size. We need to take chunks of the document and convert them into some format that we can work with more easily, and store that representation of the text somewhere.
 
-Once the text is embedded, it can be stored in a vector database. When a user query is made, the system retrieves the most relevant vectors from the database based on their similarity to the query vector. This allows the model to access relevant information and use it to generate a response.
+Then, when the user asks a question, wen eed to (optionally) take that question, search our new datastore for chunks of text that are relevant to the question, and then provide that additional information to the model as part of its context.
 
-### LangChain4j Document Splitter
+General flow:
 
-https://docs.langchain4j.dev/tutorials/rag/#document-splitter
+-We run the users question through the same embedding model that we used to process our documents
+-We then use semantic search against our vector database to fetch the most relevant document chunks
+-We return those chunks, along with the original user prompt, and put both into our context
+-We feed that context into the model
+-The model returns us a response
+
+![Rag general flow](../.images/RAG-flowchart.png)
+
+### Document Splitting
 
 When creating the vector representation of the text, it is often necessary to split the document into smaller chunks. LLMs are limited in the amount of text they can process at once, their context length, so splitting up the text into smaller pieces is necessary to ensure we can work only with the most relevant parts of the document.
 
-LangChain is a popular framework for building applications with LLMs and it provides a variety of tools and utilities for working with text, including document splitting. There are many different strategies for splitting text. In our examples we will use the LangChain4j DocumentByParagraphSplitter, which provides a flexible way to split text by paragraphs.
+LangChain (https://docs.langchain4j.dev/tutorials/rag/#document-splitter) is a popular framework for building applications with LLMs and it provides a variety of tools and utilities for working with text, including document splitting. There are many different strategies for splitting text. In our examples we will use the LangChain4j DocumentByParagraphSplitter, which provides a flexible way to split text by paragraphs.
 
 Other options include:
 
@@ -45,7 +53,7 @@ Tuning these parameters based on the structure of your documents can help improv
 
 One useful tool for visualizing the chunks created by a DocumentSplitter is [ChunkViz](https://chunkviz.up.railway.app/). This tool allows you to see how the text is split into chunks and how the overlap is applied. It can help you understand how the DocumentSplitter is working and how to adjust the parameters for better results. You can even upload your own text to visualize how it is split into chunks.
 
-### Embedding Models and Vector Databases
+### Embeddings
 
 https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html
 

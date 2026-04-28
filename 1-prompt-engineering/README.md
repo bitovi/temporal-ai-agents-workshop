@@ -1,4 +1,3 @@
-
 # Exercise 1 - Prompt Engineering
 
 ## Goals
@@ -19,7 +18,7 @@ Each LLM has its own set of guidelines for how to optimize your text prompts to 
 ### Prompt Structure
 
 - Model: the model you want to call
-- System Message: used to provide context, instructions, and guidelines
+- System Message (optional): used to provide context, instructions, and guidelines
 - Messages: alternating messages between a `user` and `assistant`. The first message must be a `user` and they should alternate.
 - Maximum number of output tokens: the maximum number of tokens to generate
 - Temperature: the degree of variability in Claude's response. `0` is the most deterministic. `1` is the most variable.
@@ -70,6 +69,15 @@ ConverseRequest converseRequest = ConverseRequest.builder()
 .build();
 ```
 
+### Context Windows
+
+All LLMs have context length limits. Claude's limit is 200k tokens, and a token is approximately 3.5 English characters. There is a token-counting API available.
+
+If you're just making a single request, the window includes:
+
+- your prompt
+- the response, which will be limited to the maxTokens you set in the API request
+
 ### Techniques
 
 #### Be clear and direct
@@ -92,18 +100,18 @@ Good:
 >
 > Instructions:
 >
-> 1. Replace all customer names with “CUSTOMER_[ID]” (e.g., “Jane Doe” → “CUSTOMER_001”).
-> 2. Replace email addresses with “EMAIL_[ID]@example.com”.
-> 3. Redact phone numbers as “PHONE_[ID]“.
+> 1. Replace all customer names with “CUSTOMER\_[ID]” (e.g., “Jane Doe” → “CUSTOMER_001”).
+> 2. Replace email addresses with “EMAIL\_[ID]@example.com”.
+> 3. Redact phone numbers as “PHONE\_[ID]“.
 > 4. If a message mentions a specific product (e.g., “AcmeCloud”), leave it intact.
 > 5. If no PII is found, copy the message verbatim.
 > 6. Output only the processed messages, separated by ”---”.
 >
 > Data to process: {{FEEDBACK_DATA}}
 
-#### Use a system prompt to describe the LLM's role
+#### Describe the LLM's role
 
-Use the system parameter to set Claude’s role. Put everything else, like task-specific instructions, in the user turn instead.
+Use the system parameter to set Claude’s role. Put everything else, like task-specific instructions, in the user turn instead. This makes the LLM more accurate and focused on the task. It can also affect the communication style of the response.
 
 ```java
 ConverseRequest converseRequest = ConverseRequest.builder()
@@ -122,7 +130,17 @@ ConverseRequest converseRequest = ConverseRequest.builder()
 
 #### Use examples
 
-Providing LLMs with examples of correctly formatted, ideal responses allows them to extrapolate. This will increase the likelihood of the LLM providing the right example with the correct formatting.
+Providing a few well-crafted examples will improve:
+
+- Accuracy: Examples reduse misinterpretation of instructions
+- Consistency: Examples enforce uniform structure and style
+- Perofrmance: Well-chose examples boost Claude's ability to handle complex tasks
+
+For maximum effectiveness, make sure that your examples are:
+
+- Relevant: Your examples mirror your actual use case
+- Diverse: our examples vary enough that Claude doesn’t inadvertently pick up on unintended patterns.
+- Clear: Clear: Your examples are wrapped in <example> tags (if multiple, nested within <examples> tags) for structure. (more on this in the next section)
 
 Bad:
 

@@ -17,6 +17,8 @@ The goal of this exercise is to ensure your local development envrionment is suc
    - You will need to provide your own AWS Access Key, AWS Secret Access Key, AWS Session Token, and AWS Region that has the necessary permissions and resources for this workshop.
 1. AWS Bedrock Memory Id and Region
    - This resource has been provisioned for you prior to the workshop.
+1. Postgres
+   - Download: <https://www.postgresql.org/download/>
 1. Brave Search API Key (Optional)
    - This is an optional API Key, and is not used explicitly during the exercises in this workshop, but is helpful for running more open-ended queries with the AI Agents.
    - Ask the workshop organizers for a Brave Search API Key if you want to use it.
@@ -35,9 +37,10 @@ If for some reason the `.env` file is not copied into the exercise directories, 
 
 There are a few external systems being used by the exercises in this repo:
 
-1. AWS Bedrock - used to host the AI models
+1. AWS Bedrock - used to host the AI models (one Large Language Model and one Embeddings Model)
 1. AWS AgentCore Memory - used to store the memory of the AI agents
-1. AWS S3 - used for document storage
+1. AWS S3 - used for document storage. We'll be storing policy and rubric documents here, and also using it for temporary storage.
+1. Postgres - will be used for structured data storage. We'll be storing extracted ticket data.
 
 ## Local Systems / Mocks
 
@@ -59,7 +62,6 @@ Select the appropriate task from the list to run.
 
 ![image](../.images/vscode-run-task.png)
 
-
 ## VSCode Launch Configurations
 
 Each Exercise has (at least) two launch configurations configured:
@@ -76,7 +78,6 @@ In order to verify that your environment is set up correctly, you should run the
 You should see the workflow execute successfully in the Temporal UI.
 
 ![image](../.images/temporal-exercise-0.png)
-
 
 ## Solution
 
