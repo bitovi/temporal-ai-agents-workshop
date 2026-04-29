@@ -59,11 +59,15 @@ https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html
 
 Embedding models are used to convert text into vector representations. These vectors capture the semantic meaning of the text and can be stored in a vector database for efficient retrieval. There are many different embedding models available. For these examples, on AWS Bedrock, we will use the `amazon.titan-embed-text-v2:0` model. The Amazon Titan Text Embedding v2 model can take an input of up to 8,192 tokens or 50,000 characters and outputs a vector of 1,024 dimensions. The model is optimized for text retrieval tasks such as RAG, classification, and document search and is optimized for English, but does also support 100+ other languages.
 
-Vector databases are specialized databases designed to store and retrieve vectors efficiently. They use techniques like approximate nearest neighbor search to quickly find the most similar vectors to a given query vector. This allows for fast retrieval of relevant information from large datasets. In our examples, we will use Qdrant, a popular open-source vector database that provides efficient storage and retrieval of vectors.
+### Vector Database
 
-There are many other vector databases available, along with plugins that add vector support to existing databases such as PostgreSQL or even SQLite.
+Vector databases are specialized databases designed to store and retrieve vectors efficiently. They use techniques like approximate nearest neighbor search to quickly find the most similar vectors to a given query vector. This allows for fast retrieval of relevant information from large datasets.
 
-### Prompting and Context Length
+There are many other vector databases available, along with plugins that add vector support to existing databases such as PostgreSQL or even SQLite. In our examples, we will use Qdrant, a popular open-source vector database that provides efficient storage and retrieval of vectors.
+
+Qdrant (read: quadrant) is a vector similarity search engine and vector database. It provides a production-ready service with a convenient API to store, search, and manage points—vectors with an additional payload Qdrant is tailored to extended filtering support. It makes it useful for all sorts of neural-network or semantic-based matching, faceted search, and other applications.
+
+### Model Context
 
 As we learned in the previous exercise on Prompt Engineering, LLMs depend on a System Prompt to define the role of the model, the type of response we expect, and as a place to provide any additional information that is relevant to the task at hand. In the case of RAG, we can use the System Prompt to provide information that we retrieve from the vector database.
 

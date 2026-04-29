@@ -20,9 +20,13 @@ MCP uses a client-server model. AI applications (clients) connect to servers tha
 
 If the AI determines it needs to use a tool, it sends an invocation request to the appropriate server. The server executes the requested action (e.g., fetching data from a database or calling an API) and sends the result back to the client. The client relays the result back to the AI application, allowing it to incorporate the fresh, external information into its context and generate a response.
 
-### MCP Client
+### Client-Server Model
 
-The MCP Client is responsible for initiating requests to the MCP Server and handling responses. It abstracts the details of the MCP protocol, allowing developers to interact with external tools and data sources seamlessly. The client manages the connection to the server, including authentication, request formatting, and response parsing.
+MCP follows a client-server architecture where:
+
+- Hosts are LLM applications (like Claude Desktop or IDEs) that initiate connections
+- Clients maintain 1:1 connections with servers, inside the host application
+- Servers provide context, tools, and prompts to clients
 
 ```xml
 <dependency>
@@ -62,7 +66,37 @@ client.initialize();
 ListToolsResult tools = client.listTools();
 ```
 
+### Transport Options
+
+Originally MCP supported STDIO and Server Side Events based data transport. One of the biggest changes, recently, to the protocol has been the deprecation of the SSE transport and the addition of a new Streamable HTTP transport.
+
+We’re going to talk about these transports quickly just to be aware that there are a few different options for implementing communication between the client and server.
+
+The other reason to talk about these options is that the Java SDK, at the time of writing this, did not yet support the Streamable HTTP transport.
+
+These were some positives to using HTTP+SSE transport:
+
+- Streaming large results can be done immediately, using the existing SSE connection
+- Event-driven triggers, the server can notify clients about changes, alerts, status updates
+- Simplicity, uses standard HTTP requiring no special protocols or complex setup
+
+However there are some negatives:
+
+- Unidirectional, data can only flow from the server to the client on the persistent connection
+- Long-lived connections use a lot of resources, especially at larger scales
+
+These negatives brought about the introduction of Streamable HTTP. Positives of Streamable HTTP:
+
+- Stateless servers are supported, removes the need for the long-lived connections.
+- Plain HTTP, making it compatible with common HTTP middleware, HTTP proxies, and hosting platforms
+- Optional streaming for backwards compatibility by upgrading to SSE when needed
+- Extremely scalable
+
 ### MCP Server
+
+Like any other server or service we consume, the MCP server that we integrate with might be one we create ourselves or it could be provided by a third party that we’re simply integrating with.
+
+The MCP specification provides a reference implementation of an MCP Server in a bunch of different languages including C#, Java, Kotlin, Python, TypeScript, among others.
 
 To provide a basic example of an MCP server we have provided a simple implementation, in TypeScript, that exposes a basic Weather tool. This server is running locally on port 8090 as part of the Docker Compose setup.
 The MCP specification is implemented in a number of different languages and frameworks, including Java/Spring Boot. For more information you can refer to the MCP Java SDK: <https://github.com/modelcontextprotocol/java-sdk>
@@ -93,7 +127,7 @@ server.registerTool(
       condition: "Sunny",
     };
     return weatherData;
-  }
+  },
 );
 ```
 
