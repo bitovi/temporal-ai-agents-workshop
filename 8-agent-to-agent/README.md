@@ -469,7 +469,7 @@ The Agent-to-Agent Protocol is an open standard from Google (now managed by the 
 
 A2A defines standard agent cards, authentication and authorization mechanisms for controlling access, and supports long-running tasks without exposing internal state between agents.
 
-In this exercise, our personal assistant agent (Java/Temporal) uses the [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk) as a client to communicate with a remote Riot Games support agent (TypeScript) built with the [A2A JS SDK](https://github.com/a2aproject/a2a-js).
+In this exercise, our personal assistant agent (Java/Temporal) uses the [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk) as a client to communicate with a remote support agent (TypeScript) built with the [A2A JS SDK](https://github.com/a2aproject/a2a-js).
 
 ### Design Principles
 
@@ -508,7 +508,7 @@ Let's go a bit deeper into each of these.
 - Agent card
   - This JSON file outlines agentic AI metadata and can be accessed using a URL. It contains basic information about an agent, including its name, description, version, service endpoint URL, supported modalities or data types and authentication requirements.
   - Agent cards are similar to model cards for large language models (LLMs). They also advertise an agent’s capabilities and skills, serving as a business card, résumé or LinkedIn profile that allows agents to discover each other.
-  - The official recommendation is to host the Agent Card at a well-known path under the agent's service URL — typically `/.well-known/agent-card.json`. For example, if Riot Games published a customer support agent, you might expect to find its card at <https://support.riotgames.com/.well-known/agent-card.json>. Clients can then retrieve the card via a simple HTTP `GET` request and learn everything they need to interact with the agent.
+  - The official recommendation is to host the Agent Card at a well-known path under the agent's service URL — typically `/.well-known/agent-card.json`. Clients can then retrieve the card via a simple HTTP `GET` request and learn everything they need to interact with the agent.
   - There are several ways a client agent might actually find these URLs:
     - **Explicit configuration** — we hand the client a list of cards directly so it knows which remote agents are available.
     - **Public registries** — community or vendor-hosted catalogs of A2A-capable agents the client can query, often exposed as an MCP tool.
@@ -751,22 +751,16 @@ On top of whichever strategy you pick, the normal API hardening best practices s
 
 ### Agent Card
 
-The support agent in this exercise advertises itself via an agent card at `.well-known/agent-card.json`. You can see the card definition in `support-agent-server/server.ts`. Here's what it looks like:
+The support agent in this exercise advertises itself via an agent card at `.well-known/agent-card.json`. You can see the card definition in `support-agent-server/server.ts`. It groups into three sections:
 
-#### Agent Card structure
-
-A typical Agent Card breaks down into three groups of fields:
-
-- **Basic information** — name, description, service URL, provider information, version, and (optionally) a link to documentation. This is what tells a client what the agent is and where to reach it.
-- **Capabilities** — how the agent should be communicated with: does it support streaming, push notifications, state transition history, and which interaction modes (input/output MIME types like text, images, or PDFs) it accepts and produces.
-- **Authentication** — which authentication schemes the agent supports (e.g. basic, bearer), whether credentials are required, and the `supportsAuthenticatedExtendedCard` flag.
-  - `supportsAuthenticatedExtendedCard` is a useful security feature: the public, unauthenticated card can advertise only a baseline of skills and capabilities, while authenticated clients receive an **extended** Agent Card with private features. This lets you keep some skills hidden from anonymous discovery while still exposing them to trusted callers.
+- **Basic information** — name, description, service URL, provider info, version, and (optionally) docs URL.
+- **Capabilities** — streaming, push notifications, state transition history, and supported input/output MIME types.
+- **Authentication** — supported schemes (basic, bearer, etc.) plus `supportsAuthenticatedExtendedCard`, which lets the public card advertise only baseline skills while authenticated clients receive an extended card with private features.
 
 ```ts
 const agentCard: AgentCard = {
-  name: "Riot Games Support Agent",
-  description:
-    "Handles billing inquiries, refunds, and account issues for Riot Games.",
+  name: "Support Agent",
+  description: "Handles billing inquiries, refunds, and account issues.",
   protocolVersion: "0.3.0",
   url: `http://${HOST}:${HTTP_PORT}/a2a/jsonrpc`,
   skills: [
@@ -793,10 +787,10 @@ const agentCard: AgentCard = {
 
 ### A2A Discovery in this exercise
 
-Our personal assistant in this repository takes the **curated registry / private configuration** approach to discovery. Agents aren't tools — but the only way an agent can interact with the outside world is through tool calls — so we expose a small set of tools that let the agent look up other A2A agents and then talk to them:
+Our personal assistant takes the **curated registry / private configuration** approach. Agents aren't tools — but the only way an agent interacts with the outside world is through tool calls — so we expose two tools:
 
 - `search_agent_registry` — searches our internal registry of known A2A agents and returns matching Agent Cards.
-- `a2a_send_message` — kicks off a new task with one of those agents, or sends a follow-up message to an existing task.
+- `a2a_send_message` — starts a new task with one of those agents, or sends a follow-up on an existing task.
 
 ```java
 public class ToolRegistry {
@@ -819,18 +813,16 @@ public class ToolRegistry {
 
 #### A2A Registry Tool
 
-In this exercise, the registry behind `search_agent_registry` is just a hardcoded list of agents. When the tool is called, the local agent can optionally pass in a search query, and the `matches` function inspects each agent's name, description, and tags to see if it's a good fit for the request. Matching agents are returned to the caller.
-
-In a real implementation this would typically go out to a central registry service, or return a curated set of pre-configured agents for an internal solution. It could also reach out to the internet — looking up companies and providers relevant to the query and dynamically checking whether they expose an Agent Card at `/.well-known/agent-card.json`.
+In this exercise the registry behind `search_agent_registry` is a hardcoded list. The tool optionally takes a search query, and `matches` checks each agent's name, description, and tags. In a real implementation this would hit a central registry service, return curated pre-configured agents, or even discover agents on the open web by checking for `/.well-known/agent-card.json` on candidate domains.
 
 ```java
 public class AgentRegistryTool {
     public record AgentEntry(String name, String url, String description,List<String> tags) {}
 
     private static final List<AgentEntry> REGISTRY = List.of(
-            new AgentEntry("Riot Games Support Agent", "http://localhost:4000",
-                "Handles billing inquiries, refunds, and account issues for Riot Games.",
-                List.of("support", "billing", "refunds", "account", "riot games", "gaming")));
+            new AgentEntry("Support Agent", "http://localhost:4000",
+                "Handles billing inquiries, refunds, and account issues.",
+                List.of("support", "billing", "refunds", "account")));
 
     public static String execute(String toolName, Map<String, Object> toolUseInput) {
         ToolInput input = validateToolInput(toolUseInput);
@@ -854,18 +846,14 @@ public class AgentRegistryTool {
 
 #### A2A Tasks & Messages
 
-The other half of the discovery + communication pair is the `A2ATool`, which handles all of the actual messaging between our local agent and the remote agent.
+The `A2ATool` handles all messaging between our local agent and the remote agent. `validateToolParams` enforces the input shape — always `agentUrl` and `message`, plus `taskId` and `contextId` for follow-ups on an existing task.
 
-`validateToolParams` enforces the shape of the input — we always need an `agentUrl` and a `message`, and for follow-up turns on an existing task we also expect a `taskId` and `contextId`.
+Building the outgoing `Message`:
 
-Building the outgoing `Message` is straightforward in either case:
+- **First message in a new task** — send user text with no task or context IDs; the SDK creates the task and assigns a `taskId` on the remote side.
+- **Follow-up message on an existing task** — attach the existing `contextId` and `taskId` so the remote agent knows which task it belongs to.
 
-- **First message in a new task** — we send a user text message with no task or context IDs, and the A2A SDK takes care of creating the new task (and assigning a `taskId`) on the remote side.
-- **Follow-up message on an existing task** — we attach the existing `contextId` and `taskId` so the remote agent knows which ongoing task this message belongs to.
-
-Once the message is ready, we need a connection to the remote agent. Connections are cached per `agentUrl`, so if we've spoken with this remote agent before we just reuse the existing `AgentConnection`. If not, we resolve the remote agent's Agent Card via `A2ACardResolver`, build an `A2AClient` from that card, wrap it in a new `AgentConnection`, and store it for next time.
-
-Finally, the message and the (cached or fresh) connection are handed off to `A2AHandler.sendAndCollect`, which actually drives the request/response with the remote agent.
+Connections are cached per `agentUrl`. If we've spoken to this remote before we reuse the existing `AgentConnection`; otherwise we resolve its Agent Card via `A2ACardResolver`, build an `A2AClient`, wrap it in a new `AgentConnection`, and cache it. The message and connection are then handed to `A2AHandler.sendAndCollect`, which drives the actual request/response.
 
 ```java
 public class A2ATool {
@@ -894,16 +882,12 @@ public class A2ATool {
 
 #### A2A Event Processing
 
-The `A2AHandler.process` method does the actual work of sending the message and reacting to whatever the remote agent sends back. It's a fair amount of code, so we'll walk through it in smaller chunks — but at a high level it's just setting up a list of event consumers and then calling `sendMessage`.
+`A2AHandler.process` sends the message and reacts to whatever the remote agent sends back. Two main event types matter:
 
-There are two main event types we care about:
+- **`TaskUpdateEvent`** — streaming case: multiple updates over the life of the task (status transitions and artifact chunks).
+- **`TaskEvent`** — non-streaming case: a single final `Task` object to inspect for status, history, and artifacts.
 
-- **`TaskUpdateEvent`** — used for the streaming case, where the remote agent emits multiple updates over the life of the task (status transitions and artifact chunks).
-- **`TaskEvent`** — used for the non-streaming case, where the remote agent returns a single final `Task` object that we inspect for its status, history, and artifacts.
-
-At the top of the method we set up shared state for the callbacks: a `responseBuilder` for accumulating text, an `errorRef` for any error message, a `resultJsonRef` for the final JSON result, and a synchronized `collectedArtifacts` list. These use `AtomicReference` and a synchronized list because the A2A SDK invokes our consumers on its own internal callback threads — so we need thread-safe shared state between the main thread and those callbacks.
-
-`conn.client().sendMessage(message, consumers)` kicks off the internal threads that drive the communication with the remote agent. From there, we can use a latch (or similar synchronization primitive) to block the main thread until the task reaches a state we actually need to act on — `input-required`, `completed`, or `failed` — at which point we build and return the final result.
+Shared state for the callbacks (`responseBuilder`, `errorRef`, `resultJsonRef`, a synchronized `collectedArtifacts` list) is thread-safe because the A2A SDK invokes our consumers on its own internal callback threads. `conn.client().sendMessage(message, consumers)` kicks off the communication; a latch blocks the main thread until the task reaches `input-required`, `completed`, or `failed`, at which point we build and return the final result.
 
 ```java
 public static String process(AgentConnection conn, Message message) {
@@ -934,16 +918,13 @@ public static String process(AgentConnection conn, Message message) {
 
 #### A2A TaskStatusUpdate Event
 
-Zooming in on the `TaskStatusUpdateEvent` branch, this is where we react to the lifecycle states we covered earlier — `WORKING`, `INPUT_REQUIRED`, `COMPLETED`, `FAILED`, and `UNKNOWN`.
+The `TaskStatusUpdateEvent` branch reacts to the lifecycle states from earlier:
 
-The `WORKING` and `INPUT_REQUIRED` states are a little different from the others:
+- **`WORKING`** — nothing to do; the remote is just signaling it has started. Keep waiting.
+- **`INPUT_REQUIRED`** — capture `taskId` and `contextId` (so we can resume this task later via `A2ATool`), build an `InputRequiredEventData`, store it in `resultJsonRef`, and count down the latch.
+- **`COMPLETED` / `FAILED` / `UNKNOWN`** — the remote is done. Package the final status as a `FinalEventData`, store it, count down the latch.
 
-- **`WORKING`** doesn't require us to do anything — it's just the remote agent letting us know it has started processing the task. We keep waiting.
-- **`INPUT_REQUIRED`** does require action. The remote agent needs more information from us to continue, so we capture the `taskId` and `contextId` (so our agent can resume this task later by sending a follow-up message via the `A2ATool`), build an `InputRequiredEventData` payload, store it in `resultJsonRef`, and count down the latch.
-
-The `COMPLETED`, `FAILED`, and `UNKNOWN` states all mean the same thing from the perspective of this method: the remote agent is done. We package the final status message as a `FinalEventData`, store it, and count down the latch. From there our local agent loop continues — typically relaying the final result or artifact back to the human user.
-
-Counting down the latch is how we coordinate across threads: the A2A SDK invokes our consumer on its own callback threads, and the main thread is parked on `latch.await()` until one of those callbacks signals "we're done waiting." Once the latch fires, `buildResult` packages everything `resultJsonRef`, `errorRef`, and `collectedArtifacts` have accumulated into a final JSON response.
+Counting down the latch is how we coordinate across threads: the SDK invokes our consumer on its callback threads while the main thread is parked on `latch.await()`. Once the latch fires, `buildResult` packages everything in `resultJsonRef`, `errorRef`, and `collectedArtifacts` into the final JSON response.
 
 ```java
 public static String process(AgentConnection conn, Message message) {
@@ -977,11 +958,9 @@ public static String process(AgentConnection conn, Message message) {
 
 #### A2A TaskArtifactUpdate Event
 
-The other branch of the `TaskUpdateEvent` consumer handles `TaskArtifactUpdateEvent`s — the actual deliverables the remote agent produces over the life of the task.
+The `TaskArtifactUpdateEvent` branch handles the actual deliverables. Pull the `Artifact` off the event, iterate over its `parts`, and convert each into a map keyed by the artifact's name plus the part's content (text for `TextPart`, structured data for `DataPart`). Each map is appended to the synchronized `collectedArtifacts` list.
 
-The handling here is straightforward: pull the `Artifact` off the event, iterate over its `parts`, and convert each part into a simple map keyed by the artifact's name and the part's content (text for `TextPart`, structured data for `DataPart`). Each artifact map is then appended to the shared `collectedArtifacts` list so it can be included in the final result.
-
-Because remote agents can stream artifacts incrementally (recall `append: true` and `lastChunk` from the artifact structure), this consumer can fire many times for a single task — each invocation just adds another artifact (or chunk) onto the synchronized list.
+Because artifacts can be streamed incrementally (`append: true` / `lastChunk`), this consumer can fire many times for a single task.
 
 ```java
 List<Map<String, Object>> collectedArtifacts = Collections.synchronizedList(new ArrayList<>());
@@ -1006,15 +985,13 @@ if (ue instanceof TaskArtifactUpdateEvent taue) {
 
 #### A2A Tool Result
 
-Once all of the consumers have done their job — appending status updates to `resultJsonRef`, errors to `errorRef`, and artifacts to `collectedArtifacts` — and the task has resolved into one of the terminal states, the latch counts down and `latch.await()` unblocks. At that point the `process` method calls `buildResult` to package everything into a single JSON response.
+Once the consumers have done their job and the task has reached a terminal state, the latch counts down and `buildResult` packages everything into a single JSON response. Since this is a tool-call return value, it has to be a `String`. Three outcomes:
 
-Because this is ultimately the return value of a tool call, the result needs to be a `String`. We just format some JSON that reflects one of three outcomes:
+- Real result — `success` plus any collected artifacts.
+- Error — `failed` with the error message.
+- Nothing at all — also `failed`, since the tool call still needs a response.
 
-- We got a real result back — return it as `success` along with any collected artifacts.
-- We got an error — return it as `failed` with the error message.
-- We got nothing at all — also treated as `failed`, since the tool call still needs a response to hand back to the agent.
-
-That JSON string then bubbles back up through `A2AHandler.process` → `A2ATool.execute` and lands in the local agent's tool-call result, where the agent loop can reason over it and decide what to do next.
+That JSON bubbles up through `A2AHandler.process` → `A2ATool.execute` and lands in the local agent's tool-call result, where the agent loop reasons over it and decides what to do next.
 
 ```java
 public static String buildResult(AtomicReference<String> errorRef, AtomicReference<String> resultJsonRef, List<Map<String, Object>> collectedArtifacts) {
@@ -1049,7 +1026,3 @@ The support agent uses **sentinel tools** (`request_verification`, `request_info
 - [A2A JS SDK](https://github.com/a2aproject/a2a-js)
 - [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk)
 - [A2A Sample Agents](https://github.com/a2aproject/a2a-samples)
-
-## Multi-Agent Communication Implemetation
-
-TODO: Example pulled from out existing source code demo

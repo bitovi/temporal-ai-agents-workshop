@@ -737,22 +737,6 @@ for (SemanticMemoryAction action : actions) {
 
 After this step, new memories have been created and existing ones have been updated as needed.
 
-##### Final Results
-
-A quick end-to-end example. In a new chat with the agent, send:
-
-> I'm Mark Repka and I need an example chat for a presentation for Riot Games. Could you help me!
-
-The agent's reasoning and answer aren't the interesting part.
-
-![Agent chat result](../.carbon/agent-chat-result.png)
-
-A few seconds later, a new semantic memory shows up in the Qdrant collection — capturing that the user is working on a presentation for Riot Games.
-
-![Memories in Qdrant](../.carbon/qdrant-memories.png)
-
-Now start a brand-new chat and ask the agent what it knows about you. `retrieveMemoryRecordsActivity` pulls that semantic memory and feeds it into the Thought step. The agent responds with awareness of the Riot Games presentation — even though the new chat has zero conversation history of its own.
-
 ## How Memory Integrates with the Temporal Agent
 
 Our Exercise 7 implementation extends the base ReAct workflow from Exercise 5 with two new Activities that bridge working context and persistent memory.
@@ -903,7 +887,7 @@ Our implementation configures four strategies when creating the memory resource:
 
 ```java
 CreateMemoryRequest request = CreateMemoryRequest.builder()
-    .name("Riot_Bitovi_Temporal_AI_Workshop_Memory")
+    .name("Bitovi_Temporal_AI_Workshop_Memory")
     .description("This is a temporary resource for the Temporal AI Agents Workshop (Part 2) delivered by Bitovi.")
     .eventExpiryDuration(30) // Events expire after 30 days
     .memoryStrategies(
