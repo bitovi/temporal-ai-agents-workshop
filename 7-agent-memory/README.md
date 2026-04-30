@@ -2,11 +2,9 @@
 
 ## Why Memory Matters
 
-Every LLM has a finite context window, a hard limit on how much information it can "see" at once. Without memory management, an agent faces two inevitable outcomes as conversations grow: either it loses information when older context is discarded, or it hits token limits and fails entirely.
+Every LLM has a finite context window, and LLMs themselves are stateless — every request stands alone. Without memory management, an agent either loses information as older context is discarded or hits token limits and fails entirely. A well-designed memory system lets an agent maintain continuity within a conversation, recall relevant information across sessions, and run indefinitely without degradation.
 
-This constraint is the fundamental tension that memory architecture exists to solve. A well-designed memory system lets an agent maintain continuity within a conversation, recall relevant information across sessions, and operate indefinitely without degradation.
-
-When working with AI Agents, especially with Temporal, we can design agents that can potentially run for extended periods of time, even indefinitely. This capability opens up exciting possibilities for creating agents that can remember past interactions, learn from them, and adapt their behavior over time.
+The context window is a dual constraint: it caps how much short-term history we can carry between turns _and_ how much long-term memory we can retrieve and inject on any given request. Every memory design decision in this exercise is ultimately about spending that limited budget well — something Temporal makes especially powerful because workflows can run for arbitrarily long periods, opening the door to agents that genuinely remember and adapt over time.
 
 ## Goals
 
@@ -24,100 +22,187 @@ By the end of this exercise, you should understand:
 
 ### Context vs. Memory
 
-This is the most important distinction in agent memory architecture. They are related but different:
+This is the most important distinction in agent memory architecture.
 
-**Working context** is what the agent can see right now. The current conversation history, tool results, and any retrieved information that has been injected into the prompt. In our implementation, this is the `List<ContextEntry>` maintained by the workflow. It lives in memory, it is bounded by the context window size, and it exists only for the lifetime of the current workflow execution.
+**Working context** is the full payload assembled and sent to the LLM on a given turn:
 
-**Persistent memory** is what the agent remembers across sessions. Durable knowledge stored externally in a database, vector store, or managed service like AgentCore Memory. It survives workflow restarts, compaction, and even `continueAsNew`. The agent cannot see it directly; it must be explicitly retrieved and injected into the working context.
+- The **system prompt** — how the agent should act and respond.
+- The **tool definitions** — actions the agent is allowed to take.
+- The **short-term memory** of the current session: recent user/assistant turns and tool results.
+- **RAG chunks** of documents fetched based on the current conversation.
+- **Retrieved long-term memory** records (preferences, facts, summaries) injected for this turn.
 
-The bridge between them is **memory retrieval**: at the start of each thinking step, the agent queries its persistent memory, and the most relevant records are injected into the working context alongside the conversation history. This is the "Pre-Retrieval (RAG)" pattern that makes long-term memory useful.
+In our implementation, the durably-tracked slice is the `List<ContextEntry>` (short-term memory). The system prompt, tool definitions, RAG chunks, and retrieved LTM records are reassembled on every LLM request. Everything together must fit in the context window, and it exists only for the lifetime of the current workflow execution.
 
-### Short-Term Memory Architecture
+**Persistent memory** is what the agent remembers across sessions — durable knowledge stored externally in a database, vector store, or managed service like AgentCore Memory. Because it lives outside the workflow, it survives workflow failures, restarts, history compaction, and `continueAsNew`. The agent cannot see it directly; it must be explicitly retrieved and injected. That can happen two ways: the agent calls a memory-lookup **tool** during reasoning, or — more commonly — the workflow/activity layer fetches relevant memories **automatically** before each thinking step.
 
-Short-term memory (STM) allows the agent to maintain continuity throughout a single interaction, tracking recent prompts, tool outputs, and conversation history. This is the current context window used by the LLM during the ReAct loop.
+The bridge between them is **memory retrieval**: at the start of each thinking step, the agent queries persistent memory and injects the most relevant records into the working context. This is the "Pre-Retrieval (RAG)" pattern — conceptually identical to RAG from earlier exercises, except the "documents" are memories the agent itself produced. The same idea applies to other architectures (e.g., a Plan & Execute agent retrieves before planning).### Short-Term Memory Architecture
 
-In practice, short-term memory is the rolling window of recent interactions that the agent carries in its working context. Key design decisions include:
+Short-term memory (STM) is the rolling window of recent interactions the agent carries in its working context to maintain continuity throughout a single session. Key design decisions:
 
-- **Window size.** How many recent turns to keep in the immediate context (e.g., the last 5-10 turns). Our implementation keeps all entries until compaction is triggered.
-- **Checkpointing.** Using a low-latency persistent store for the current session state. In a Temporal Workflow, this happens automatically through event history. The state is checkpointed reliably after every Activity completion.
-- **Time-to-Live (TTL).** For ephemeral or session-scoped memory items, implementing TTLs allows them to expire automatically when no longer relevant.
+- **Window size.** How many recent turns to keep (e.g., the last 5–10 turns). Our implementation keeps all entries until compaction is triggered.
+- **Checkpointing.** Durably persisting session state so a mid-conversation crash doesn't lose the whole interaction. This is the durable execution problem, and Temporal Workflows solve it for free — state is checkpointed reliably after every Activity completion. Without Temporal, you'd typically reach for Redis or SQLite and implement your own save/reload logic.
+- **Time-to-Live (TTL).** Ephemeral or session-scoped items can expire automatically when no longer relevant.
+
+Checkpointing in Temporal example:
+
+```java
+public void receiveMessage(MessagePayload payload) {
+    pendingMsgs.add(payload);
+}
+
+public WorkflowResult execute(WorkflowInput input) {
+    List<String> context = new ArrayList<>();
+    List<String> persist = new ArrayList<>();
+    Workflow.await(() -> !pendingMsgs.isEmpty());
+    while (true) {
+        // Process all pending messages
+        if (!pendingMsgs.isEmpty()) {
+            for (MessagePayload msg : pendingMsgs) {
+                context.add(formatUserMessageContext(msg));
+                persist.add(formatUserMessageContext(msg));
+            }
+            pendingMsgs.clear();
+        }
+
+        ThoughtResponse thoughts = activities.thoughtActivity(context);
+        if (thoughts.type().equals("answer")) {
+            persist.add(formatUserMessageContext(thoughts.answer()));
+            // Persist memory entries for this turn (usually just the USER_MESSAGE and ANSWER)
+            activities.persistMemoryActivity(persist);
+
+            // Broadcast the answer to whatever client is listening (e.g. frontend, CLI, etc.)
+            activities.broadcastMessageActivity(thoughts.answer());
+
+            // Once this has been persisted, we can clear the persist buffer for the next turn
+            persist.clear();
+        }
+
+        if (thoughts.type().equals("action")) {
+            // Handle action (not shown in this example)
+        }
+    }
+}
+```
+
+And a simplified memory persistence Activity:
+
+```java
+public void persistMemoryActivity(List<ContextEntry> entries, String sessionId) {
+    // Send the messages to the AgentCore memory extraction system.
+    try {
+        AgentCoreMemory.createEvent(entries);
+    } catch (Exception e) {
+        System.err.println("Error in AgentCoreMemory.createEvent: " + e.getMessage());
+        throw ApplicationFailure.newFailure("AgentCoreMemory.createEvent failed: " + e.getMessage(),
+                "PersistAgentCoreMemoryActivityError");
+    }
+}
+```
+
+Getting this kind of durability for free is one of the reasons Temporal is such a strong fit for AI agents. Because Temporal guarantees durable execution and the LLM is stateless, the Workflow Execution becomes our source of truth: the working context lives in workflow state, and every Activity call is persisted in event history. If the worker crashes, the LLM provider goes down, or the host loses power, nothing is lost — Temporal replays and rebuilds the same state.
+
+#### LangChain / LangGraph
+
+LangChain/LangGraph are useful comparison points for how STM and checkpointing look without Temporal. LangGraph offers state persistence through **Savers** — each time the agent transitions between nodes in the graph, the persistence layer saves agent state. Out of the box: an in-memory Saver (testing), Postgres, and Redis. The trade-off is scope: LangGraph's durability is focused on the agent state itself, narrower than Temporal's, where the entire Workflow Execution (activities, results, retries, timers, signals) is durable.
 
 ### Long-Term Memory Architecture
 
-Long-term memory (LTM) helps the agent recall context across different sessions or tasks, such as user preferences, historical behavior, or summaries of past conversations.
+Long-term memory (LTM) lets the agent recall context across sessions — user preferences, historical behavior, summaries of past conversations.
 
-The foundation of scalable LTM is Retrieval-Augmented Generation (RAG) using a vector database to store embeddings of prior interactions:
+The foundation of scalable LTM is RAG using a vector database to store embeddings of prior interactions. This is the same pattern from [Exercise 2](../2-rag/README.md); the only difference is that the "documents" are memories the agent itself produced:
 
-1. **Store Discrete Units.** Instead of saving an entire summarized session, break down memory into discrete units such as individual interactions, LLM responses, or key facts extracted from the conversation.
-2. **Vectorization.** Embed these discrete units into high-dimensional vectors. When the agent receives a new query, the query is also vectorized, and the system searches the database for semantically similar stored memories, even if the exact words differ.
-3. **Hybrid Retrieval.** Use sophisticated hybrid search techniques, combining semantic similarity search (via vectors) with metadata filtering (via tags). For example, you can tag embeddings with the user_id, task_type ("booking" or "support"), and timestamps. This allows the agent to recall the most relevant memories, filtering out history that is too old or belongs to a different context.
+1. **Store discrete units** — individual interactions, LLM responses, or extracted facts — not whole summarized sessions.
+2. **Vectorization.** Embed those units so they can be retrieved by semantic similarity even when wording differs.
+3. **Hybrid retrieval.** Combine semantic search with metadata filtering and ranking. Memory has much richer metadata than basic RAG: `userId`, `sessionId`, strategy type, LLM-generated categories, and timestamps — all usable to influence retrieval.
+
+   Recency is the most important example. If the user said their favorite color was red six months ago and blue last week, a purely semantic search treats both records as roughly equivalent. For a long-running agent, that's a real problem. Hybrid retrieval addresses it with a scoring function that blends semantic similarity, age, strategy type, and other metadata, tuned to the use case.
+
+   Two common ways to combine metadata with semantic search:
+   - **Pre-filtering.** Cut down the search space _before_ the vector search runs (most vector DBs support this natively). For example, exclude memories from the current session (already in STM — retrieving them wastes context) or restrict to the last N days. Efficient because the index only scores candidates that passed the filter.
+   - **Post-filtering / re-ranking.** Cast a wide semantic net first, then re-rank in application code (e.g., fetch top 50 and bias toward recency). Easier to retrofit onto an existing RAG pipeline.
+
+   Production systems typically pre-filter by hard constraints (`userId`, strategy, TTL) and post-rank survivors by a blended similarity-plus-recency score.
 
 ### Compaction vs. Memory Persistence
 
-These are complementary but distinct operations, and our codebase implements both.
+These are complementary but distinct operations.
 
-**Compaction** is about keeping the current session's working context within token limits. When the context grows too large, the agent summarizes it and discards the originals. Compaction is lossy by design, it trades detail for space. After compaction, the specific wording of earlier messages is gone, replaced by a compressed summary.
+**Compaction** keeps the current session's working context within some limit. That limit could be the model's full window, but in practice you'll set a smaller bound to control cost and leave headroom for system instructions, tool definitions, and retrieved memories. When the context grows past that bound, the agent summarizes it and discards the originals. Compaction is **lossy by design**.
 
-**Memory persistence** is about extracting durable knowledge _before_ that information would be compacted away or lost. Rather than summarizing everything into a single blob, persistence uses AI to identify specific facts, preferences, and patterns worth remembering long-term, and stores them in a structured external system.
+Two pressures push us to compact: the LLM context window, _and_ Temporal's Workflow Event History (which has hard caps on event count and total size). The standard solution is `continueAsNew`, which starts a fresh workflow run while carrying forward a compacted snapshot. So compaction serves both: shrinking the working context to fit the LLM, and shrinking carried-forward state so we can `continueAsNew` cleanly.
 
-The ordering matters: our workflow persists to memory after each answer (while the full detail is still available), and compaction happens later (when `continueAsNew` triggers). This ensures that important information is extracted at full fidelity before compression reduces it.
+#### Refresher: Temporal Continue-As-New
+
+Continue-As-New lets a workflow effectively run forever. It checkpoints state, ends the current Workflow Execution, and starts a fresh one in its place. Two main reasons to reach for it:
+
+- **Size and performance limits.** A long Event History will eventually hit Temporal's limits.
+- **Workflow versioning.** A long-running workflow that started on older code can run into versioning issues; a new Execution picks up the current code path cleanly.
+
+Carried-forward state is passed as arguments to the new Execution. The new run keeps the **same WorkflowId**, gets a **new RunId**, and begins its own Event History from scratch. From the outside it looks like one continuous, infinitely long workflow.
+
+**Memory persistence** extracts durable knowledge _before_ that information would be compacted away. Rather than summarizing into a single blob, persistence uses AI to identify specific facts, preferences, and patterns worth remembering, and stores them in a structured external system.
+
+The ordering matters: our workflow persists to memory after each answer (while full detail is still available), and compaction happens later (when `continueAsNew` triggers). Important information is extracted at full fidelity before compression reduces it.
 
 ### Memory Strategy Types
 
-Modern memory systems use multiple specialized strategies. Understanding when to use each is important:
+Modern memory systems use multiple specialized strategies. Each AgentCore built-in strategy follows the same Extraction → Consolidation pipeline; what differs is the prompt, output schema, and what kind of information it captures.
 
-**Semantic memory** stores discrete factual knowledge. "The user lives in Austin," "The user is a software engineer." These are stable facts that don't change often. Best for: personal information, stated facts, domain knowledge that the agent learns from interactions.
+**Semantic memory** extracts factual information and contextual knowledge from conversations, building a persistent knowledge base of entities, events, and key details. Output is a list of standalone facts (JSON, one fact per record). Best for stable facts and domain knowledge. Only USER and ASSISTANT messages are processed.
 
-**User preference memory** captures behavioral patterns and choices. "Prefers TypeScript over Java," "Likes outdoor dining." These are inferred from patterns across conversations. Best for: personalizing responses, anticipating needs, adapting tone and recommendations.
+- "The user lives in Austin, Texas"
+- "The user is a software engineer"
 
-**Episodic memory** stores narrative sequences of what happened. The time series flow of events with context about what was tried, what worked, and what was learned. Best for: learning from past problem-solving attempts, understanding how previous interactions unfolded, building procedural knowledge.
+**User preference memory** extracts preferences, choices, and styles — typically inferred from patterns across conversations rather than stated outright. Best for personalizing responses and adapting tone.
 
-**Summary memory** maintains compressed overviews of entire sessions. Global summaries of conversation topics and detailed delta summaries of specific discussion points. Best for: quickly re-establishing context from previous sessions without loading full history, providing high-level continuity.
+- "Prefers Java over TypeScript"
+- "Likes outdoor dining"
 
-A well-architected system uses multiple strategies simultaneously. Semantic facts and user preferences are queried based on relevance to the current conversation. Episodic memories provide deeper context for similar situations. Summaries offer broad continuity. The agent's memory retrieval step can query across all of these and inject the most relevant records into the working context.
+**Episodic memory** identifies important moments, summarizes them into compact records, and organizes them so the system can retrieve what matters without noise. Captures the flow of events — what was tried, what worked, what was learned. Best for learning from past problem-solving attempts and building procedural knowledge.
+
+**Summary memory** generates condensed, real-time summaries within a single session, capturing key topics, tasks, and decisions. Output is XML where each `<topic>` represents a distinct area; a session can have multiple chunks that together form the complete summary. Retrievable by namespace via `ListMemoryRecords` or by semantic search via `RetrieveMemoryRecords`. Best for quickly re-establishing context from previous sessions.
+
+Summary differs most from the others because it is **session-scoped** — it depends on `sessionId` to know what counts as one conversation. In our implementation `sessionId` maps to the Temporal `WorkflowId`, so a new chat (new workflow) produces a fresh summary. You could also define a session by an idle timer (e.g., new logical session after 30 minutes of inactivity).
+
+A well-architected system uses multiple strategies simultaneously: semantic facts and preferences for relevance, episodic memories for similar situations, summaries for broad continuity. The retrieval step queries across all of them.
+
+#### Custom Strategies
+
+For advanced cases, AgentCore lets you override a built-in strategy with a **Custom strategy** — your own extraction and/or consolidation prompts and, optionally, a different LLM. Useful for domain-specific extraction (e.g., only capture facts about a particular product line).
 
 ## Implementing Memory in a Temporal Agent
 
-If we wanted to design a memory system from scratch we need to start with a few parts
+A from-scratch memory system needs two parts:
 
-1. Core Extraction Layer: An LLM powered function that takes conversation messages + existing memories as input and returns a list of memory operations (Add, Update, Delete, No-op) with the content to be stored or updated.
-
-2. Stateful Memory Store: A wrapper around the Core that handles searching the existing memory for relevant memories to feed into the extraction function, and then executes the operations determined by the Core.
-
-- This could be built on top of any storage solution we want, vector, graph, or relational database.
+1. **Core Extraction Layer.** An LLM-powered function that takes conversation messages plus existing memories and returns a list of memory operations (Add, Update, Delete, No-op).
+2. **Stateful Memory Store.** Wraps the core layer: searches existing memory for relevant records to feed into extraction, then executes the operations. Can be built on any storage — vector, graph, or relational.
 
 ### Asynchronous Memory Persistence with Temporal Workflows
 
-We don't want to slow down our Agent's response time by making it wait for memory extraction and consolidation during the critical path of actually responding to the user. Instead, we can create a Temporal Workflow that runs asynchronously once the current session with the user is complete. This workflow would take the full conversation history as input, run the memory extraction function, and then update the long-term memory store accordingly. This way, the agent can respond to the user immediately while still ensuring that important information is extracted and remembered for future interactions.
+We don't want to block the agent's response on memory extraction and consolidation. Instead, we run a separate Temporal Workflow asynchronously: it takes conversation history as input, runs extraction, and updates the long-term store — letting the agent respond immediately. Short-term memory and the existing working context cover the current turn while LTM is updated in the background for future interactions.
 
-In this situation we can rely on our Short Term Memory and existing Working Context to provide the necessary information for the current interaction, while the Long Term Memory is being updated in the background for future interactions. Most of the time this will be sufficient for maintaining a coherent and contextually relevant conversation with the user.
+If the working context gets close to its limit, we can flip this to synchronous right before compaction so we extract as much as possible before details are lost.
 
-Because our Agent Workflow already has logic to track when the Working Context is getting full, if we do end up getting close to the limit we could trigger this background memory processing in a synchronous way right before we do compaction. This way we ensure that we extract as much information as possible before we lose any details due to compaction.
+The shape of the workflow:
 
-Our workflow might look something like this:
+1. The user sends a message; the agent generates a response from the existing agent workflow logic.
+2. Once an answer is reached, we signal a `MemoryExtractionWorkflow` with the user message and assistant message.
+3. That workflow keeps a timer running, collecting messages from the ongoing conversation.
+4. After a period of inactivity, it wakes up and runs memory extraction over everything it has collected.
+5. Resulting memories are persisted to the long-term store.
 
-The User sends a message. The Agent generates a response immediately based on our existing Agent Workflow logic. Once an answer has been reached we can signal a `MemoryExtractionWorkflow` with the user message and the corresponding assistant message. This Workflow runs asynchronously keeping a timer running in the background. This Workflow will collect messages from the ongoing conversation and after a certain period of inactivity it will wake up and run the memory extraction with the full conversation that it has collected.
-
-The resulting memories are then persisted to the long-term memory store, making them available for retrieval in future interactions.
-
-This delayed workflow approach allows us to balance responsiveness with the need for memory persistence and ensures that we are not blocking the main agent interaction flow while still maintaining a robust memory system. The timer also acts as a method of 'debouncing' the memory extraction, ensuring that we only run it once the user has finished their current line of thought and is less likely to immediately follow up with additional messages that would be relevant to the same memory extraction process.
+The timer also acts as a debounce: extraction runs only when the user has finished their current line of thought.
 
 ### Memory Extraction Activity
 
-When our background `MemoryExtractionWorkflow` wakes up after the timer, it will execute an Activity that takes the collected conversation messages as input and runs them through the memory extraction function. This function will analyze the conversation and determine what information should be added, updated, or deleted in the long-term memory store. The same pipeline can be used for all the different memory strategy types (semantic, user preference, episodic, summary) by simply changing the prompt and output format of the extraction function.
+When the background `MemoryExtractionWorkflow` wakes up, it runs an Activity that takes the collected messages and runs them through the extraction function. The same pipeline can serve all strategy types (semantic, user preference, episodic, summary) by changing the prompt and output format.
 
-Step 1: Search for Relevant Existing Memories
+**Step 1: Search for related existing memories.** Query the long-term store (vector or keyword search) using the new conversation messages. The retrieved memories give the extractor context to decide whether new info is genuinely new (Add), complementary (Update), or already covered (No-op).
 
-- Use the current conversation messages to query the long-term memory store for any relevant existing memories. This can be done using a vector search if we are using a vector database, or a keyword search if we are using a relational database.
-- The retrieved memories will provide context for the extraction function to determine if the new information is genuinely new (Add), complementary to existing information (Update), or already covered (No-op).
+**Step 2: Prepare the LLM prompt.** Provide instructions, the full conversation in XML tags (role + timestamp), the existing memories, and a set of memory-management tool definitions.
 
-Step 2: Prepare the LLM Prompt
-
-- We provide some instructions 'You are a long-term memory manager maintaining a core store of semantic, procedural, and episodic memory...'
-- We provide the full conversation wrapped in XML tags indicating the role, USER or ASSISTANT, and the timestamp of each message.
-- We will also provide a set of memory management Tool Definitions
-
-For example, here is the prompt that LangMem uses for its memory extraction function:
+For reference, here's the prompt LangMem uses:
 
 ```md
 You are a long-term memory manager maintaining a core store of semantic, procedural, and episodic memory. These memories power a life-long learning agent's core predictive model.
@@ -144,7 +229,7 @@ As the agent, record memory content exactly as you'd want to recall it when pred
 Prioritize retention of surprising (pattern deviation) and persistent (frequently reinforced) information, ensuring nothing worth remembering is forgotten and nothing false is remembered. Prefer dense, complete memories over overlapping ones.
 ```
 
-In order to make the existing memories available to the LLM during extraction, we can inject them into the prompt in a structured way.
+In order to make the existing memories available to the LLM during extraction, we inject them into the prompt in a structured way:
 
 ```xml
 <existing>
@@ -157,18 +242,11 @@ In order to make the existing memories available to the LLM during extraction, w
 </existing>
 ```
 
-Step 3: Tool Calling
+**Step 3: Tool calling.** We provide tool definitions the LLM can choose to call. Generic `AddMemory` for new content; `UpdateMemory` and `RemoveMemory` take a `memoryId` to specify the target. One nice technique: generate tool calls _per fetched memory_, which makes Update/Delete easy because the LLM just picks the matching tool. A `Done` tool can signal completion.
 
-- We provide a set of Tool Definitions that the LLM can choose to call. For 'Add' operations we can have a generic 'AddMemory' tool that takes the content to be added as input. For 'Update' and 'Delete' operations we will require a memoryId to specify which existing memory is being targeted.
-  - One way to do this is to actually generate tool calls for each relevant memory that we fetched. This makes 'Update' and 'Delete' operations easier because the LLM can just choose to call the corresponding tool.
+Enable parallel tool calling so the LLM can perform multiple operations per response. Optionally, run multiple rounds (feed first-round outputs back in) so the LLM can iteratively refine until it calls `Done`.
 
-  - Depending on our implementation, we may also want to provide a 'Done' tool that the LLM can call when it decides it has no more operations to perform.
-
-- We want to enable Parallel Tool Calling so that the LLM can choose to perform multiple operations in the same response.
-
-- Depending on our implementation, we may perform multiple rounds of memory extraction by feeding the output memories from the first round back into the prompt for a second round, allowing the LLM to iteratively refine its memory operations and call 'Done' when it decides it has completed all necessary operations.
-
-Tool Definitions:
+Example tool definitions for each strategy type:
 
 #### User Preference Memory Tool Definition
 
@@ -321,40 +399,367 @@ Example Output:
 }
 ```
 
-### Example Done Tool Definition
+#### Done Tool Definition
 
 ```json
 {
   "name": "Done",
-  "description": "Only call this tool once you are done forming & consolidating memories. Before that, continue to refine existing memories by patching and removing them or create new ones.",
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  }
+  "description": "Only call this tool once you are done forming & consolidating memories.",
+  "input_schema": { "type": "object", "properties": {}, "required": [] }
 }
 ```
 
-Step 4: Execute Memory Operations
-
-- Now that we have collected the memory operations determined by the LLM, we can execute them against our long-term memory store.
+**Step 4: Execute memory operations** against the long-term store.
 
 ### Memory Storage Architecture
 
-Each memory record that we store should have a few key pieces of information:
+Each stored memory record has:
 
-- memoryId: a unique identifier for the memory record, used for updates and deletes
-- namespace: a hierarchical 'path' that categorizes the memory (/strategies/semantic/actors/{actorId}/sessions/{sessionId})
-  - We can see an example of this when we look at at the AgentCore Memory configuration
-- value: the actual content of the memory, which can be a simple text string for semantic memory, or a more complex JSON object for episodic memory that captures the sequence of events and their relationships
+- **memoryId** — unique identifier, used for updates and deletes.
+- **namespace** — hierarchical path that categorizes the memory (e.g., `/strategies/semantic/actors/{actorId}/sessions/{sessionId}`). See the AgentCore configuration below for examples.
+- **value** — the actual content. A simple text string for semantic memory; a structured JSON object for episodic memory.
+
+### Agent Workflow Integration
+
+The integration point for a custom memory system looks the same as the AgentCore integration we'll cover next: a `persistMemoryActivity` that sends each user message and assistant answer into the memory system after each turn. Only the implementation behind that Activity changes (custom extraction/consolidation pipeline vs. AgentCore's managed service).
+
+In our custom implementation, `persistMemoryActivity` does two things:
+
+- **Stores raw chat messages** in our database, tagged by `sessionId`. Useful because when we later build the extraction system prompt, we sometimes want additional recent messages from the current session as context.
+- **Calls our local `createEvent`** instead of AgentCore's, which kicks off a Temporal Workflow to perform the actual extraction.
+
+Because messages can come in fast, the extraction workflow batches multiple turns rather than running once per message. `createEvent` uses **Signal-With-Start**: if an extraction workflow is already running for this user, new messages are signaled in; otherwise a new one starts.
+
+#### Memory Extraction Workflow
+
+A simple structure:
+
+- Started with a `userId` — memories belong to this specific user.
+- The `WorkflowId` is deterministic from `userId` (which makes Signal-With-Start work — we always know which workflow to target).
+- As the agent's chat session (its `RunId`) progresses, each user message and assistant response is signaled in.
+- The workflow batches buffered events and passes them to an Activity that extracts semantic memories, along with the current `sessionId` and `userId` so results can be stored in an organized way.
+
+This example only handles semantic memories; the same shape extends to other strategy types.
+
+The Memory Extraction Workflow itself looks like:
+
+```java
+public class MemoryExtractionWorkflowImpl implements MemoryExtractionWorkflow {
+    private final List<MemoryExtractionEventInput> pending = new ArrayList<>();
+
+    private String userId;
+
+    public void receiveMessage(MemoryExtractionEventInput event) {
+        pending.add(event);
+    }
+
+    public void execute(MemoryExtractionWorkflowInput input) {
+        this.userId = input.userId();
+
+        // Process the pending context entries
+        while (!pending.isEmpty()) {
+            List<MemoryExtractionEventInput> eventsToProcess = new ArrayList<>(pending);
+
+            for (MemoryExtractionEventInput event : eventsToProcess) {
+                activities.extractSemanticMemories(userId, event.sessionId(), event.entries());
+            }
+        }
+    }
+}
+```
+
+In the agent's chat workflow, once the agent reaches an answer we persist the relevant entries:
+
+```java
+if (response.type().equals("answer")) {
+    ContextEntry answer = ContextEntry.fromAnswer(response.answer());
+    persist.add(answer);
+
+    // Collect entries from most recent USER_MESSAGE to ANSWER
+    activities.persistMemoryActivity(persist, Workflow.getInfo().getRunId());
+
+    // The rest of the workflow continues here
+}
+```
+
+The `persistMemoryActivity` saves the raw chat events locally and uses Signal-With-Start to feed them into the extraction workflow:
+
+```java
+public void persistMemoryActivity(List<ContextEntry> entries, String sessionId) {
+    // Save the messages to the local database in raw form.
+    try {
+        RawEventHelper.persistSessionEventsImpl(sessionId, entries);
+    } catch (InterruptedException | ExecutionException e) {
+        throw ApplicationFailure.newFailure("Failed:" + e.getMessage(), "PersistChatEventsError");
+    }
+
+    // Send the messages to the local memory extraction system.
+    try {
+        LocalMemory.createEvent(entries, sessionId);
+    } catch (Exception e) {
+        throw ApplicationFailure.newFailure("Failed:" + e.getMessage(), "CreateEventError");
+    }
+}
+```
+
+```java
+public static void createEvent(List<ContextEntry> entries, String sessionId) {
+    WorkflowClient temporalClient = TemporalClient.getTemporalClient();
+    String workflowId = "extract-memory-" + USER_ID;
+
+    WorkflowOptions workflowOptions = WorkflowOptions
+                    .newBuilder()
+                    .setTaskQueue(TEMPORAL_TASK_QUEUE)
+                    .setWorkflowId(workflowId)
+                    .build();
+
+    MemoryExtractionWorkflow workflow = temporalClient
+                    .newWorkflowStub(MemoryExtractionWorkflow.class, workflowOptions);
+
+    WorkflowStub.fromTyped(workflow).signalWithStart(
+                    "event",
+                    new Object[] { new MemoryExtractionEventInput(entries, sessionId) },
+                    new Object[] { new MemoryExtractionWorkflowInput(USER_ID) });
+}
+```
+
+#### Semantic Memory Activity
+
+The Memory Extraction Workflow invokes a `SemanticMemoryActivity` that runs the two LLM-driven stages we covered earlier — **Extraction** and **Consolidation** — and then writes the results to the vector store:
+
+```java
+public void extractSemanticMemoriesImpl(String sessionId, List<ContextEntry> entries) {
+    List<String> contextStrings = toXMLString(entries);
+
+    // 1. Extract semantic memories from the context strings
+    List<SemanticMemoryRecord> records = extractionStep(sessionId, contextStrings);
+
+    // 2. Consolidate the extracted semantic memories into actions
+    List<SemanticMemoryAction> actions = consolidationStep(records);
+
+    for (SemanticMemoryAction action : actions) {
+        SemanticMemoryRecord record = action.memory();
+
+        // 3. Convert and store the semantic memory records in the database
+        List<Float> vectorData = BedrockEmbed.calculateEmbedding(record.fact());
+
+        PointStruct upsertInput = createVectorUpsertAsyncInput(record, vectorData);
+        vectorDatabase.upsertAsync(upsertInput);
+    }
+}
+```
+
+##### Step 1: Extraction
+
+The extraction step finds **potential memories** from the chat entries that just came in.
+
+1. **Fetch additional past conversation** for the current session — context around the latest messages. (This is why we store raw events in the first place.)
+2. **Build the system prompt** with past and current conversation inserted into the template.
+3. **Call Bedrock** to perform the extraction.
+4. **Assemble structured results** — transform the returned JSON facts into `SemanticMemoryRecord`s.
+
+###### Semantic Extraction Prompt
+
+The prompt tells the model what to extract, passes in both prior and new conversation, and specifies the structured output schema.
+
+```text
+You are a long-term memory extraction agent supporting a lifelong learning system. Your task is to identify and extract meaningful information about the users from a given list of messages.
+
+<past_conversation>
+{pastConversation}
+</past_conversation>
+
+<current_conversation>
+{currentConversation}
+</current_conversation>
+
+Analyze the conversation and extract structured information about the user according to the schema below. Only include details that are explicitly stated or can be logically inferred from the conversation.
+
+- Extract information ONLY from the user messages. You should use assistant messages only as supporting context.
+- If the conversation contains no relevant or noteworthy information, return an empty list.
+- Do NOT extract anything from prior conversation history, even if provided. Use it solely for context.
+- Do NOT incorporate external knowledge.
+- Avoid duplicate extractions.
+
+IMPORTANT: Maintain the original language of the user's conversation. If the user communicates in a specific language, extract and format the extracted information in that same language.
+
+Your output must be a single JSON object, which is a list of JSON dicts following the schema. Do not provide any preamble or any explanatory text.
+```
+
+The extraction function itself wires up that prompt, calls Bedrock, and parses the JSON response into `SemanticMemoryRecord`s:
+
+```java
+private List<SemanticMemoryRecord> extractionStep(String sessionId, List<String> currentConversation) {
+    List<ContextEntry> pastChatEvents = RawEventHelper.fetchRawChatEvents(sessionId);
+    List<String> pastConversation = toXMLStrings(pastChatEvents);
+
+    String systemPrompt = extractTemplate
+            .replace("{pastConversation}", String.join("\n", pastConversation))
+            .replace("{currentConversation}", String.join("\n", currentConversation));
+
+    ModelResponse result = BedrockConverse.bedrockConverseWithUsage(
+            systemPrompt,
+            List.of(new ChatMessage("user", "Perform the semantic memory extraction.")),
+            AWS_MODEL_ID);
+
+    List<SemanticMemoryRecord> records = new ArrayList<>();
+
+    JSONArray jsonArray = new JSONArray(result.response());
+    for (int i = 0; i < jsonArray.length(); i++) {
+        JSONObject jsonObject = jsonArray.getJSONObject(i);
+        records.add(SemanticMemoryRecord.fromJson(jsonObject));
+    }
+    return records;
+}
+```
+
+###### Semantic Extraction Schema
+
+Intentionally simple: a JSON array of objects, each with a single `fact` field.
+
+```json
+{
+  "description": "This is a standalone personal fact about the user, stated in a simple sentence.\nIt should represent a piece of personal information, such as life events, personal experience, and preferences related to the user.\nMake sure you include relevant details such as specific numbers, locations, or dates, if presented.\nMinimize the coreference across the facts, e.g., replace pronouns with actual entities.",
+  "properties": {
+    "fact": {
+      "description": "The memory as a well-written, standalone fact about the user. Refer to the user's instructions for more information the prefered memory organization.",
+      "title": "Fact",
+      "type": "string"
+    }
+  },
+  "required": ["fact"],
+  "title": "SemanticMemory",
+  "type": "object"
+}
+```
+
+##### Step 2: Consolidation
+
+The consolidation step takes those potential memories, checks them against existing memories, and decides whether to **add**, **update**, or **skip** each one.
+
+1. **Find related existing memories** for each candidate via semantic search against the vector database.
+2. **Build the consolidation payload** — a `toRelationXML` helper pairs each new candidate with its related existing memories.
+3. **Call Bedrock** to emit a list of `AddMemory`, `UpdateMemory`, or `SkipMemory` operations.
+
+###### Semantic Consolidation Prompt
+
+The consolidation prompt asks the model to generate `AddMemory`, `UpdateMemory`, or `SkipMemory` entries for each candidate, specifying the fields required for each operation type.
+
+```text
+You are a conservative memory manager that preserves existing information while carefully integrating new facts.
+
+Your operations are:
+- **AddMemory**: Create new memory entries for genuinely new information
+- **UpdateMemory**: Add complementary information to existing memories while preserving original content
+- **SkipMemory**: No action needed (information already exists or is irrelevant)
+
+If the operation is "AddMemory", you need to output:
+1. The `memory` field with the new memory content
+
+If the operation is "UpdateMemory", you need to output:
+1. The `memory` field with the original memory content
+2. The update_id field with the ID of the memory being updated
+3. An updated_memory field containing the full updated memory with merged information
+
+Return only this JSON structure, using double quotes for all keys and string values:
+```
+
+The consolidation step finds related existing memories for each candidate, builds the prompt, calls Bedrock, and parses the operations:
+
+```java
+private List<SemanticMemoryAction> consolidationStep(List<SemanticMemoryRecord> records) {
+    List<String> memoryStrings = new ArrayList<>();
+
+    for (SemanticMemoryRecord record : records) {
+        List<SemanticMemoryRecord> relatedMemories = findRelatedMemories(record);
+        memoryStrings.add(record.toRelationXML(relatedMemories));
+    }
+
+    String systemPrompt = consolidateTemplate.replace("{memories}", String.join("\n", memoryStrings));
+
+    ModelResponse result = BedrockConverse.bedrockConverseWithUsage(
+            systemPrompt,
+            List.of(new ChatMessage("user", "Perform the semantic memory consolidation.")),
+            AWS_MODEL_ID);
+
+    JSONArray jsonArray = new JSONArray(result.response());
+    List<SemanticMemoryAction> actions = new ArrayList<>();
+    for (int i = 0; i < jsonArray.length(); i++) {
+        JSONObject obj = jsonArray.getJSONObject(i);
+        actions.add(SemanticMemoryAction.fromJson(obj));
+    }
+
+    return actions;
+}
+```
+
+###### Semantic Consolidation Schema
+
+Structured output makes the operations easy to parse. The prompt also includes the candidates from extraction along with the related existing memories pulled from the datastore.
+
+```json
+[
+  {
+    "memory": { "fact": "<content>" },
+    "operation": "<AddMemory_or_UpdateMemory>",
+    "update_id": "<existing_id_for_UpdateMemory>",
+    "updated_memory": { "fact": "<content>" }
+  }
+]
+```
+
+Only include entries with `AddMemory` or `UpdateMemory` operations. Return an empty array if no changes are needed.
+
+##### Step 3: Updating the Datastore
+
+Apply the operations to the vector store via a `createVectorUpsertAsyncInput` helper that:
+
+- **Computes the embedding** for each fact.
+- **Builds a `PointStruct`** with the record ID (existing `memoryId` for updates, new for adds) and a `vectorPayload` carrying metadata.
+- **Upserts** to the vector database.
+
+```java
+List<SemanticMemoryAction> actions = consolidationStep(records);
+
+for (SemanticMemoryAction action : actions) {
+    SemanticMemoryRecord record = action.memory();
+    List<Float> vector = BedrockEmbed.calculateEmbedding(record.fact());
+
+    PointStruct ps = PointStruct.newBuilder()
+            .setId(id(record.id()))
+            .setVectors(vectors(vector))
+            .putAllPayload(record.vectorPayload())
+            .build();
+
+    vectorDatabase.upsertAsync(List.of(ps));
+}
+```
+
+After this step, new memories have been created and existing ones have been updated as needed.
+
+##### Final Results
+
+A quick end-to-end example. In a new chat with the agent, send:
+
+> I'm Mark Repka and I need an example chat for a presentation for Riot Games. Could you help me!
+
+The agent's reasoning and answer aren't the interesting part.
+
+![Agent chat result](../.carbon/agent-chat-result.png)
+
+A few seconds later, a new semantic memory shows up in the Qdrant collection — capturing that the user is working on a presentation for Riot Games.
+
+![Memories in Qdrant](../.carbon/qdrant-memories.png)
+
+Now start a brand-new chat and ask the agent what it knows about you. `retrieveMemoryRecordsActivity` pulls that semantic memory and feeds it into the Thought step. The agent responds with awareness of the Riot Games presentation — even though the new chat has zero conversation history of its own.
 
 ## How Memory Integrates with the Temporal Agent
 
-Our Exercise 7 implementation extends the base ReAct workflow from Exercise 5 with two new Activities that bridge the working context and persistent memory.
+Our Exercise 7 implementation extends the base ReAct workflow from Exercise 5 with two new Activities that bridge working context and persistent memory.
 
 ### The Memory-Augmented ReAct Loop
 
-The key change from Exercise 5 is what happens at the start of the THINKING step. Before the LLM reasons about anything, the workflow first queries long-term memory to augment the context:
+The key change from Exercise 5 is what happens at the start of THINKING: before the LLM reasons, the workflow first queries long-term memory to augment the context.
 
 ```
 1. User sends message via Signal
@@ -371,9 +776,7 @@ The key change from Exercise 5 is what happens at the start of the THINKING step
 8. If action: execute tool, observe, loop back to THINKING
 ```
 
-In the workflow code, this looks like:
-
-TODO: Update this code block to reflect the actual implementation in the codebase
+In the workflow code:
 
 ```java
 if (reactStep == ReactStep.THINKING) {
@@ -402,7 +805,7 @@ if (reactStep == ReactStep.THINKING) {
 
 ### Memory Retrieval Activity
 
-The `retrieveMemoryRecordsActivity` calls AgentCore Memory's semantic search API. It takes the current context as a search query and a strategy type to query against:
+`retrieveMemoryRecordsActivity` calls AgentCore's semantic search API with the current context as the query and a list of strategy types:
 
 ```java
 public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(
@@ -421,13 +824,13 @@ public RetrieveMemoryRecordsResult retrieveMemoryRecordsActivity(
 }
 ```
 
-The retrieved records are wrapped in XML tags (e.g., `<user-preference>Favorite color is blue</user-preference>`) and injected into the thought prompt's `{memoryRecords}` placeholder. The LLM sees these alongside the conversation history and can use them in its reasoning.
+Records are wrapped in strategy-typed XML tags (e.g., `<user-preference>Favorite color is blue</user-preference>`) and injected into the thought prompt's `{memoryRecords}` placeholder, alongside the conversation history.
 
-The current implementation queries only USER_PREFERENCE strategy. The TODO exercise encourages experimenting with other strategies (episodic, semantic, summary) to see how different types of memory affect the agent's responses.
+The current implementation queries only `USER_PREFERENCE`. The TODO exercise encourages experimenting with other strategies (episodic, semantic, summary).
 
 ### Memory Persistence Activity
 
-The `persistMemoryActivity` sends conversation entries to AgentCore Memory as events. After each answer, the workflow collects all entries from the most recent user message through the answer and persists them as a batch:
+`persistMemoryActivity` sends conversation entries to AgentCore as events. After each answer, the workflow collects all entries from the most recent user message through the answer and persists them as a batch:
 
 ```java
 public void persistMemoryActivity(List<ContextEntry> entries) {
@@ -435,18 +838,18 @@ public void persistMemoryActivity(List<ContextEntry> entries) {
 }
 ```
 
-Under the hood, each `ContextEntry` is converted to a `Conversational` payload with its XML string representation and role (USER or ASSISTANT). AgentCore Memory then asynchronously processes these events through its configured strategies, extracting semantic facts, identifying user preferences, and generating session summaries. This processing typically takes about a minute and requires no additional code.
+Each `ContextEntry` is converted to a `Conversational` payload with its XML representation and role (USER or ASSISTANT). AgentCore then asynchronously processes these events through configured strategies, extracting facts, preferences, and summaries. Processing typically takes ~1 minute and requires no additional code.
 
-The `sessionId` for memory events is set to the Temporal workflow ID, which remains stable across `continueAsNew` calls (only the _run ID_ changes). This means a single long-running conversation keeps the same memory session even through `continueAsNew` boundaries, and the extracted long-term memories persist across sessions under the same `actorId`.
+The `sessionId` for memory events is set to the Temporal workflow ID, which remains stable across `continueAsNew` (only the _run ID_ changes). A long-running conversation keeps the same memory session even through `continueAsNew` boundaries, and extracted long-term memories persist across sessions under the same `actorId`.
 
 ### The Cold Start Pattern
 
-One of the most compelling demonstrations of long-term memory is the cold start scenario. When the agent starts a brand new conversation (new workflow execution, empty `List<ContextEntry>`), it has zero conversation history. But if the user has interacted with the agent before, the `retrieveMemoryRecordsActivity` call at the start of the first THINKING step returns relevant memories from past sessions.
+One of the most compelling demonstrations of LTM is the cold start. When the agent starts a brand-new conversation (new workflow execution, empty `List<ContextEntry>`), it has zero history. But if the user has interacted before, `retrieveMemoryRecordsActivity` at the start of the first THINKING step returns relevant memories from past sessions.
 
 The exercise TODO demonstrates this:
 
 1. Start a conversation and tell the agent your preferences (favorite color, coffee, etc.)
-2. Wait a few minutes for AgentCore to process the events into long-term memories
+2. Wait a few minutes for AgentCore to process events into long-term memories
 3. Start a completely new conversation and ask "what do you know about me?"
 4. The agent has no conversation history but can still answer from retrieved LTM records
 
@@ -454,22 +857,35 @@ This is what transforms an agent from a stateless tool into something that feels
 
 ### Token Budget Allocation
 
-When building the prompt for the thought activity, you are allocating a fixed token budget across multiple sources:
+The thought prompt allocates a fixed token budget across multiple sources:
 
-- **System instructions and tool definitions** (fixed cost, typically 500-2000 tokens)
-- **Retrieved memory records** (variable, controlled by `maxResults` - our implementation limits to 4 records)
-- **Conversation history** (variable, grows with each turn)
-- **Reserve for the model's response** (must leave room for output)
+- **System instructions and tool definitions** (fixed, ~500–2000 tokens).
+- **Retrieved memory records** (variable; our implementation limits to 4 via `maxResults`).
+- **Conversation history** (variable, grows with each turn).
+- **Reserve for the model's response.**
 
-The implementation uses `ModelUtils.truncateContextToTokenLimit` to ensure the conversation history fits, and limits memory retrieval to 4 results. In a production system, you would want to be more deliberate about this allocation, perhaps reserving a fixed token budget for each source and dynamically adjusting based on what is available and relevant.
+The implementation uses `ModelUtils.truncateContextToTokenLimit` to fit the conversation and limits memory retrieval to 4 results. In production you'd want a more deliberate allocation — perhaps a fixed budget per source, dynamically adjusted based on what's available and relevant.
 
 ## AWS Bedrock AgentCore Memory
 
-AgentCore Memory collects memory events during agent interactions and processes them into structured long-term memories using different configurable strategies. These strategies define how to extract and store important information, organizing them by namespaces based on actorId and sessionId. When developing with AgentCore Memory the process is mostly automatic. After the events are collected, the memory processing pipeline analyzes the conversations, extracts relevant facts and summaries using AI models, and stores them in a structured way.
+AgentCore Memory is a **fully managed AWS service** for long-term knowledge retention in AI agents. It collects memory events during agent interactions and processes them into structured long-term memories using different configurable strategies. These strategies define how to extract and store important information, organizing them by namespaces based on actorId and sessionId. When developing with AgentCore Memory the process is mostly automatic — after events are collected, the memory processing pipeline analyzes the conversations, extracts relevant facts and summaries using AI models, and stores them in a structured way. You don't need to build or manage any of this infrastructure yourself.
 
 The Agent, when building up its next context, can query the long-term memory using the actorId and sessionId to retrieve relevant memories. This allows the agent to maintain context across sessions and provide more personalized responses without needing to manage complex memory infrastructure manually.
 
 AgentCore Memory can be used with any Agent solution, including completely custom Agents, using the AWS SDK for JavaScript/TypeScript or Java.
+
+### Retention
+
+- **Raw short-term events** can be retained for up to **1 year** (configured via `eventExpiryDuration`; our workshop config uses 30 days).
+- **Extracted long-term memories** persist **indefinitely** unless explicitly deleted.
+
+### Pricing
+
+At time of writing (verify against current AWS pricing):
+
+- **Long-term memory storage (built-in strategies):** $0.75 per 1,000 memory records per month.
+- **Long-term memory storage (built-in with override or self-managed strategies):** $0.25 per 1,000 memory records per month.
+- **Long-term memory retrieval:** $0.50 per 1,000 retrievals.
 
 ### AgentCore Memory Resource
 
@@ -526,18 +942,41 @@ CreateMemoryRequest request = CreateMemoryRequest.builder()
     .build();
 ```
 
+Strategies are configured at the **Memory Resource level**, which means a single resource's strategies are shared across all users (`actorId`s) and sessions (`sessionId`s) that write to it. Once enabled, they run automatically against every raw conversation event sent in via `CreateEvent`.
+
+**Built-in strategies — pros:**
+
+- AgentCore handles all extraction and consolidation automatically using predefined, optimized algorithms.
+- No configuration required beyond basic settings (namespaces, triggers).
+- Suitable out of the box for standard conversational AI use cases.
+
+**Built-in strategies — cons:**
+
+- Limited customization (extraction prompts and behavior are fixed).
+- Higher per-record storage cost than a comparable DIY solution backed by your own database.
+
 Bedrock AgentCore also offers Custom memory strategies that let you choose a specific LLM and override the prompt for extraction and consolidation to your specific domain or use case. For example, you might want to append to the semantic memory prompt so that it only extracts specific types of facts or memories.
 
 Custom strategy documentation: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-self-managed-strategies.html#use-self-managed-strategy
 
 ### Processing Pipeline
 
-Long-term memory operates through Memory Strategies that define what information to extract and how to process it. The system works automatically in the background:
+Most built-in AgentCore strategies are organized around two LLM-driven stages. These terms are not unique to Bedrock — the same Extraction → Consolidation pattern shows up in libraries like LangMem, Mem0, Zep, and any DIY system you'd build yourself.
 
-1. **Conversation Analysis:** Saved conversations are analyzed based on configured strategies
-2. **Information Extraction:** Important data (facts, preferences, summaries) is extracted using AI models
-3. **Structured Storage:** Extracted information is organized in namespaces for efficient retrieval
-4. **Semantic Indexing:** Information is vectorized for natural language search capabilities
+**Stage 1: Extraction.** Looks at the recent conversation events (and any prior context provided to the strategy) and pulls out **potential memories** — candidate facts, preferences, or episodes worth remembering. These are not yet committed to the store; they're just what the model thinks might be worth keeping.
+
+**Stage 2: Consolidation.** Takes those candidates and queries the existing memory datastore for any related records. The LLM then decides, for each candidate, what to actually do against the store. The output is a structured list of operations:
+
+- **Create** a new memory record (the candidate is genuinely new).
+- **Update** an existing record (the candidate adds detail or refines what's already there).
+- **Skip** the candidate (it's redundant, irrelevant, or low value).
+
+Around those two stages, the full pipeline includes:
+
+1. **Conversation Analysis:** Saved conversations are analyzed based on configured strategies.
+2. **Information Extraction:** Important data (facts, preferences, summaries) is extracted using AI models.
+3. **Structured Storage:** Extracted information is organized in namespaces for efficient retrieval.
+4. **Semantic Indexing:** Information is vectorized for natural language search capabilities.
 5. **Consolidation:** Similar information is merged and refined over time
 
 Processing Time: Typically takes ~1 minute after conversations are saved, with no additional code required.
@@ -545,6 +984,143 @@ Processing Time: Typically takes ~1 minute after conversations are saved, with n
 Behind the scenes, the pipeline uses AI-powered extraction with foundation models, creates vector embeddings for similarity-based retrieval, structures information using configurable path-like hierarchies, automatically consolidates similar information to prevent duplication, and continuously improves extraction quality based on conversation patterns.
 
 Important: For semantic and user preference memory strategies, only USER and ASSISTANT role messages are processed for long-term memory extraction. Messages with other role types are skipped. For the summary strategy, all roles are processed.
+
+### CreateMemoryResource
+
+Before this workshop, we provisioned an AgentCore Memory resource in your AWS environment by sending a `CreateMemoryRequest` to Bedrock. The request specifies which built-in strategies to enable, how memories should be organized via namespaces, a name for the resource, and how long raw events are retained (`eventExpiryDuration`). Each strategy is configured similarly — and notice that we don't specify any LLM or prompts here. AgentCore uses its default extraction and consolidation prompts and models out of the box. Custom strategies _do_ let you override the LLM and prompts, but for this workshop we're starting with the defaults.
+
+Event creation against the AgentCore Memory resource looks like this:
+
+```java
+public static void createEvent(List<ContextEntry> entries) {
+    BedrockAgentCoreClient bedrockAgentCoreClient = AWS.getBedrockAgentCoreClient();
+
+    List<PayloadType> payloads = entries.stream().map(entry -> {
+        Conversational conversation = Conversational.builder()
+                .content(Content.fromText(entry.toXMLString())) // Convert the entry to an XML string for storage
+                .role(entry.role()).build(); // USER or ASSISTANT
+            return PayloadType.builder().conversational(conversation).build();
+        })
+        .collect(Collectors.toList());
+
+    // Use timestamp from first entry
+    Instant eventTimestamp = entries.isEmpty() ? Instant.now() : entries.get(0).timestamp();
+    CreateEventRequest request = CreateEventRequest.builder()
+                    .memoryId(MEMORY_ID) // Our AgentCore Memory Resource in AWS
+                    .sessionId(Activity.getExecutionContext().getInfo().getWorkflowId())
+                    .actorId(USER_ID) // Associate this event with a specific user
+                    .payload(payloads)
+                    .eventTimestamp(eventTimestamp)
+                    .build();
+
+    bedrockAgentCoreClient.createEvent(request);
+}
+```
+
+A single-strategy memory resource (semantic only) looks like:
+
+```java
+public static CreateMemoryResponse createMemory() {
+    BedrockAgentCoreControlClient controlClient = AWS.getBedrockAgentCoreControlClient();
+
+    CreateMemoryRequest request = CreateMemoryRequest.builder()
+        .name(MEMORY_ID)
+        .description("This is an example that handles only Semantic Memories")
+        .eventExpiryDuration(365)
+        .memoryStrategies(MemoryStrategyInput.builder()
+            .semanticMemoryStrategy(SemanticMemoryStrategyInput.builder()
+                .name("Semantic")
+                .description("Stores factual information and concepts")
+                .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+            .build())
+        .build())
+    .build();
+
+    return controlClient.createMemory(request);
+}
+```
+
+The other built-in strategies follow the same pattern — swap `semanticMemoryStrategy` for `userPreferenceMemoryStrategy`, `episodicMemoryStrategy`, or `summaryMemoryStrategy` (the episodic strategy also takes a `reflectionConfiguration`, and episodic/summary use a session-scoped namespace `/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}`).
+
+A custom strategy lets you override the extraction prompt:
+
+```java
+MemoryStrategyInput.builder()
+    .customMemoryStrategy(CustomMemoryStrategyInput.builder()
+        .name("Travel Facts")
+        .configuration(CustomConfigurationInput.builder()
+            .semanticOverride(SemanticOverrideConfigurationInput.builder()
+                .extraction(SemanticOverrideExtractionConfigurationInput.builder()
+                    .appendToPrompt("""
+                        You are tasked with analyzing conversations to
+                        extract the user's travel preferences...
+                        """)
+                .build())
+            .build())
+        .build())
+    .description("Custom memory strategy for extracting travel preferences")
+    .namespaces(List.of("/strategies/{memoryStrategyId}/actors/{actorId}"))
+    .build())
+.build()
+```
+
+## Other Options
+
+AgentCore Memory is a great option because it takes care of most of the hardest parts for us — extraction, consolidation, storage, and retrieval are all handled by the managed service. But it's not the only choice in this space, and a few other tools take meaningfully different approaches.
+
+### Mem0
+
+[Mem0](https://github.com/mem0ai/mem0) is probably the most popular open-source memory layer at the moment, and the architecture will look very familiar after walking through AgentCore and our local implementation:
+
+- A **memory extractor** module takes recent messages and uses an LLM to extract atomic facts/memories from the conversation.
+- An **update phase** compares those raw memories against the N most similar existing memories, and an LLM decides what to do: `add`, `update`, `delete`, or no-op.
+
+The Mem0 playground shows how memories are structured: personal details, category tags, user preferences, and professional details are all extracted from the conversation.
+
+**The main differentiator is storage.** Mem0 uses a hybrid datastore approach:
+
+- **Vectors** for semantic similarity.
+- A **graph datastore** for tracking entity relationships.
+- A **key-value store** for other structured facts.
+
+The graph layer enables more complex relational queries between entities that we have facts about — something pure vector retrieval can't do well.
+
+### LangMem
+
+[LangMem](https://github.com/langchain-ai/langmem) is built by the LangChain team and supports three memory types:
+
+- **Semantic** — facts and knowledge.
+- **Episodic** — past interactions and events.
+- **Procedural** — learned behaviors, rules, and instructions. Notably, procedural memory is stored as updated instructions in the agent's prompt itself.
+
+LangMem can operate in a couple of different modes. Where AgentCore is essentially standalone and extracts information in the background, LangMem can also be inserted into the **hot path** by exposing memory management tools directly to the agent. The LLM can then decide to extract and store memories during the conversation itself — this adds latency but gives much more control over memory behavior.
+
+LangMem also offers a **background memory process** where a separate LLM reflects on the conversation to extract memories, similar to what we looked at with AgentCore Memory. Memories are organized in a namespace hierarchy (folders by user, session, and type), again similar to AgentCore.
+
+Storage is much less opinionated than AgentCore — most vector databases, traditional databases like Postgres, and key-value stores like Redis are all supported.
+
+LangMem also attempts to improve retrieval by tracking how often memories are accessed and how recently they were used, adding metadata around **memory importance** or **memory strength**. (This is something we could absolutely add to our Qdrant local memory approach as additional metadata if we wanted to.)
+
+### Zep
+
+[Zep](https://github.com/getzep/zep) takes a much different approach. It's a fully graph-based solution built on a knowledge graph called [Graphiti](https://github.com/getzep/graphiti), and the key innovation is that Graphiti is a **time-based** knowledge graph.
+
+It maintains structured graph data between entities while also preserving the **historical relationships** between them. That means Zep is aware of:
+
+- When data entered the system.
+- What the fact was at that time.
+- How relationships change as things evolve — facts can be invalidated over time, and relationships can be updated as the world changes.
+
+Zep also distinguishes between when an event **actually happened** vs. when the system **ingested it** — more specific than just stamping a record with `created_at`.
+
+For comparison, our AgentCore Memory setup doesn't really handle this well: a user might tell the agent something happened a month ago, but the memory record will still be dated today. Similarly, when the model updates a memory, we typically don't preserve the previous value. AgentCore also has no real way to do the kind of graph traversal needed to determine relationships between entities — vector similarity alone can't do that.
+
+The other major difference is that Zep is **not summary-based**. It keeps two distinct subgraphs:
+
+- An **episodic subgraph** storing the raw conversation.
+- A **semantic subgraph** storing entities and relationships derived from those conversations.
+
+This means episodic memories stay **fully intact** — Zep is non-lossy, unlike summarization or fact-extraction-only approaches. The raw conversations are then bidirectionally linked to the semantic graph nodes they relate to, so you can always trace a derived fact back to the conversation it came from.
 
 ## Production Considerations
 
@@ -667,14 +1243,17 @@ Your output must be a single JSON object, which is a list of JSON dicts followin
 You are a conservative memory manager that preserves existing information while carefully integrating new facts.
 
 Your operations are:
+
 - **AddMemory**: Create new memory entries for genuinely new information
 - **UpdateMemory**: Add complementary information to existing memories while preserving original content
 - **SkipMemory**: No action needed (information already exists or is irrelevant)
 
 If the operation is "AddMemory", you need to output:
+
 1. The `memory` field with the new memory content
 
 If the operation is "UpdateMemory", you need to output:
+
 1. The `memory` field with the original memory content
 2. The update_id field with the ID of the memory being updated
 3. An updated_memory field containing the full updated memory with merged information
@@ -682,17 +1261,21 @@ If the operation is "UpdateMemory", you need to output:
 ## Decision Guidelines
 
 ### AddMemory (New Information)
+
 Add only when the retrieved fact introduces entirely new information not covered by existing memories.
 
 **Example**:
+
 - Existing Memory: `[{"id": "0", "text": "User is a software engineer"}]`
 - Retrieved Fact: `["Name is John"]`
 - Action: AddMemory with new ID
 
 ### UpdateMemory (Preserve + Extend)
+
 Preserve existing information while adding new details. Combine information coherently without losing specificity or changing meaning.
 
 **Critical Rules for UpdateMemory**:
+
 - **Preserve timestamps and specific details** from the original memory
 - **Maintain semantic accuracy** - don't generalize or change the meaning
 - Only enhance when new information genuinely adds value without contradiction
@@ -701,17 +1284,20 @@ Preserve existing information while adding new details. Combine information cohe
 - Consolidate and compress redundant memories to maintain information-density; strengthen based on reliability and recency; maximize SNR by avoiding idle words
 
 **Example**:
+
 - Existing: `[{"id": "1", "text": "Caroline attended an LGBTQ support group meeting that she found emotionally powerful."}]`
 - Retrieved: `["Caroline found the support group very helpful"]`
 - Action: UpdateMemory to `"Caroline attended an LGBTQ support group meeting that she found emotionally powerful and very helpful."`
 
 **When NOT to update**:
+
 - Information is essentially the same: "likes pizza" vs "loves pizza"
 - Updating would change the fundamental meaning
 - New fact contradicts existing information (use AddMemory instead)
 - New fact contains new events with timestamps that differ from existing facts. Since enhanced memories share timestamps with original facts, this would create temporal contradictions. Use AddMemory instead.
 
 ### SkipMemory (No Change)
+
 Use when information already exists in sufficient detail or when new information doesn't add meaningful value.
 
 ## Key Principles
@@ -728,17 +1314,17 @@ Use when information already exists in sufficient detail or when new information
 
 Return only this JSON structure, using double quotes for all keys and string values:
 [
-  {
-    "memory": {
-      "fact": "<content>"
-    },
-    "operation": "<AddMemory_or_UpdateMemory>",
-    "update_id": "<existing_id_for_UpdateMemory>",
-    "updated_memory": {
-      "fact": "<content>"
-    }
-  },
-  ...
+{
+"memory": {
+"fact": "<content>"
+},
+"operation": "<AddMemory_or_UpdateMemory>",
+"update_id": "<existing_id_for_UpdateMemory>",
+"updated_memory": {
+"fact": "<content>"
+}
+},
+...
 ]
 
 Only include entries with AddMemory or UpdateMemory operations. Return empty memory array if no changes are needed.
@@ -748,7 +1334,6 @@ Do not return anything except the JSON format.
 ### System prompt for user preference memory strategy
 
 ```md
-
 You are tasked with analyzing conversations to extract the user's preferences. You'll be analyzing two sets of data:
 
 <past_conversation>
@@ -767,11 +1352,9 @@ Your job is to identify and categorize the user's preferences into two main type
 For explicit preference, extract only preference that the user has explicitly shared. Do not infer user's preference.
 
 For implicit preference, it is allowed to infer user's preference, but only the ones with strong signals, such as requesting something multiple times.
-
 ```
 
 ```md
-
 Extract all preferences and return them as a JSON list where each item contains:
 
 1. "context": The background and reason why this preference is extracted.
@@ -781,16 +1364,16 @@ Extract all preferences and return them as a JSON list where each item contains:
 For example:
 
 [
-  {
-    "context":"The user explicitly mentioned that he/she prefers horror movie over comedies.",
-    "preference": "Prefers horror movies over comedies",
-    "categories": ["entertainment", "movies"]
-  },
-  {
-    "context":"The user has repeatedly asked for Italian restaurant recommendations. This could be a strong signal that the user enjoys Italian food.",
-    "preference": "Likely enjoys Italian cuisine",
-    "categories": ["food", "cuisine"]
-  }
+{
+"context":"The user explicitly mentioned that he/she prefers horror movie over comedies.",
+"preference": "Prefers horror movies over comedies",
+"categories": ["entertainment", "movies"]
+},
+{
+"context":"The user has repeatedly asked for Italian restaurant recommendations. This could be a strong signal that the user enjoys Italian food.",
+"preference": "Likely enjoys Italian cuisine",
+"categories": ["food", "cuisine"]
+}
 ]
 
 Extract preferences only from <current_conversation>. Extract preference ONLY from the user messages. You should use assistant messages only as supporting context. Only extract user preferences with high confidence.
@@ -798,26 +1381,28 @@ Extract preferences only from <current_conversation>. Extract preference ONLY fr
 Maintain the original language of the user's conversation. If the user communicates in a specific language, extract and format the extracted information in that same language.
 
 Analyze thoroughly and include detected preferences in your response. Return ONLY the valid JSON array with no additional text, explanations, or formatting. If there is nothing to extract, simply return empty list.
-
 ```
 
 #### User preference consolidation instructions
 
 ```md
-
 # ROLE
+
 You are a Memory Manager that evaluates new memories against existing stored memories to determine the appropriate operation.
 
 # INPUT
+
 You will receive:
 
 1. A list of new memories to evaluate
 2. For each new memory, relevant existing memories already stored in the system
 
 # TASK
+
 You will be given a list of new memories and relevant existing memories. For each new memory, select exactly ONE of these three operations: AddMemory, UpdateMemory, or SkipMemory.
 
 # OPERATIONS
+
 1. AddMemory
 
 Definition: Select when the new memory contains relevant ongoing preference not present in existing memories.
@@ -858,8 +1443,8 @@ New memory: "The user prefers to use Bank of America, which his account number i
 ```
 
 ```md
-
 # Processing Instructions
+
 For each memory in the input:
 
 Place the original new memory (<NewMemory>) under the "memory" field. Then add a field called "operation" with one of these values:
@@ -874,6 +1459,7 @@ If the operation is "UpdateMemory", you need to output:
 2. An "updated_memory" field containing the full updated memory with merged information
 
 ## Example Input
+
 <Memory1>
 <ExistingMemory1>
 [ID]=N1ofh23if\
@@ -926,35 +1512,36 @@ If the operation is "UpdateMemory", you need to output:
 </Memory3>
 
 ## Example Output
+
 [{
 "memory":{
-  "context": "user mentioned avoiding dairy products when discussing ice cream options",
-  "preference": "prefers dairy-free dessert alternatives",
-  "categories": ["food", "dietary", "desserts"]
+"context": "user mentioned avoiding dairy products when discussing ice cream options",
+"preference": "prefers dairy-free dessert alternatives",
+"categories": ["food", "dietary", "desserts"]
 },
 "operation": "UpdateMemory",
 "update_id": "N1ofh23if",
 "updated_memory": {
-  "context": "user has explicitly stated that he likes vegan and mentioned avoiding dairy products when discussing ice cream options",
-  "preference": "prefers vegetarian options and dairy-free dessert alternatives",
-  "categories": ["food", "dietary", "desserts"]
+"context": "user has explicitly stated that he likes vegan and mentioned avoiding dairy products when discussing ice cream options",
+"preference": "prefers vegetarian options and dairy-free dessert alternatives",
+"categories": ["food", "dietary", "desserts"]
 }
 },
 {
 "memory":{
-  "context": "user researched trips to coastal destinations with public transportation options",
-  "preference": "prefers car-free travel to seaside locations",
-  "categories": ["travel", "transportation", "vacation"]
+"context": "user researched trips to coastal destinations with public transportation options",
+"preference": "prefers car-free travel to seaside locations",
+"categories": ["travel", "transportation", "vacation"]
 },
-  "operation": "AddMemory",
+"operation": "AddMemory",
 },
 {
 "memory":{
-  "context": "user mentioned they didn't sleep well last night and felt tired today",
-  "preference": "feeling tired and groggy",
-  "categories": ["sleep", "wellness"]
+"context": "user mentioned they didn't sleep well last night and felt tired today",
+"preference": "feeling tired and groggy",
+"categories": ["sleep", "wellness"]
 },
-  "operation": "SkipMemory",
+"operation": "SkipMemory",
 }]
 
 Like the example, return only the list of JSON with corresponding operation. Do NOT add any explanation.
@@ -963,61 +1550,61 @@ Like the example, return only the list of JSON with corresponding operation. Do 
 ### System prompt for summary strategy
 
 ```md
-
 You are a summary generator. You will be given a text block, a concise global summary, and a detailed summary you previous generated.
 <task>
+
 - Given the contexts(e.g. global summary, detailed previous summary), your goal is to generate
-(1) a concise global summary keeping in main target of the conversation, such as the task and the requirements.
-(2) a detailed delta summary of the given text block, without repeating the historical detailed summary.
+  (1) a concise global summary keeping in main target of the conversation, such as the task and the requirements.
+  (2) a detailed delta summary of the given text block, without repeating the historical detailed summary.
 - The previous summary is a context for you to understand the main topics.
 - You should only output the delta summary, not the whole summary.
 - The generated delta summary should be as concise as possible.
-</task>
-<extra_task_requirements>
-- Summarize with the same language as the given text block.
-    - If the messages are in a specific language, summarize with the same language.
-</extra_task_requirements>
+  </task>
+  <extra_task_requirements>
+- Summarize with the same language as the given text block. - If the messages are in a specific language, summarize with the same language.
+  </extra_task_requirements>
 
 When you generate global summary you ALWAYS follow the below guidelines:
 <guidelines_for_global_summary>
+
 - The global summary should be concise and to the point, only keep the most important information such as the task and the requirements.
 - If there is no new high-level information, do not change the global summary. If there is new tasks or requirements, update the global summary.
 - The global summary will be pure text wrapped by <global_summary></global_summary> tag.
 - The global summary should be no exceed specified word count limit.
 - Tracking the size of the global summary by calculating the number of words. If the word count reaches the limit, try to compress the global summary.
-</guidelines_for_global_summary>
+  </guidelines_for_global_summary>
 
 When you generate detailed delta summaries you ALWAYS follow the below guidelines:
 <guidelines_for_delta_summary>
+
 - Each summary MUST be formatted in XML format.
 - You should cover all important topics.
 - The summary of the topic should be place between <topic name="$TOPIC_NAME"></topic>.
 - Only include information that are explicitly stated or can be logically inferred from the conversation.
 - Consider the timestamps when you synthesize the summary.
 - NEVER start with phrases like 'Here's the summary...', provide directly the summary in the format described below.
-</guidelines_for_delta_summary>
+  </guidelines_for_delta_summary>
 
 The XML format of each summary is as it follows:
 
 <existing_global_summary_word_count>
-    $Word Count
+$Word Count
 </existing_global_summary_word_count>
 
 <global_summary_condense_decision>
-    The total word count of the existing global summary is $Total Word Count.
-    The word count limit for global summary is $Word Count Limit.
-    Since we exceed/do not exceed the word count limit, I need to condense the existing global summary/I don't need to condense the existing global summary.
+The total word count of the existing global summary is $Total Word Count.
+The word count limit for global summary is $Word Count Limit.
+Since we exceed/do not exceed the word count limit, I need to condense the existing global summary/I don't need to condense the existing global summary.
 </global_summary_condense_decision>
 
 <global_summary>
-    ...
+...
 </global_summary>
 
 <delta_detailed_summary>
-    <topic name="$TOPIC_NAME">
-        ...
-    </topic>
-    ...
+<topic name="$TOPIC_NAME">
+...
+</topic>
+...
 </delta_detailed_summary>
-
 ```

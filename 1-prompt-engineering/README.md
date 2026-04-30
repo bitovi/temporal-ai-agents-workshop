@@ -1,13 +1,12 @@
-
 # Exercise 1 - Prompt Engineering
 
 ## Goals
 
-The goal of this first exercise is to learn the best practices of prompt engineering. We will learn about these best practices and apply them to guide an LLM to evaluate a customer service agent's response to a customer's question based on a series of guidelines.
+Learn prompt engineering best practices and apply them to guide an LLM in evaluating a customer service agent's response against a set of guidelines.
 
 ## What you need to know
 
-Each LLM has its own set of guidelines for how to optimize your text prompts to get the highest quality responses. [Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html) has a good list of each model's prompt guides. For this workshop, we will use Claude 3.7 Sonnet, so you can refer to [Anthropic's guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview). Anthropic also has an [interactive guide](https://github.com/anthropics/prompt-eng-interactive-tutorial/tree/master/AmazonBedrock/anthropic) that you can try on your own.
+Each LLM has its own guidelines for optimizing prompts. [Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html) lists guides per model. This workshop uses Claude 3.7 Sonnet — see [Anthropic's guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview) and their [interactive tutorial](https://github.com/anthropics/prompt-eng-interactive-tutorial/tree/master/AmazonBedrock/anthropic).
 
 ### Parts of a Prompt
 
@@ -18,38 +17,21 @@ Each LLM has its own set of guidelines for how to optimize your text prompts to 
 
 ### Prompt Structure
 
-- Model: the model you want to call
-- System Message: used to provide context, instructions, and guidelines
-- Messages: alternating messages between a `user` and `assistant`. The first message must be a `user` and they should alternate.
-- Maximum number of output tokens: the maximum number of tokens to generate
-- Temperature: the degree of variability in Claude's response. `0` is the most deterministic. `1` is the most variable.
+- **Model**: the model to call
+- **System message** (optional): context, instructions, and guidelines
+- **Messages**: alternating `user`/`assistant` turns, starting with `user`
+- **Max output tokens**: cap on generated tokens
+- **Temperature**: response variability — `0` is deterministic, `1` is most variable
 
-This structure is more obvious when using the InvokeModel API:
+The structure is most explicit in the InvokeModel API:
 
 ```json
 {
     "anthropic_version": "bedrock-2023-05-31",
-    "system": <system prompt>
+    "system": <system prompt>,
     "messages": [
-        {
-            "role": "user",
-            "content": [
-            {
-                "type": "text",
-                "text": <user message>
-            }
-            ]
-        },
-        {
-            "role": "assistant",
-            "content": [
-            {
-                "type": "text",
-                "text": <assistant message>
-            }
-            ]
-        },
-        ...
+        { "role": "user", "content": [{ "type": "text", "text": <user message> }] },
+        { "role": "assistant", "content": [{ "type": "text", "text": <assistant message> }] }
     ],
     "max_tokens": <max tokens>,
     "temperature": <temperature>
@@ -62,25 +44,27 @@ The newer Converse API uses a builder pattern:
 ConverseRequest converseRequest = ConverseRequest.builder()
   .modelId(<model>)
   .system(<system prompt>)
-  .messages([<user message>, <system message>, ...])
+  .messages([<user message>, <assistant message>, ...])
   .inferenceConfig(config -> config
     .maxTokens(<max tokens>)
     .temperature(<temperature>)
     .build())
-.build();
+  .build();
 ```
+
+### Context Windows
+
+LLMs have context length limits. Claude's is 200k tokens (~3.5 English characters per token); a token-counting API is available. For a single request, the window includes your prompt plus the response (capped by `maxTokens`).
 
 ### Techniques
 
 #### Be clear and direct
 
-Use clear and direct instructions; the LLM has no other context outside of the instructions you provide. Think of the LLM as "a brilliant but very new employee (with amnesia) who needs explicit instructions." ([Anthropic's Guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct))
+The LLM has no context beyond your instructions. Think of it as ["a brilliant but very new employee (with amnesia) who needs explicit instructions."](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct)
 
-Golden Rule of Clear Prompting:
+> **Golden Rule of Clear Prompting**: Show your prompt to a colleague. If they're confused, Claude's confused.
 
-> Show your prompt to a colleague or friend and have them follow the instructions themselves to see if they can produce the result you want. If they're confused, Claude's confused.
-
-If you aren't explicit about exactly what you want the LLM to do and how you want it respond, it will fill in the vagueness gaps, potentially with hallucinated information.
+If you're vague, the LLM fills the gaps — sometimes with hallucinations.
 
 Bad:
 
@@ -92,18 +76,18 @@ Good:
 >
 > Instructions:
 >
-> 1. Replace all customer names with “CUSTOMER_[ID]” (e.g., “Jane Doe” → “CUSTOMER_001”).
-> 2. Replace email addresses with “EMAIL_[ID]@example.com”.
-> 3. Redact phone numbers as “PHONE_[ID]“.
-> 4. If a message mentions a specific product (e.g., “AcmeCloud”), leave it intact.
+> 1. Replace customer names with "CUSTOMER\_[ID]" (e.g., "Jane Doe" → "CUSTOMER_001").
+> 2. Replace email addresses with "EMAIL\_[ID]@example.com".
+> 3. Redact phone numbers as "PHONE\_[ID]".
+> 4. Leave specific product names (e.g., "AcmeCloud") intact.
 > 5. If no PII is found, copy the message verbatim.
-> 6. Output only the processed messages, separated by ”---”.
+> 6. Output only the processed messages, separated by "---".
 >
 > Data to process: {{FEEDBACK_DATA}}
 
-#### Use a system prompt to describe the LLM's role
+#### Describe the LLM's role
 
-Use the system parameter to set Claude’s role. Put everything else, like task-specific instructions, in the user turn instead.
+Use the `system` parameter to set Claude's role; put task-specific instructions in the user turn. This improves accuracy, focus, and tone.
 
 ```java
 ConverseRequest converseRequest = ConverseRequest.builder()
@@ -111,18 +95,28 @@ ConverseRequest converseRequest = ConverseRequest.builder()
   .system(SystemContentBlock.fromText("You are a seasoned data scientist at a Fortune 500 company."))
   .messages(Message.builder()
     .role(ConversationRole.USER)
-    .content(ContentBlock.fromText( "Analyze this dataset for anomalies: <dataset>{{DATASET}}</dataset>"))
+    .content(ContentBlock.fromText("Analyze this dataset for anomalies: <dataset>{{DATASET}}</dataset>"))
     .build())
   .inferenceConfig(config -> config
     .maxTokens(2000)
     .temperature(1.0f)
     .build())
-.build();
+  .build();
 ```
 
 #### Use examples
 
-Providing LLMs with examples of correctly formatted, ideal responses allows them to extrapolate. This will increase the likelihood of the LLM providing the right example with the correct formatting.
+Well-crafted examples improve:
+
+- **Accuracy**: reduce misinterpretation of instructions
+- **Consistency**: enforce uniform structure and style
+- **Performance**: boost Claude's ability on complex tasks
+
+Effective examples are:
+
+- **Relevant**: mirror your actual use case
+- **Diverse**: vary enough that Claude doesn't pick up unintended patterns
+- **Clear**: wrapped in `<example>` tags (nested in `<examples>` if multiple)
 
 Bad:
 
@@ -137,19 +131,19 @@ Good:
 
 #### Use XML tags
 
-LLMs, specifically Claude, are very good at understanding parts of a prompt separated by XML tags.
+Claude is very good at parsing prompt sections separated by XML tags.
 
 Bad:
 
-> You’re a financial analyst at AcmeCorp. Generate a Q2 financial report for our investors. Include sections on Revenue Growth, Profit Margins, and Cash Flow, like with this example from last year: {{Q1_REPORT}}. Use data points from this spreadsheet: {{SPREADSHEET_DATA}}. The report should be extremely concise, to the point, professional, and in list format. It should and highlight both strengths and areas for improvement.
+> You're a financial analyst at AcmeCorp. Generate a Q2 financial report for our investors. Include sections on Revenue Growth, Profit Margins, and Cash Flow, like with this example from last year: {{Q1_REPORT}}. Use data points from this spreadsheet: {{SPREADSHEET_DATA}}. The report should be extremely concise, to the point, professional, and in list format. It should highlight both strengths and areas for improvement.
 
 Good:
 
-> You’re a financial analyst at AcmeCorp. Generate a Q2 financial report for our investors.
+> You're a financial analyst at AcmeCorp. Generate a Q2 financial report for our investors.
 >
 > AcmeCorp is a B2B SaaS company. Our investors value transparency and actionable insights.
 >
-> Use this data for your report:<data>{{SPREADSHEET_DATA}}</data>
+> Use this data for your report: <data>{{SPREADSHEET_DATA}}</data>
 >
 > <instructions>
 > 1. Include sections: Revenue Growth, Profit Margins, Cash Flow.
@@ -159,38 +153,24 @@ Good:
 > Make your tone concise and professional. Follow this structure:
 > <formatting_example>{{Q1_REPORT}}</formatting_example>
 
-It also helps to nest tags for hierarchical content:
+Nest tags for hierarchical content:
 
 ```xml
 <documents>
   <document index="1">
     <source>patient_symptoms.txt</source>
-    <document_content>
-      {{PATIENT_SYMPTOMS}}
-    </document_content>
+    <document_content>{{PATIENT_SYMPTOMS}}</document_content>
   </document>
   <document index="2">
     <source>patient_records.txt</source>
-    <document_content>
-      {{PATIENT_RECORDS}}
-    </document_content>
-  </document>
-  <document index="3">
-    <source>patient01_appt_history.txt</source>
-    <document_content>
-      {{PATIENT01_APPOINTMENT_HISTORY}}
-    </document_content>
+    <document_content>{{PATIENT_RECORDS}}</document_content>
   </document>
 </documents>
 ```
 
 #### Place long documents above the query
 
-Place your long documents and inputs (~20K+ tokens) near the top of your prompt, above your query, instructions, and examples.
-
-According to Anthropic:
-
-> Queries at the end can improve response quality by up to 30% in tests, especially with complex, multi-document inputs.
+Put long inputs (~20K+ tokens) near the top of your prompt, above your query, instructions, and examples. Per Anthropic, queries at the end can improve response quality by up to 30%, especially with complex, multi-document inputs.
 
 Bad:
 
@@ -200,15 +180,11 @@ Analyze the annual report and competitor analysis. Identify strategic advantages
 <documents>
   <document index="1">
     <source>annual_report_2023.pdf</source>
-    <document_content>
-      {{ANNUAL_REPORT}}
-    </document_content>
+    <document_content>{{ANNUAL_REPORT}}</document_content>
   </document>
   <document index="2">
     <source>competitor_analysis_q2.xlsx</source>
-    <document_content>
-      {{COMPETITOR_ANALYSIS}}
-    </document_content>
+    <document_content>{{COMPETITOR_ANALYSIS}}</document_content>
   </document>
 </documents>
 ```
@@ -219,15 +195,11 @@ Good:
 <documents>
   <document index="1">
     <source>annual_report_2023.pdf</source>
-    <document_content>
-      {{ANNUAL_REPORT}}
-    </document_content>
+    <document_content>{{ANNUAL_REPORT}}</document_content>
   </document>
   <document index="2">
     <source>competitor_analysis_q2.xlsx</source>
-    <document_content>
-      {{COMPETITOR_ANALYSIS}}
-    </document_content>
+    <document_content>{{COMPETITOR_ANALYSIS}}</document_content>
   </document>
 </documents>
 
@@ -236,110 +208,44 @@ Analyze the annual report and competitor analysis. Identify strategic advantages
 
 #### Prefill the beginning of response
 
-Add initial text in the `Assistant` message and Claude will fill in where it leaves off:
+Add initial text in an `Assistant` message and Claude will continue from where it leaves off:
 
 ```java
 ConverseRequest converseRequest = ConverseRequest.builder()
   .modelId("claude-3-7-sonnet")
   .messages(Message.builder()
     .role(ConversationRole.USER)
-    .content(ContentBlock.fromText( "What is your favorite color?"))
+    .content(ContentBlock.fromText("What is your favorite color?"))
     .build())
   .messages(Message.builder()
     .role(ConversationRole.ASSISTANT)
-    .content(ContentBlock.fromText( "As an AI assistant, I don't have a favorite color, But if I had to pick, it would be green because"))
+    .content(ContentBlock.fromText("As an AI assistant, I don't have a favorite color, But if I had to pick, it would be green because"))
     .build())
   .inferenceConfig(config -> config
     .maxTokens(2000)
     .temperature(1.0f)
     .build())
-.build();
+  .build();
 ```
 
-> NOTE: The prefill content cannot end with trailing whitespace. A prefill like "As an AI assistant, I " (with a space at the end) will result in an error.
+> **NOTE**: Prefill content cannot end with trailing whitespace. A prefill like `"As an AI assistant, I "` will error.
 
-You can also use the prefill content to force Claude to output JSON without any initial "preamble" text:
-
-Bad:
+Prefill is also useful for forcing JSON-only output. Without a prefill, Claude often wraps JSON in preamble and explanation text. Adding an assistant message with just `"{"` causes Claude to emit JSON only:
 
 ```java
-ConverseRequest converseRequest = ConverseRequest.builder()
-  .modelId("claude-3-7-sonnet")
-  .messages(Message.builder()
-    .role(ConversationRole.USER)
-    .content(ContentBlock.fromText("""
-Extract the name, size, price, and color from this product description as a JSON object:
-
-<description>
-The SmartHome Mini is a compact smart home assistant available in black or white for only $49.99. At just 5 inches wide, it lets you control lights, thermostats, and other connected devices via voice or app—no matter where you place it in your home. This affordable little hub brings convenient hands-free control to your smart devices.
-</description>
-    """))
-    .build())
-  .inferenceConfig(config -> config
-    .maxTokens(2000)
-    .temperature(1.0f)
-    .build())
-.build();
+.messages(Message.builder()
+  .role(ConversationRole.ASSISTANT)
+  .content(ContentBlock.fromText("{"))
+  .build())
 ```
 
-With this prompt, Claude will respond with something like
-
-> Here’s the extracted information in JSON format:
->
-> ```json
-> {
-> “name”: “SmartHome Mini”,
-> “size”: “5 inches wide”,
-> “price”: “$49.99”,
-> “colors”: [“black”, “white”]
-> }
-> ```
->
-> I’ve extracted the following details from the product description:
->
-> - Name: SmartHome Mini
-> - Size: 5 inches wide
-> - Price: $49.99
-> - Colors: Available in black and white
->
-> The JSON object provides a structured format that’s easy for programs to parse and use. Let me know if you need any modifications or have any other questions!
-
-Good:
-
-```java
-ConverseRequest converseRequest = ConverseRequest.builder()
-  .modelId("claude-3-7-sonnet")
-  .messages(Message.builder()
-    .role(ConversationRole.USER)
-    .content(ContentBlock.fromText("""
-Extract the name, size, price, and color from this product description as a JSON object:
-
-<description>
-The SmartHome Mini is a compact smart home assistant available in black or white for only $49.99. At just 5 inches wide, it lets you control lights, thermostats, and other connected devices via voice or app—no matter where you place it in your home. This affordable little hub brings convenient hands-free control to your smart devices.
-</description>
-    """))
-    .build())
-  .messages(Message.builder()
-    .role(ConversationRole.ASSISTANT)
-    .content(ContentBlock.fromText( "{"))
-    .build())
-  .inferenceConfig(config -> config
-    .maxTokens(2000)
-    .temperature(1.0f)
-    .build())
-.build();
-```
-
-With this prefill, Claude will respond with solely JSON:
+Result:
 
 ```json
 {
-Assistant (Claude’s response)	“name”: “SmartHome Mini”,
-“size”: “5 inches wide”,
-“price”: “$49.99”,
-“colors”: [
-“black”,
-“white”
-]
+  "name": "SmartHome Mini",
+  "size": "5 inches wide",
+  "price": "$49.99",
+  "colors": ["black", "white"]
 }
 ```

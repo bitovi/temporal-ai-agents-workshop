@@ -2,36 +2,28 @@
 
 ## Goals
 
-The goal of this exercise is to understand how to configure an LLM to call external tools, such as APIs, query databases, or perform calculations, to enhance its capabilities and to provide more accurate and useful responses to user queries.
-
-In this exercise, by registering tools with the LLM, and then posing a question to the model, we can allow the model to determine when it needs to call an external tool to fetch information or perform a task that is otherwise outside of its text-based capabilities.
+Learn how to configure an LLM to call external tools—such as APIs, database queries, or calculations—so it can answer queries that go beyond its text-based capabilities. You'll register a tool with the model, prompt it, and let it decide when to invoke that tool.
 
 ## What you need to know
 
-Tool Calling, also called Function Calling or Tool Use, is a technique that allows LLMs to perform a wider variety of tasks. This technique comes with some other key advantages when building applications with LLMs:
+Tool Calling (also called Function Calling or Tool Use) lets LLMs do far more than generate text:
 
-- LLMs can retrieve real-time data (e.g., current weather, live news, stock prices) by calling web search tools or specific APIs, addressing the limitation of their training data cutoff
-- LLMs can automate tasks by interfacing with productivity tools (e.g., sending emails, reading/writing calendar entries, scheduling meetings, processing payments)
-- LLMs can use code execution tools (like Python interpreters) to perform accurate mathematical or logical operations that they are not inherently good at, such as calculating compound interest or performing statistical analysis
-- LLMs can orchestrate multiple function calls to solve multi-step problems (e.g., planning a trip by checking flight availability, booking a hotel, and renting a car through different APIs). This allows them to construct novel workflows and combine tools in creative ways
-- By allowing the LLM to control function invocation, it can reliably extract and format parameters from user input for APIs, even with less controlled inputs
+- Retrieve real-time data (weather, news, stock prices) via APIs, bypassing training-data cutoffs
+- Automate tasks through productivity tools (email, calendars, payments)
+- Delegate math and logic to code execution tools (e.g., a Python interpreter) for reliable results
+- Orchestrate multi-step workflows by chaining or parallelizing tool calls
+- Reliably extract and format parameters from unstructured user input
 
 ## How it works
 
-In order for the model to determine what tools might be useful to it, and what parameters are required to call those tools, we need to define the tools and their input parameters in a way that the model can understand. This is typically done by providing a JSON schema that describes the tool's name, description, and the parameters it accepts.
+To call a tool, the model needs a machine-readable description of it. Each provider has its own format; Bedrock (used here) uses JSONSchema-based definitions.
 
-Each model provider, in our case Bedrock, has its own way of defining tools and their schemas. Many of them use JSONSchema, which is a standard way to describe the structure of JSON data. This allows the model to understand what inputs are required for each tool and how to format the output.
+A Bedrock `ToolSpecification` contains:
 
-A `ToolSpecification` for Bedrock contains the following fields:
+- `name` — identifier used when invoking the tool
+- `description` — tells the model when the tool is useful
+- `inputSchema` — a `ToolInputSchema` describing parameter types, required fields, and constraints
 
-- `name`: The name of the tool, which is used to identify it when calling the tool.
-- `description`: A brief description of what the tool does, which helps the model understand when to use it.
-- `inputSchema`: A `ToolInputSchema` describes the input parameters required by the tool. This includes the type of each parameter, if it is required or optional, and any additional constraints on the format.
+Tools are passed to the model in the `toolConfig` of a `ConverseRequest`. Instead of returning text, the model may return a `ToolUseBlock` containing the tool name and parameters. Your application is responsible for validating the tool exists, executing it, and sending the result back to the model as context for the next request.
 
-The list of available tools is provided to the model as part of the `ConverseRequest` in the `toolConfig`. The model can then decide, instead of generating a text response, to return a `ToolUseBlock`that contains the name of the tool to call and the input parameters to pass to that tool.
-
-When the model returns a `ToolUseBlock`, it indicates that it has determined that calling an external tool is necessary to answer the user's query. It is up to the application developer to implement the logic to call the specified tool, and check that the tool even exists, before calling the model again with the tool's output as part of the context for the next request.
-
-In our simple example here we will provide a single tool that fetches the current weather for a given location. The wrapper code will also only allow the model to call one tool. In a more complete implementation the tool calling, context updating, and error handling could be done in a recursive manner, allowing the model to call multiple tools (even in parallel) to fetch information and handle errors gracefully.
-
-Once the model has called all the tools it needs, it can then generate a final response based on the outputs of those tools. Because all the tool output has been added to the context, very much like our RAG example, the model can use that information to generate a more accurate and useful response.
+This exercise provides a single tool that fetches the current weather for a location, and the wrapper allows only one tool call. A production implementation would typically loop—handling multiple (and possibly parallel) tool calls and errors—until the model produces a final response. As with RAG, all tool outputs become part of the context the model uses to craft that response.
