@@ -2,61 +2,43 @@
 
 ## Goals
 
-The goal of this exercise is to understand how to configure multiple LLM-based agents to collaborate and communicate with each other to solve complex tasks that may require diverse expertise or capabilities.
-
-Implementing agent-to-agent communication allows for the creation of more sophisticated AI systems that can leverage the strengths of different models or specialized agents to achieve better outcomes.
+Understand how to configure multiple LLM-based agents to collaborate on complex tasks that require diverse expertise. Multi-agent systems leverage the strengths of different models or specialized agents to achieve better outcomes than any single generalist agent.
 
 ## What you need to know
 
-Single-agent systems have limitations. One single Agent trying to handle research, reasoning, code generation, customer support, billing systems, and validation simultaneously tends to be mediocre at all of them. As the amount of information in the models context grows, quality often degrades.
-
-This can often be mitigated by multi-agent orchestration, which addresses this by breaking down complex tasks across specialized agents, each operating within its own focused context window
+A single agent trying to handle research, reasoning, code generation, customer support, billing, and validation simultaneously tends to be mediocre at all of them — quality often degrades as context grows. Multi-agent orchestration mitigates this by breaking complex tasks across specialized agents, each operating within its own focused context window.
 
 ### Specialization Over Generalization
 
-A single very capable agent can do many things, but specialized agents often do those things more predictably, more efficiently, and with less context overhead.
+Specialized agents do their tasks more predictably, more efficiently, and with less context overhead than a single generalist. Each agent can be tuned via system prompt, model selection, and tool definitions for its domain — a quick lookup agent can run on a small fast model with a tight prompt, while a deep reasoning agent uses a frontier model with a richer prompt. Narrower instructions and tools also produce more consistent behavior since there are fewer ways to go off-script.
 
-By specializing agents for their specific tasks, we can achieve higher quality results. Each agent can focus on a narrow domain, with a clear understanding of its responsibilities and limitations.
-
-Each agent can be tuned via system prompts, model selection, and tool definitions for a specific domain. Not every task needs the same model, the same reasoning effort, or the same amount of context — a quick lookup agent can run on a small fast model with a tight prompt, while a deep reasoning agent can use a frontier model with a richer system prompt. Narrower instructions and tools also tend to produce more consistent behavior, since there are fewer ways for the agent to go off-script.
-
-For example, a billing agent doesn't need to understand account verification logic, and vice versa, and it certainly doesn't need to know how to write game engine code — so we don't pay the context cost of including any of that. This mirrors how human teams organize around expertise.
-
-This also extends our Plan & Execute pattern: when each sub-agent has a well-defined set of abilities, it becomes much easier for the top-level orchestrator to decide which sub-agent to delegate a given task to.
-
-Sometimes we DO expect our humans, or agents, to generalize across domains, but this is usually less efficient and can lead to lower quality results compared to specialized agents.
+A billing agent doesn't need account verification logic or game-engine code, so we don't pay the context cost. This mirrors how human teams organize around expertise, and it extends our Plan & Execute pattern: when each sub-agent has a well-defined set of abilities, the top-level orchestrator can more easily decide where to delegate.
 
 Tighter scope per agent also makes the overall system easier to control, evaluate, and improve over time.
 
 ### Parallelization
 
-When we have multiple agents working on different parts of a task, we can take advantage of parallelization to speed up the overall process. We saw this general idea in the Plan & Execute Architecture! The difference now is that each parallel "task" is itself a sub-agent going off to perform work, rather than a single tool call.
+When multiple agents work on different parts of a task, we can parallelize to speed up the overall process — the same idea as the Plan & Execute Architecture, except each parallel "task" is itself a sub-agent doing work rather than a single tool call.
 
-As long as subtasks don't share dependencies, they can execute concurrently. Parallel retrieval, analysis, or validation can dramatically reduce wall-clock time, and a coordinator agent can merge or rank the outputs after the fact into a final result.
-
-This doesnt do anything to increase or decrease the total amount of computation required for a task, but it allows us to complete the task faster by leveraging multiple agents to work concurrently.
+As long as subtasks don't share dependencies, they can execute concurrently. Parallel retrieval, analysis, or validation dramatically reduces wall-clock time, and a coordinator agent can merge or rank the outputs into a final result. This doesn't reduce total compute, but it lets us complete the task faster.
 
 ### Clear Boundaries
 
-Agents work better when they have clear responsibilities and explicit instructions. Defining tight bounds around what an agent is allowed to do, and what it is responsible for, makes that individual agent more effective and makes it easier for other agents (and humans) to work with it.
+Agents work better with clear responsibilities and explicit instructions. Tight bounds on what an agent can do and is responsible for make that agent more effective and make it easier for other agents (and humans) to work with it.
 
-- Clear ownership reduces overlap and confusion between agents.
-- Well-defined inputs and outputs simplify coordination, especially when one agent is calling another.
-- Boundaries make the overall system easier to test, replace, and scale, since each agent has fewer hidden dependencies than a catch-all agent would.
+- Clear ownership reduces overlap and confusion.
+- Well-defined inputs and outputs simplify coordination.
+- Boundaries make the system easier to test, replace, and scale.
 
-All of this ultimately serves the same goal: keeping each agent's context window organized and well-defined.
+Ultimately this all serves the same goal: keeping each agent's context window organized and well-defined.
 
 ### Context Window Management
 
-Context Windows have come up in every exercise so far, as they are a critical factor in determining how much information an agent can consider at once. Proper management of context windows is essential for maintaining the quality and relevance of the agent's responses.
+Splitting tasks across multiple agents lets each agent operate within its own context window, preventing the orchestrator's context from being overloaded. Each sub-agent processes information independently and only a final distilled summary flows back up.
 
-Splitting tasks across multiple agents allows each agent to operate within its own context window, preventing the main orchestrator's context from becoming overloaded.
+> Note: GitHub Copilot and Claude Code use this technique heavily — the main agent stays focused on the high-level plan while exploration, research, and other detailed tasks are delegated to sub-agents. You can often see this in the "thinking" steps where they announce a plan to spawn several sub-agents in parallel and then merge findings back into the main conversation.
 
-Each agent gets its own context window, allowing it to process information independently without affecting the main orchestrator's context. Only a final distilled summary flows back up to the orchestrator agent.
-
-> Note: We can see this technique in action in tools like GitHub Copilot and Claude Code, where sub-agents are used to manage context windows effectively! The main agent stays focused on the high-level plan, while exploration of the codebase, research, and other detailed tasks are delegated to sub-agents. You can often see this in the "thinking" steps of these tools, where they explicitly announce a plan to spawn several sub-agents in parallel — for example, to explore many commits or files across a codebase at once — and then merge the findings back into the main conversation.
-
-For a concrete example, Claude Code ships with an `Explore` sub-agent: a fast, read-only agent specialized for searching and navigating codebases. It is locked down to glob/grep/read tools (no `Write`, `Edit`, `Bash`, or further `Agent` spawning), and given a system prompt that tells it to make parallel tool calls and return findings efficiently. The root Claude Code agent can spawn many `Explore` instances in parallel to divide-and-conquer searches across a large codebase, and only the distilled findings come back into the main conversation.
+For a concrete example, Claude Code ships with an `Explore` sub-agent: a fast, read-only agent specialized for searching codebases. It is locked down to glob/grep/read tools (no `Write`, `Edit`, `Bash`, or further `Agent` spawning), with a system prompt instructing parallel tool calls and efficient findings. The root Claude Code agent can spawn many `Explore` instances in parallel to divide-and-conquer searches across a large codebase.
 
 ```js
 Explore: {
@@ -84,7 +66,7 @@ Explore: {
 }
 ```
 
-Claude Code also ships sub-agents with much more narrowly specialized use cases. The `claude-code-guide` agent, for example, is a documentation expert dedicated to helping users understand and use Claude Code, the Claude Agent SDK, and the Claude API. It is also read-only, with a system prompt that constrains it to those three domains and prescribes a clear approach (identify the domain, fetch official docs, provide actionable guidance with examples). This is a great illustration of how tightly scoped a specialized sub-agent can be.
+Claude Code also ships sub-agents with much more narrow specializations. The `claude-code-guide` agent, for example, is a documentation expert dedicated to Claude Code, the Claude Agent SDK, and the Claude API. It's also read-only, with a prompt that constrains it to those three domains and prescribes a clear approach (identify the domain, fetch official docs, provide actionable guidance). A great illustration of how tightly scoped a specialized sub-agent can be.
 
 ```js
 "claude-code-guide": {
@@ -114,35 +96,35 @@ Claude Code also ships sub-agents with much more narrowly specialized use cases.
 }
 ```
 
-If one of the sub-agents fails or produces an error, the orchestrator can handle the situation gracefully without affecting the overall task or polluting the main context window with error messages or incomplete information.
+If a sub-agent fails, the orchestrator can handle it gracefully without polluting the main context with error details.
 
 ## Local Agents vs Remote Agents
 
-There are two main ways to build multi-agent systems, and they tend to map onto two different layers of tooling: frameworks and protocols.
+There are two main ways to build multi-agent systems, and they map onto two layers of tooling: frameworks and protocols.
 
 ### Local framework-level orchestration
 
-This is the model we just saw with Claude Code and GitHub Copilot, and it is what most multi-agent frameworks do today.
+This is the model used by Claude Code, GitHub Copilot, and most multi-agent frameworks today.
 
-- Agents live inside the same application, often in the same process, under the control of one top-level orchestrator agent.
-- Sub-agents are often invoked like tools — the root agent delegates a task (sometimes to many parallel sub-agents at once), waits for the result, and continues.
-- Communication is usually synchronous and centrally controlled. The orchestrator handles task delegation, context management, and error handling, and sub-agents share resources directly.
-- Sub-agents are typically tightly coupled to the orchestrator and not designed to operate independently outside of the framework.
+- Agents live in the same application, often the same process, under one top-level orchestrator.
+- Sub-agents are typically invoked like tools — the root agent delegates a task (sometimes to many parallel sub-agents) and waits for the result.
+- Communication is usually synchronous and centrally controlled. The orchestrator handles delegation, context, and errors; sub-agents share resources directly.
+- Sub-agents are tightly coupled to the orchestrator and not designed to operate independently.
 
 ### Remote protocol-level collaboration
 
-The other approach is protocol-based, where our agent communicates with external agents across a network boundary.
+The other approach is protocol-based, where our agent talks to external agents across a network boundary.
 
-- The remote agent may be a completely separate system — owned by a different team or company, running in a different environment, written in a different language, and using different models or tools.
-- External agents act as peers or collaborators rather than internal helpers.
-- Interaction is often asynchronous, stateful, and loosely coupled. We may need to negotiate with the remote agent, exchange messages over time, and handle latency and failure differently than we would for a local tool call.
+- The remote agent may be a separate system — different team or company, different environment, different language, different models or tools.
+- External agents are peers or collaborators rather than internal helpers.
+- Interaction is often asynchronous, stateful, and loosely coupled. We may need to negotiate, exchange messages over time, and handle latency and failure differently than a local tool call.
 - It looks less like an internal function call and more like working with another user or service.
 
-This is exactly the problem the Agent2Agent (A2A) Protocol is designed to address. Before we dig into A2A, though, it's worth looking at another piece of tooling from Google — the Agent Development Kit (ADK) — since it shows up in both the local and remote pictures.
+This is exactly what the Agent2Agent (A2A) Protocol is designed to address. Before we dig into A2A, it's worth looking at the Agent Development Kit (ADK), since it shows up in both the local and remote pictures.
 
 ## Frameworks & SDKs
 
-Survey of the major multi-agent frameworks, their philosophies, and when to use each. Focus on architectural differences rather than API tutorials.
+A quick survey of the major multi-agent frameworks, focused on architectural differences rather than API tutorials.
 
 ### LangGraph (LangChain)
 
@@ -199,22 +181,16 @@ We can take a lot of inspiration from distributed systems when designing multi-a
 
 ### Orchestrator-Worker (Hub and Spoke)
 
-The most widely deployed pattern in production (at least according to Google). A central orchestrator receives tasks, decomposes them, routes subtasks to specialized workers, and aggregates results. Workers don't communicate with each other — all coordination flows through the orchestrator.
+The most widely deployed pattern in production. A central orchestrator receives tasks, decomposes them, routes subtasks to specialized workers, and aggregates results. Workers don't communicate directly — all coordination flows through the orchestrator.
 
-- Orchestrator maintains global state, handles error recovery
+- Orchestrator maintains global state and handles error recovery
 - Workers are stateless and focused on a single capability
 - Trade-off: orchestrator is a single point of failure and potential bottleneck
 - Examples: LangGraph Supervisor, AutoGen group chat with selector agent
 
 #### Example: Orchestrator-Worker in ADK
 
-The Agent Development Kit provides some simple abstractions for this pattern. We define a number of agents, and then promote one to be the primary root agent by giving it the list of sub-agents it should manage.
-
-In the example below we define:
-
-- A **Billing** agent that handles payment issues and general billing inquiries
-- A **Support** agent that handles technical support requests and login problems
-- A **Help Desk Coordinator** root agent that routes incoming requests to whichever sub-agent is the best fit
+ADK provides simple abstractions for this pattern: define agents, then promote one to root by giving it a list of sub-agents to manage. Below we define a **Billing** agent, a **Support** agent, and a **Help Desk Coordinator** that routes requests to whichever sub-agent fits best:
 
 ```js
 LlmAgent billingAgent = LlmAgent.builder()
@@ -260,17 +236,13 @@ Linear assembly line — Agent A completes, passes output to Agent B, then Agent
 
 #### Example: Sequential code-writing pipeline
 
-A common use case for a sequential pipeline is writing code through a series of specialized passes:
+A common use case for a sequential pipeline is writing code through specialized passes:
 
-- **Code Writer** — generates the initial implementation from a specification
-- **Code Reviewer** — adversarially reviews the generated code for errors, style issues, and adherence to best practices
-- **Code Refactorer** — refactors the code to improve quality and address the reviewer's findings
+- **Code Writer** — generates the initial implementation from a specification.
+- **Code Reviewer** — adversarially reviews the code for errors, style, and best practices.
+- **Code Refactorer** — refactors based on the reviewer's findings.
 
-A `SequentialAgent` is a perfect fit here, ensuring the code is written, then reviewed, and finally refactored in a strict, dependable order.
-
-# Sequential Agent Pipeline
-
-## Code example
+A `SequentialAgent` is a perfect fit, ensuring code is written, reviewed, and refactored in a strict order:
 
 ```java
 LlmAgent writer = LlmAgent.builder()
@@ -336,40 +308,28 @@ Sub-agents getting fresh context windows isn't a limitation — it's the point. 
 
 ### When NOT to Multi-Agent
 
-Like any distributed system, multi-agent architectures introduce complexity that can outweigh their benefits if not carefully managed. Most projects should always start with a single agent and only move to a multi-agent setup when there are clear, unavoidable limitations that a single agent cannot address.
+Like any distributed system, multi-agent architectures introduce complexity that can outweigh their benefits. Always start with a single agent; only move to multi-agent when there are clear, unavoidable limitations.
 
-There are several failure modes to be aware of:
+Failure modes to be aware of:
 
-- **Cascading failures**
-  - One agent's bad output becomes another's bad input.
-  - Each handoff is an error amplification point.
-
-- **Coordination overhead**
-  - Every additional agent adds latency from routing decisions and context management
-
-- **Observability challenges**
-  - Debugging "why did the user end up at Agent F instead of Agent D?" requires production-grade distributed tracing
-
-- **The single-agent ceiling test**
-  - If your agent works well with fewer tools and a focused system prompt, you don't need multi-agent. Refactor the prompt before reaching for orchestration.
+- **Cascading failures.** One agent's bad output becomes another's bad input. Each handoff is an error amplification point.
+- **Coordination overhead.** Every additional agent adds latency from routing decisions and context management.
+- **Observability challenges.** Debugging "why did the user end up at Agent F instead of Agent D?" requires production-grade distributed tracing.
+- **Single-agent ceiling test.** If your agent works well with fewer tools and a focused prompt, you don't need multi-agent. Refactor the prompt before reaching for orchestration.
 
 ## Practical Examples
 
-Claude Code & GitHub Copilot both make use of multi-agent architectures to manage complex tasks.
+Claude Code and GitHub Copilot both use multi-agent architectures. Each spawns sub-agents with their own context windows, system prompts, and tool definitions; the main agent acts as orchestrator, delegating focused subtasks and receiving back concise results.
 
-Both tools spawn sub-agents with their own context windows, system prompts, and tool definitions. The main agent acts as an orchestrator, delegating focused subtasks and receiving back concise results.
+Claude Code's built-in sub-agents:
 
-Claude Code ships with built-in sub-agents
+- **General Purpose** — general work
+- **Explore** — codebase navigation
+- **Plan** — software architect that builds implementation plans
+- **claude-code-guide** — documentation expert for Claude Code itself
+- **Verification** — adversarial agent that tries to break implementations and find edge cases
 
-- 'General Purpose' Agent for general work
-- 'Explore' Agent for codebase navigation
-- 'Plan' Agent that acts as a software architect, building implementation plans
-- 'claude-code-guide' Agent for assisting with using Claude Code itself, documentation, and usage
-- 'Verification' Agent, an adversarial agent that attempts to break implementations and find edge cases
-
-Each of these sub-agents are specialized for a particular type of task, allowing the main orchestrator agent to delegate work efficiently and maintain a clean separation of concerns.
-
-Simple Sub-Agents are spawned using this Tool Call:
+Simple sub-agents are spawned via this tool call:
 
 ```js
 {
@@ -402,7 +362,7 @@ Simple Sub-Agents are spawned using this Tool Call:
 }
 ```
 
-More complex multi-step Agents can also be created:
+More complex multi-step agents add background execution, isolation modes, and additional sub-agent types:
 
 ```js
 {
@@ -466,29 +426,19 @@ More complex multi-step Agents can also be created:
 
 ## Take Advantage of Temporal
 
-Bridge to your existing Temporal-based architecture from Exercises 1-7. How do these multi-agent patterns map to Temporal's primitives?
+How do these multi-agent patterns map to Temporal's primitives? Temporal already solves a lot of distributed-systems concerns — state management, fault tolerance, orchestration — so we can lean on it rather than reinventing the wheel.
 
-Temporal solves a lot of problems around normal distributed systems concerns like state management, fault tolerance, and orchestration. We can take advantage of these features when designing multi-agent systems as well, no need to reinvent the wheel when we get these for free from Temporal.
-
-- **Orchestrator-Worker**
-  - Temporal Workflow as orchestrator
-  - Activities or Child Workflows as workers
-- **Parallel Fan-Out**
-  - `Promise.all()` on multiple Activity invocations
-- **Pipeline**
-  - Sequential Activity execution within a Workflow
-- **Hierarchical**
-  - Parent Workflows delegating to Child Workflows
-- **Handoffs**
-  - Signal-based communication between Workflows
-- **State**
-  - Temporal's event-sourced Workflow state replaces framework-specific state management
-- **Fault tolerance**
-  - Temporal's built-in retry policies, timeouts, and usage of saga patterns
+- **Orchestrator-Worker** — Temporal Workflow as orchestrator; Activities or Child Workflows as workers.
+- **Parallel Fan-Out** — `Promise.all()` on multiple Activity invocations.
+- **Pipeline** — Sequential Activity execution within a Workflow.
+- **Hierarchical** — Parent Workflows delegating to Child Workflows.
+- **Handoffs** — Signal-based communication between Workflows.
+- **State** — Temporal's event-sourced Workflow state replaces framework-specific state management.
+- **Fault tolerance** — Built-in retry policies, timeouts, and saga patterns.
 
 ## ADK Remote Agents
 
-The ADK doesn't only handle local sub-agents — it also makes it easy to plug in remote agents, as long as they speak the A2A Protocol. ADK provides a `RemoteA2AAgent` abstraction that wraps an A2A client and exposes it as just another `BaseAgent`. From the orchestrator's point of view, the remote agent looks identical to any other local ADK sub-agent — the ADK handles all of the network translation internally.
+ADK doesn't only handle local sub-agents — it also makes plugging in remote agents easy, as long as they speak the A2A Protocol. ADK provides a `RemoteA2AAgent` abstraction that wraps an A2A client and exposes it as just another `BaseAgent`. From the orchestrator's point of view, a remote agent looks identical to a local one — ADK handles the network translation.
 
 ```java
 // 1. Resolve the public AgentCard from the remote agents endpoint
@@ -511,27 +461,23 @@ BaseAgent remotePrimeAgent = RemoteA2AAgent.builder()
     .build();
 ```
 
-> Note: Because ADK for Java 1.0.0 was just released, this exercise doesn't yet include a full Java + remote-agent example. We'll see the equivalent integration in TypeScript later in the exercise. For now, let's look at how A2A itself works under the hood so we can interact with remote agents directly.
+> Note: Because ADK for Java 1.0.0 was just released, this exercise doesn't yet include a full Java + remote-agent example. We'll see the equivalent integration in TypeScript later. For now, let's look at how A2A itself works under the hood.
 
 ## The Agent2Agent Protocol
 
-The Agent-to-Agent Protocol is an open standard created by Google that enables AI Agents to seamlessly communicate and collaborate with each other in a structured way. The goal is to let agents interoperate within a dynamic multi-agent system regardless of which framework, vendor, or underlying technology they were built on — giving agents from different teams or companies a common language to collaborate as peers. A2A also addresses many of the challenges Google encountered while deploying large-scale multi-agent systems internally and for their customers.
+The Agent-to-Agent Protocol is an open standard from Google (now managed by the Linux Foundation) that lets AI agents communicate and collaborate in a structured way regardless of framework, vendor, or underlying tech. It addresses many of the challenges Google encountered while deploying large-scale multi-agent systems internally and for customers, and gives agents from different teams or companies a common language to collaborate as peers.
 
-The A2A Protocol is now managed by the Linux Foundation. Under the Linux Foundation’s governance, the hope is that A2A will remain vendor neutral, emphasize inclusive contributions and continue the protocol’s focus on extensibility, security and real-world usability across industries.
-
-A2A defines standard 'agent cards', authentication and authorization mechanisums for controlling access between agents. It also provides the ability for agents to collaborate on long-running tasks without exposing their internal state to each other.
+A2A defines standard agent cards, authentication and authorization mechanisms for controlling access, and supports long-running tasks without exposing internal state between agents.
 
 In this exercise, our personal assistant agent (Java/Temporal) uses the [A2A Java SDK](https://github.com/a2aproject/a2a-java-sdk) as a client to communicate with a remote Riot Games support agent (TypeScript) built with the [A2A JS SDK](https://github.com/a2aproject/a2a-js).
 
 ### Design Principles
 
-A2A is guided by a handful of core design principles:
-
-- **Embrace agentic capabilities** — Agents collaborate in their natural, unstructured patterns without needing shared memory, tools, or context. This is what enables true multi-agent scenarios across organizational boundaries.
-- **Build on existing standards** — A2A is built on widely accepted technical standards like HTTP, Server-Sent Events (SSE), and JSON-RPC, making it straightforward to integrate with existing enterprise IT stacks.
-- **Support for long-running tasks** — A2A flexibly supports everything from quick request/response interactions to complex research that takes hours or days (potentially with human intervention along the way), with real-time feedback, notifications, and status updates during task execution.
-- **Secure by default** — Designed to support enterprise-grade authentication and authorization, so only authorized users and systems can access an agent.
-- **Modality agnostic** — Supports multiple interaction forms — text, audio, video streams, forms, iframes, and more — so agents aren't limited to plain text messaging.
+- **Embrace agentic capabilities** — Agents collaborate naturally without sharing memory, tools, or context, enabling true multi-agent scenarios across organizational boundaries.
+- **Build on existing standards** — HTTP, Server-Sent Events, JSON-RPC; integrates easily with existing enterprise stacks.
+- **Support long-running tasks** — Quick request/response through to multi-day work (potentially with human intervention), with real-time feedback and status updates.
+- **Secure by default** — Designed for enterprise auth/authz so only authorized callers can access an agent.
+- **Modality agnostic** — Text, audio, video, forms, iframes, etc.
 
 ### How it works
 
@@ -903,6 +849,186 @@ public class AgentRegistryTool {
         System.out.println("[AgentRegistryTool] Found " + results.size() + " agent(s)");
         return gson.toJson(Map.of("agents", results));
     }
+}
+```
+
+#### A2A Tasks & Messages
+
+The other half of the discovery + communication pair is the `A2ATool`, which handles all of the actual messaging between our local agent and the remote agent.
+
+`validateToolParams` enforces the shape of the input — we always need an `agentUrl` and a `message`, and for follow-up turns on an existing task we also expect a `taskId` and `contextId`.
+
+Building the outgoing `Message` is straightforward in either case:
+
+- **First message in a new task** — we send a user text message with no task or context IDs, and the A2A SDK takes care of creating the new task (and assigning a `taskId`) on the remote side.
+- **Follow-up message on an existing task** — we attach the existing `contextId` and `taskId` so the remote agent knows which ongoing task this message belongs to.
+
+Once the message is ready, we need a connection to the remote agent. Connections are cached per `agentUrl`, so if we've spoken with this remote agent before we just reuse the existing `AgentConnection`. If not, we resolve the remote agent's Agent Card via `A2ACardResolver`, build an `A2AClient` from that card, wrap it in a new `AgentConnection`, and store it for next time.
+
+Finally, the message and the (cached or fresh) connection are handed off to `A2AHandler.sendAndCollect`, which actually drives the request/response with the remote agent.
+
+```java
+public class A2ATool {
+    public static String execute(String toolName, Map<String, Object> toolUseInput) {
+        A2ARequestInput params = A2AHelpers.validateToolParams(toolUseInput);
+        Message message = params.existingTask()
+            ? A2A.createUserTextMessage(params.message(), params.contextId(),params.taskId())
+            : A2A.createUserTextMessage(params.message(), null, null);
+        AgentConnection conn = getOrCreateConnection(params.agentUrl());
+        return A2AHandler.sendAndCollect(conn, message);
+    }
+
+    public static AgentConnection getOrCreateConnection(String agentUrl) throws Exception {
+        AgentConnection existing = connections.get(agentUrl);
+        if (existing != null) return existing;
+
+        AgentCard card = new A2ACardResolver(agentUrl).getAgentCard();
+
+        A2AClient client = A2AClient.builder(card).build();
+        AgentConnection conn = new AgentConnection(client, card);
+        connections.put(agentUrl, conn);
+        return conn;
+    }
+}
+```
+
+#### A2A Event Processing
+
+The `A2AHandler.process` method does the actual work of sending the message and reacting to whatever the remote agent sends back. It's a fair amount of code, so we'll walk through it in smaller chunks — but at a high level it's just setting up a list of event consumers and then calling `sendMessage`.
+
+There are two main event types we care about:
+
+- **`TaskUpdateEvent`** — used for the streaming case, where the remote agent emits multiple updates over the life of the task (status transitions and artifact chunks).
+- **`TaskEvent`** — used for the non-streaming case, where the remote agent returns a single final `Task` object that we inspect for its status, history, and artifacts.
+
+At the top of the method we set up shared state for the callbacks: a `responseBuilder` for accumulating text, an `errorRef` for any error message, a `resultJsonRef` for the final JSON result, and a synchronized `collectedArtifacts` list. These use `AtomicReference` and a synchronized list because the A2A SDK invokes our consumers on its own internal callback threads — so we need thread-safe shared state between the main thread and those callbacks.
+
+`conn.client().sendMessage(message, consumers)` kicks off the internal threads that drive the communication with the remote agent. From there, we can use a latch (or similar synchronization primitive) to block the main thread until the task reaches a state we actually need to act on — `input-required`, `completed`, or `failed` — at which point we build and return the final result.
+
+```java
+public static String process(AgentConnection conn, Message message) {
+    AtomicReference<String> errorRef = new AtomicReference<>();
+    AtomicReference<String> resultJsonRef = new AtomicReference<>();
+    List<Map<String, Object>> collectedArtifacts = Collections.synchronizedList(new ArrayList<>());
+
+    List<BiConsumer<ClientEvent, AgentCard>> consumers = List.of(
+        (event, card) -> {
+            if (event instanceof TaskUpdateEvent tue) {
+                UpdateEvent ue = tue.getUpdateEvent();
+                if (ue instanceof TaskStatusUpdateEvent tsue) {
+                    // Handle status updates (working, input required, completed, failed, etc.)
+                } else if (ue instanceof TaskArtifactUpdateEvent taue) {
+                    // Handle new artifacts produced by the task
+                }
+            } else if (event instanceof TaskEvent taskEvent) {
+                // Handle TaskEvents, provides the final Task when complete
+            }
+        });
+
+    // Send the message, wait until we need to do something, then build the result and return
+    conn.client().sendMessage(message, consumers);
+    latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    return buildResult(errorRef, resultJsonRef, collectedArtifacts);
+}
+```
+
+#### A2A TaskStatusUpdate Event
+
+Zooming in on the `TaskStatusUpdateEvent` branch, this is where we react to the lifecycle states we covered earlier — `WORKING`, `INPUT_REQUIRED`, `COMPLETED`, `FAILED`, and `UNKNOWN`.
+
+The `WORKING` and `INPUT_REQUIRED` states are a little different from the others:
+
+- **`WORKING`** doesn't require us to do anything — it's just the remote agent letting us know it has started processing the task. We keep waiting.
+- **`INPUT_REQUIRED`** does require action. The remote agent needs more information from us to continue, so we capture the `taskId` and `contextId` (so our agent can resume this task later by sending a follow-up message via the `A2ATool`), build an `InputRequiredEventData` payload, store it in `resultJsonRef`, and count down the latch.
+
+The `COMPLETED`, `FAILED`, and `UNKNOWN` states all mean the same thing from the perspective of this method: the remote agent is done. We package the final status message as a `FinalEventData`, store it, and count down the latch. From there our local agent loop continues — typically relaying the final result or artifact back to the human user.
+
+Counting down the latch is how we coordinate across threads: the A2A SDK invokes our consumer on its own callback threads, and the main thread is parked on `latch.await()` until one of those callbacks signals "we're done waiting." Once the latch fires, `buildResult` packages everything `resultJsonRef`, `errorRef`, and `collectedArtifacts` have accumulated into a final JSON response.
+
+```java
+public static String process(AgentConnection conn, Message message) {
+    // Result collection objects defined here...
+    List<BiConsumer<ClientEvent, AgentCard>> consumers = List.of((event, card) -> {
+        UpdateEvent ue = tue.getUpdateEvent();
+        if (ue instanceof TaskStatusUpdateEvent tsue) {
+            String statusMsg = A2AHelpers.extractTextFromMessage(tsue);
+            if (tsue.getStatus() == TaskState.WORKING) {
+                // Nothing to do here, we just need to wait for the Remote Agent to progress
+            } else if (tsue.getStatus() == TaskState.INPUT_REQUIRED) {
+                InputRequiredEventData data = new InputRrequiredEventData(tsue.getTaskId(), tsue.getContextId(), statusMsg);
+                resultJsonRef.set(data.toJSON());
+                latch.countDown();
+            } else {
+                // Use this for COMPLETED, FAILED, and UNKNOWN states, as they all
+                // indicate the Remote Agent is done and we should return a final result
+                FinalEventData data = new FinalEventData(statusMsg);
+                resultJsonRef.set(data.toJSON());
+                latch.countDown();
+            }
+        }
+    });
+
+    // Send the message, wait until we need to do something, then build the result and return
+    conn.client().sendMessage(message, consumers);
+    latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    return buildResult(errorRef, resultJsonRef, collectedArtifacts);
+}
+```
+
+#### A2A TaskArtifactUpdate Event
+
+The other branch of the `TaskUpdateEvent` consumer handles `TaskArtifactUpdateEvent`s — the actual deliverables the remote agent produces over the life of the task.
+
+The handling here is straightforward: pull the `Artifact` off the event, iterate over its `parts`, and convert each part into a simple map keyed by the artifact's name and the part's content (text for `TextPart`, structured data for `DataPart`). Each artifact map is then appended to the shared `collectedArtifacts` list so it can be included in the final result.
+
+Because remote agents can stream artifacts incrementally (recall `append: true` and `lastChunk` from the artifact structure), this consumer can fire many times for a single task — each invocation just adds another artifact (or chunk) onto the synchronized list.
+
+```java
+List<Map<String, Object>> collectedArtifacts = Collections.synchronizedList(new ArrayList<>());
+
+if (ue instanceof TaskArtifactUpdateEvent taue) {
+    Artifact artifact = taue.getArtifact();
+    Map<String, Object> artifactMap = new HashMap<>();
+    if (artifact.parts() != null) {
+        for (Part<?> part : artifact.parts()) {
+            if (part instanceof DataPart dataPart) {
+                artifactMap.put("title", artifact.name());
+                artifactMap.put("data", dataPart.getData());
+            } else if (part instanceof TextPart textPart) {
+                artifactMap.put("title", artifact.name());
+                artifactMap.put("text", textPart.getText());
+            }
+        }
+    }
+    collectedArtifacts.add(artifactMap);
+}
+```
+
+#### A2A Tool Result
+
+Once all of the consumers have done their job — appending status updates to `resultJsonRef`, errors to `errorRef`, and artifacts to `collectedArtifacts` — and the task has resolved into one of the terminal states, the latch counts down and `latch.await()` unblocks. At that point the `process` method calls `buildResult` to package everything into a single JSON response.
+
+Because this is ultimately the return value of a tool call, the result needs to be a `String`. We just format some JSON that reflects one of three outcomes:
+
+- We got a real result back — return it as `success` along with any collected artifacts.
+- We got an error — return it as `failed` with the error message.
+- We got nothing at all — also treated as `failed`, since the tool call still needs a response to hand back to the agent.
+
+That JSON string then bubbles back up through `A2AHandler.process` → `A2ATool.execute` and lands in the local agent's tool-call result, where the agent loop can reason over it and decide what to do next.
+
+```java
+public static String buildResult(AtomicReference<String> errorRef, AtomicReference<String> resultJsonRef, List<Map<String, Object>> collectedArtifacts) {
+    String resultJson = resultJsonRef.get();
+    if (resultJson != null) {
+        return gson.toJson(Map.of("status", "success", "message", resultJson, "artifacts", collectedArtifacts));
+    }
+
+    String error = errorRef.get();
+    if (error != null) {
+        return gson.toJson(Map.of("status", "failed", "message", "Error: " + error));
+    }
+
+    return gson.toJson(Map.of("status", "failed", "message", "No response received from agent"));
 }
 ```
 

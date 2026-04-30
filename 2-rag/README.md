@@ -2,84 +2,65 @@
 
 ## Goals
 
-The goal of this exercise is to understand how information from documents, webpages, code, etc can be converted to a numerical representation, stored in a vector database, and retrieved for use in the LLM context.
+Understand how information from documents, webpages, code, etc. can be converted into a numerical representation, stored in a vector database, and retrieved for use in the LLM context.
 
 ## What you need to know
 
-Retrieval-Augmented Generation is a technique that enhances the performance of LLMs by combining their generative capabilities with information from external sources. This allows the model to access relevant information from databases, documents, or the web and use it to form a more acurate and contextually informed response.
+Retrieval-Augmented Generation (RAG) enhances LLMs by combining their generative capabilities with information from external sources such as databases, documents, or the web. This is especially useful for surfacing domain-specific information from an organization's internal knowledge base without retraining or fine-tuning the base model.
 
-This can be especially useful for adding domain specific information from an organizations internal knowledge base, without needing to retrain or fine-tune the base model.
+RAG helps mitigate common LLM problems:
 
-Working with LLMs tends to introduce challenges like
-
-- Presenting false information when the topic is not well defined in the training data.
-- Presenting out-of-date or generic information when the user wants a specific, current response.
-
-RAG can improve the generated text output from the model in both of these areas by providing authoritative and up-to-date information from a predetermined knowledge source.
+- Presenting false information when a topic isn't well represented in the training data.
+- Returning out-of-date or generic answers when a specific, current response is needed.
 
 ## How it works
 
-If we start with a bunch of documents, we first need to break them down into a manageable size. We need to take chunks of the document and convert them into some format that we can work with more easily, and store that representation of the text somewhere.
+Documents are broken into manageable chunks, converted into vector representations, and stored in a vector database. When a user asks a question:
 
-Then, when the user asks a question, wen eed to (optionally) take that question, search our new datastore for chunks of text that are relevant to the question, and then provide that additional information to the model as part of its context.
+1. Run the question through the same embedding model used on the documents.
+2. Use semantic search against the vector database to fetch the most relevant chunks.
+3. Combine those chunks with the original prompt to form the model's context.
+4. Feed the context to the model and return its response.
 
-General flow:
-
--We run the users question through the same embedding model that we used to process our documents
--We then use semantic search against our vector database to fetch the most relevant document chunks
--We return those chunks, along with the original user prompt, and put both into our context
--We feed that context into the model
--The model returns us a response
-
-![Rag general flow](../.images/RAG-flowchart.png)
+![RAG general flow](../.images/RAG-flowchart.png)
 
 ### Document Splitting
 
-When creating the vector representation of the text, it is often necessary to split the document into smaller chunks. LLMs are limited in the amount of text they can process at once, their context length, so splitting up the text into smaller pieces is necessary to ensure we can work only with the most relevant parts of the document.
+LLMs have a limited context length, so documents must be split into smaller chunks so we can work with only the most relevant parts.
 
-LangChain (https://docs.langchain4j.dev/tutorials/rag/#document-splitter) is a popular framework for building applications with LLMs and it provides a variety of tools and utilities for working with text, including document splitting. There are many different strategies for splitting text. In our examples we will use the LangChain4j DocumentByParagraphSplitter, which provides a flexible way to split text by paragraphs.
+[LangChain4j](https://docs.langchain4j.dev/tutorials/rag/#document-splitter) provides several splitting strategies. Our examples use `DocumentByParagraphSplitter`. Other options include:
 
-Other options include:
+- `DocumentByLineSplitter`
+- `DocumentBySentenceSplitter`
+- `DocumentByWordSplitter`
+- `DocumentByCharacterSplitter`
+- `DocumentByRegexSplitter`
 
-- DocumentByLineSplitter
-- DocumentBySentenceSplitter
-- DocumentByWordSplitter
-- DocumentByCharacterSplitter
-- DocumentByRegexSplitter
+When instantiating a splitter, you specify the chunk size and the overlap between adjacent chunks. Overlap helps preserve context across chunk boundaries. Tuning these parameters to your document structure can significantly improve output quality.
 
-When you instantiate a DocumentSplitter you can specify the chunk size and the amount of overlap between chunks. The chunk size determines how many characters or words are in each chunk. The overlap determines how many characters or words are shared between adjacent chunks. This can be useful for ensuring that important context is not lost when splitting the text.
-
-Tuning these parameters based on the structure of your documents can help improve the quality of the generated text.
-
-One useful tool for visualizing the chunks created by a DocumentSplitter is [ChunkViz](https://chunkviz.up.railway.app/). This tool allows you to see how the text is split into chunks and how the overlap is applied. It can help you understand how the DocumentSplitter is working and how to adjust the parameters for better results. You can even upload your own text to visualize how it is split into chunks.
+[ChunkViz](https://chunkviz.up.railway.app/) is a useful tool for visualizing how text is split and where overlap is applied. You can upload your own text to experiment with different parameters.
 
 ### Embeddings
 
-https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html
-
-Embedding models are used to convert text into vector representations. These vectors capture the semantic meaning of the text and can be stored in a vector database for efficient retrieval. There are many different embedding models available. For these examples, on AWS Bedrock, we will use the `amazon.titan-embed-text-v2:0` model. The Amazon Titan Text Embedding v2 model can take an input of up to 8,192 tokens or 50,000 characters and outputs a vector of 1,024 dimensions. The model is optimized for text retrieval tasks such as RAG, classification, and document search and is optimized for English, but does also support 100+ other languages.
+Embedding models convert text into vectors that capture its semantic meaning. Our examples use AWS Bedrock's [`amazon.titan-embed-text-v2:0`](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html), which accepts up to 8,192 tokens (or 50,000 characters) and outputs a 1,024-dimension vector. It is optimized for retrieval tasks such as RAG, classification, and document search, and supports 100+ languages with a focus on English.
 
 ### Vector Database
 
-Vector databases are specialized databases designed to store and retrieve vectors efficiently. They use techniques like approximate nearest neighbor search to quickly find the most similar vectors to a given query vector. This allows for fast retrieval of relevant information from large datasets.
+Vector databases store vectors and use techniques like approximate nearest-neighbor search to quickly find the most similar vectors to a query. Many options exist, including plugins that add vector support to PostgreSQL or SQLite.
 
-There are many other vector databases available, along with plugins that add vector support to existing databases such as PostgreSQL or even SQLite. In our examples, we will use Qdrant, a popular open-source vector database that provides efficient storage and retrieval of vectors.
-
-Qdrant (read: quadrant) is a vector similarity search engine and vector database. It provides a production-ready service with a convenient API to store, search, and manage points—vectors with an additional payload Qdrant is tailored to extended filtering support. It makes it useful for all sorts of neural-network or semantic-based matching, faceted search, and other applications.
+Our examples use [Qdrant](https://qdrant.tech/) (read: "quadrant"), an open-source vector similarity search engine with extended filtering support, making it well-suited for neural/semantic matching and faceted search.
 
 ### Model Context
 
-As we learned in the previous exercise on Prompt Engineering, LLMs depend on a System Prompt to define the role of the model, the type of response we expect, and as a place to provide any additional information that is relevant to the task at hand. In the case of RAG, we can use the System Prompt to provide information that we retrieve from the vector database.
-
-Building up a basic System Prompt might look like this:
+As covered in the Prompt Engineering exercise, the System Prompt defines the model's role, expected response type, and any task-relevant information. With RAG, the System Prompt is also where we inject context retrieved from the vector database:
 
 ```text
-You are a helpful assistant that provides information about building AI Agents with Temporal. You will answer questions about building AI Agents with Temporal and provide information from the provided context. The context is provided in the form of documents, webpages, or other sources that have been converted into a vector representation and stored in a vector database.
+You are a helpful assistant that provides information about building AI Agents with Temporal. Answer questions using the provided context, which comes from documents, webpages, or other sources stored in a vector database.
 
 Additional Context:
 {context}
 
-If you do not know the answer, say "I don't know" instead of making up an answer. Keep your answers to a couple paragraphs if possible, separated by newlines, and use Markdown formatting when appropriate.
+If you do not know the answer, say "I don't know" instead of making up an answer. Keep answers to a couple of paragraphs separated by newlines, and use Markdown formatting when appropriate.
 ```
 
-This prompt defines the role of the model, the type of response we expect, and provides a placeholder for the context that will be retrieved from the vector database. The `{context}` placeholder will be replaced with the relevant information from the vector database when the model is called.
+The `{context}` placeholder is replaced with relevant chunks retrieved from the vector database before the model is called.

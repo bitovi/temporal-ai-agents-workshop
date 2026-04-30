@@ -21,9 +21,7 @@ ReAct (Reasoning and Acting) is a way to enable LLMs to combine Chain of Thought
 
 This enables the LLM to think aloud, plan the next steps, use tools to fetch information or interact with external systems, and then observe the resulting state (context) that it has collected. This cycle of **Thought → Action → Observation** is the reasoning and acting loop.
 
-As we saw in Exercise 5, we can build an agent workflow that can run multiple iterations of a reasoning and acting loop, allowing the model to call tools, collect information, ask clarifying questions, and then generate a final response.
-
-In this architecture the 'thought' step of our loop loop is where the model can reason about the problem, plan steps to solve it, and determine what actions are needed to work towards a solution. The other steps of the loop are more focused on executing those actions and collecting information, without needing as much reasoning effort from the model. In fact, this can be a useful way to optimize for cost and speed, by using the most powerful reasoning capabilities and largest models only in the 'thought' step, and then using smaller models with little to no reasoning effort in the other steps.
+As we saw in Exercise 5, we can build an agent workflow that runs multiple iterations of a reasoning and acting loop, allowing the model to call tools, collect information, ask clarifying questions, and then generate a final response.
 
 Each step in the loop has a specific role:
 
@@ -31,11 +29,9 @@ Each step in the loop has a specific role:
 - **Action:** If the Thought step returned an Action, we execute it. An Action is a call to one of our defined tools with the inputs the model decided on (returned as a structured output from the LLM). The raw result of that tool call is then passed along to the Observation step.
 - **Observation:** Tool results are often noisy or larger than we need. The Observation step uses an LLM to extract or summarize the important information from the tool's output and incorporates it back into the context. That updated context then feeds into the next Thought, closing the loop until the agent produces a final Answer.
 
-The Workflow runs through this Thought → Action → Observation loop as many times as needed, with every thought, action, and observation accumulating into the LLM's context. Because the LLM is involved at each step — generating reasoning in Thought, producing the structured tool call in Action, and summarizing results in Observation — the agent stays adaptive across iterations. This makes ReAct very flexible, easy to implement, and easy for humans to reason about.
+The Workflow runs through this Thought → Action → Observation loop as many times as needed, with every thought, action, and observation accumulating into the LLM's context. Because the LLM is involved at each step, the agent stays adaptive across iterations — making ReAct flexible, easy to implement, and easy for humans to reason about.
 
-One thing to keep in mind here is that we can, optionally, perform some optimizations on which LLM we use at different parts of the loop. For the Thought step we want a model that excels at complex decision making and long-term planning — usually the biggest, most state-of-the-art model we can use. For other steps like Observation (or in our example, score rubric adherence), we can use a much smaller, faster model whose only job is to take the text in its context window and summarize it or extract facts from a provided document.
-
-With Temporal Workflows, Activities, and Signals we can build a flexible agent architecture that can handle complex interactions, maintain state across potentially infinite iterations.
+We can optimize cost by using different models for different steps: a top-tier reasoning model for **Thought** (complex decision making, planning) and a smaller, faster model for **Observation** (summarizing or extracting facts from tool output).
 
 ```ts
 interface ThoughtResult {
@@ -67,196 +63,152 @@ interface Activities {
 
 #### Plan and Execute Agent Architecture
 
-Another common agent architecture is the 'plan and execute' architecture.
-The core loop is: Plan, Execute (step-by-step), Evaluate, and then optionally loop/re-Plan as needed.
-This is a similar approach to ReAct, however in this version the Planning step attempts to create the entire list of tasks that will be required to solve the problem upfront.
+Plan and Execute separates the 'thinking' steps from the 'doing' steps. The LLM acts as a sort of compiler — looking at the complex question, breaking it down into a sequence of tool calls, then letting the executor take it from there. The core loop is: **Plan, Execute (step-by-step), Evaluate, and optionally Re-Plan**.
 
-Plan and Execute is an architecture where we separate the 'thinking' steps from the 'doing' steps.
-The LLM acts as a sort of compiler — looking at the complex question, breaking it down into steps of tool calls, and then letting the executor take it from there.
-It is up to the Plan step to perform the strategic thinking, and it is up to the Execute step to think only about each individual task.
-This means we can use our most powerful reasoning model for the planning step, while the tool calls and result parsing in the execution steps can be handled by a fast, cheap model.
+Because planning is decoupled from execution, we can use our most powerful reasoning model for the planning step while the tool calls and result parsing in execution can be handled by fast, cheap models — or, in many cases, no LLM at all.
 
-The single most important output of the Planning step is the **dependency map** between steps — which steps need results from which earlier steps. This map is what makes the rest of the workflow possible: it lets the executor know what order steps must run in, and just as importantly, which steps can run in **parallel**. Just like ReAct's Actions, the steps in the plan are typically tool calls used to gather data, perform calculations, and interact with external systems.
+The single most important output of the Planning step is the **dependency map** between steps — which steps need results from which earlier steps. This map tells the executor what order steps must run in and, just as importantly, which steps can run in **parallel**.
 
 If we take a look at this in diagram form, we can see the two major sides of the flow:
 
 ![Plan and Execute](../.images/plan-and-execute.png)
 
-Plan on the left and Execute on the right. The link between them, initially, is when the Plan hands off the list of tasks that need to be executed. The execution phase begins, processing all of the steps, until they are all complete. Once they are, a final LLM can generate a response. Depending on the specific use case we’re going after, we can often implement the entire Execute phase without an LLM involved at all. If we do end up needing an LLM in some places, at least the input remains very small as it only needs to be aware of its own tasks and any tasks it depends on. The complexity here is around creating that list of tasks and tracking their dependencies to each other. The creation of this plan and dependency chain is going to rely on the model giving us great structured output in some format like JSON
+Plan on the left, Execute on the right. The link between them is the list of tasks the Plan hands off. The execution phase processes those steps until they're all complete, then a final LLM call generates a response. Often the entire Execute phase can run without an LLM at all; if a step does need one, the input stays small because it only sees its own task and any tasks it depends on.
 
-The data structure we are actually trying to get the Planner to produce is a **Directed Acyclic Graph (DAG)**.
-
-In a naive Plan and Execute agent, the plan could just be a flat ordered list: do step 1, then step 2, then step 3. But many real plans have steps that are completely independent of each other and could run in parallel, while other steps have genuine dependencies on the outputs of earlier steps. A DAG captures this naturally:
+The data structure the Planner produces is a **Directed Acyclic Graph (DAG)**:
 
 - **Nodes** = individual tasks or sub-goals.
-- **Edges** = dependencies, meaning "this task requires the output of that task."
-- **Acyclic** = there are no cycles in the graph, so the plan always terminates and progresses forward.
+- **Edges** = dependencies (this task requires the output of that task).
+- **Acyclic** = no cycles, so the plan always progresses forward and terminates.
 
-Because of these properties, we can implement a straightforward algorithm to walk the graph: each step has a tool name, a defined set of inputs, and a list of `stepId`s it depends on. As dependencies resolve, their outputs are substituted into the dependent step's inputs. Once all of a step's dependencies are met, that step is ready to execute. Independent branches of the DAG can run in parallel, while dependent branches must wait for their inputs.
+A DAG captures the reality that some steps are independent and can run in parallel, while others have genuine dependencies on earlier outputs. Each step has a tool name, inputs, and a list of `stepId`s it depends on. As dependencies resolve, their outputs are substituted into dependent steps' inputs. Independent branches can run in parallel; dependent branches wait for their inputs.
 
-Let's take a look at what this looks like implemented in code.
+Producing a DAG reliably depends on the model giving us great structured output (JSON or similar). Here's what the execution loop looks like:
 
-See [Plan and Execute code example](../.carbon/plan-and-execute-code.md).
+```java
+List<String> context = new ArrayList<>();
+context.add(formatUserMessageContext(msg));
 
-The workflow starts the same way as our ReAct loop: we create storage for the context and seed it with the user's initial question. (For simplicity, this version does not handle Re-Planning so it can fit on a single slide.) The first real step is the **Plan Activity**, which receives the context — at this point just the user's question — and runs our strict prompt that explains how to build the plan, what JSON format we expect, and what tools are available. Once the plan comes back, we initialize a `PlanStatus` to track each step's state: which have results, which have failed. Initially, none. The execution loop then filters for steps whose dependencies are all met and adds them to a pending list — when that pending list is empty, we know all the work is done. Temporal lets us run Activities in parallel, so we kick off `executePlanStep` for each ready step concurrently, await all of them, and merge the results back into the plan and context. If any step fails, it goes into the `PlanStatus` failed list. Once execution finishes, we hand the full plan, results, and context to the `executeResponse` Activity, which uses the LLM one final time to format everything into the user-facing response. If there were failures, we can either trigger a fresh Plan with the gathered information or, after some max number of iterations, give up.
+PlanResponse plan = activities.planActivity(context);
+PlanStatus status = buildPlanStatus(plan);
 
-Example Plan and Execute:
+// Main event loop
+while (true) {
+    if (hasFailedDependencies(status)) {
+        return activities.executeResponse(context); // Here we should re-plan, or after a certain number of retries, give up.
+    }
 
-See [Plan and Execute code example] (../.carbon/plan-and-execute-example.md)
+    List<PlanStep> pending = filterStepsWithMetDependencies(plan.steps(), status.results(), status.failed());
+    if (pending.isEmpty()) {
+        break;
+    }
 
-As an example, take the question: _"What is the number of daily League of Legends players, and what is that number times the distance from the Earth to the Sun?"_ As humans, we can immediately see this is really three tasks: look up the player count, look up the distance, and multiply them together. The hard reasoning is in the decomposition itself — once it's broken down, the individual steps are simple, and all we need is something to dispatch each task and order them by their dependencies. Each step in the plan must declare what it depends on, and may also need to describe the shape or type of its output so later steps know how to consume it. That structured JSON is the output of the Planning phase, generated by the LLM. Once it's produced, we hand it off to the Execute phase, which works through the steps in dependency order until the plan is complete.
+    List<Promise<PlanStepResult>> promises = new ArrayList<>();
+    for (PlanStep step : pending) {
+        List<PlanStepResult> deps = collectDependencies(step, status.results());
+        promises.add(Async.function(activities::executePlanStep, step, deps));
+    }
+    List<PlanStepResult> results = collectResults(promises);
 
-In this example, steps 1 and 2 have no dependencies, so they can be executed in parallel and their numerical results collected concurrently. Step 3 depends on the results of both steps 1 and 2, so it can only run once those have completed — and you can see in its definition that it uses **placeholders** referencing the outputs of steps 1 and 2 instead of hardcoded values. Depending on the complexity of the workflow and the tools involved, the Executor might not need an LLM at all: we could write fully deterministic Workflow code that runs the tasks in dependency order, collects their outputs, and does simple string replacement to inject those outputs into the inputs of later steps. In practice, we may still want a lightweight LLM call inside the Executor to coerce a tool's output into the exact shape the next step needs, but those calls remain much smaller and faster than the full Observation step of ReAct.
-
-The last thing to think about is **error handling**. If step 2 failed, or returned a string instead of a number, step 3 can no longer execute because its dependencies haven't been met. At that point we can call the original Plan step again, passing in which steps completed successfully, which failed, and the relevant outputs, and ask for a fresh plan that takes the current state into account.
-
-Getting the LLM to reliably produce a DAG requires a very specific and strict prompt. We need to use **Structured Output** here — providing the model with a JSON Schema (or similar structure) and validating that its response matches that format. The prompt needs to clearly tell the model:
-
-- Here is the user's goal.
-- Here are the tools available to you, including their inputs and outputs.
-- Break the goal down into a sequence of steps.
-- Number each step and track them individually.
-- For inputs that come from a previous step, use a placeholder referencing that step's output rather than guessing a value.
-- Maintain the dependency chain between steps.
-
-Equally important is how we describe our **tools** to the Planner. The tool definitions need to make it clear what each tool's inputs and outputs are, so the Planner knows what it will (and won't) get back from a given tool. For example, if a user asks for the weather in Rochester, NY and we have a Weather tool defined, that sounds great — but if the user specifically asks about the current wind speed and our Weather tool doesn't actually expose wind speed, it's hard for the model to plan around that without a clear definition of the tool's outputs.
-
-Take an earlier example: comparing the number of League of Legends players to the distance to the sun. We want the Planner to recognize that in order to multiply two numbers together, it needs to first figure out what those two numbers actually _are_. The plan should include separate steps to look up each value, marked as dependencies of the multiplication step. Making good use of the tools, understanding their outputs, and keeping track of what depends on what is the key to making Plan and Execute work successfully.
-
-The last part to talk about here is the potential for Re-Planning. If something goes wrong during our task execution, we need to recognize this and report back to the Planner that we’re unable to continue and we need a new plan.
-
-In an ideal implementation, the only step that requires an LLM is the initial Planning phase. The remainder of the workflow can often be implemented as completely normal deterministic Workflow code, which dramatically reduces LLM calls, lowers cost, and improves overall latency.
-
-In ReAct, the LLM sees the whole context of the entire problem, including all the previous steps, each time it decides what to do next.
-With Plan-and-Execute, we can often reduce the amount of LLM context needed because each execution step is narrowly focused on its own task rather than the full problem.
-If steps do not have dependencies on each other, they can even be executed in parallel.
-
-The core difference is who decides what to do next. In your ReAct loop, the `thoughtActivity` decides the next action on every iteration with a one-step-at-a-time approach. This makes ReAct very flexible and well suited for robust agents that can adapt on the fly.
-In Plan-and-Execute, a `planActivity` generates the full sequence of steps upfront, and then the workflow iterates through them, executing each one with a narrow focus. This is less dynamic — if something goes wrong during execution, the workflow has to restart by creating a new plan, feeding back in the information that was gathered so far.
-
-```ts
-type PlanExecuteStep = "IDLE" | "PLANNING" | "EXECUTING" | "RESPONDING";
-
-interface Plan {
-  goal: string;
-  steps: PlanStep[];
+    for (PlanStepResult result : results) {
+        if (!result.error()) {
+            context.add(formatPlanStepResultContext(result));
+            status.results().put(result.id(), result);
+        } else {
+            context.add(formatFailedPlanStepResultContext(result));
+            status.failed().add(result.id());
+        }
+    }
 }
 
-interface PlanStep {
-  stepNumber: number;
-  description: string; // what this step should accomplish
-  toolName: string; // which tool to call
-  toolInput: ActionInput; // parameters for the tool
-  dependsOn: number[]; // which previous steps this needs results from
-}
-
-interface StepResult {
-  stepNumber: number;
-  output: string;
-  success: boolean;
-}
+return activities.executeResponse(context);
 ```
 
-The Activities interface stays similar to our example ReAct Workflow, but swaps `thoughtActivity` and `observationActivity` for planning-specific ones:
+The flow: seed the context with the user's question, call **`planActivity`** with a strict prompt that defines the JSON format and available tools, then track each step's state in a `PlanStatus`. The execution loop filters for steps whose dependencies are met and dispatches them to `executePlanStep` in parallel via Temporal Activities. Successful results merge back into the context; failures go into `status.failed`. Once the loop drains, **`executeResponse`** uses the LLM one final time to format everything into the user-facing response. (For simplicity this version skips Re-Planning.)
 
-```ts
-interface Activities {
-  // NEW: generates the full plan from the user's query + available tools
-  planActivity(context: string[], availableTools: Tool[]): Plan;
+##### Example
 
-  // The same as our existing `action` activity we use in ReAct Agent
-  actionActivity(toolName: string, input: ActionInput): string;
+For the question _"What is the number of daily League of Legends players, and what is that number times the distance from the Earth to the Sun?"_, the Planner produces:
 
-  // NEW: after all steps run, synthesize a final answer
-  respondActivity(context: string[], plan: Plan, results: StepResult[]): string;
-
-  // NEW (optional): revise the plan when a step fails or results change things
-  replanActivity(
-    context: string[],
-    originalPlan: Plan,
-    completedResults: StepResult[],
-    failedStep: PlanStep,
-    error: string,
-  ): Plan;
-}
-```
-
-The Workflow itself is where the structural difference really shows. In our existing ReAct Workflow, the loop is driven by the LLMs decisions each iteration, with each iteration getting the entire result of the previous steps.
-
-In Plan-and-Execute, the LLM runs once to plan, then execution is just tool calls, maybe with a very light LLM call to format output, then the LLM runs once more at the end to generate a final result.
-For a 5-step task, ReAct might make 10+ LLM calls while Plan-and-Execute might only make 2-3, and with a much smaller number of tokens used.
-
-The actual execution loop is normal deterministic code, just iterating over the plan steps:
-
-```ts
-let plan = await planActivity(context, availableTools);
-
-for (const planStep of plan.steps) {
-  // Check if dependencies are met
-  const depsOk = planStep.dependsOn.every(
-    (dep) => results.find((r) => r.stepNumber === dep)?.success,
-  );
-
-  if (!depsOk) {
-    // A dependency failed -- replan from here
-    plan = await replanActivity(
-      context,
-      plan,
-      results,
-      planStep,
-      "dependency failed",
-    );
-    // restart execution with new plan (or break, depending on strategy)
-    continue;
+```json
+[
+  {
+    "id": 1,
+    "tool_name": "Search",
+    "tool_input": "Number of daily League of Legends players",
+    "result_type": "number",
+    "dependsOn": []
+  },
+  {
+    "id": 2,
+    "tool_name": "Search",
+    "tool_input": "Distance from the Earth to the Sun",
+    "result_type": "number",
+    "dependsOn": []
+  },
+  {
+    "id": 3,
+    "tool_name": "Calculator",
+    "tool_input": "{{result:1}} * {{result:2}}",
+    "result_type": "number",
+    "dependsOn": [1, 2]
+  },
+  {
+    "id": 4,
+    "tool_name": "Answer",
+    "tool_input": "{dailyLeague: {{result:1}}, distanceToSun: {{result:2}}, product: {{result:3}}}",
+    "result_type": "string",
+    "dependsOn": [1, 2, 3]
   }
-
-  // Inject results from dependencies into the tool input
-  const enrichedInput = substituteDependencyResults(
-    planStep.toolInput,
-    results,
-  );
-
-  try {
-    const output = await actionActivity(planStep.toolName, enrichedInput);
-    results.push({ stepNumber: planStep.stepNumber, output, success: true });
-  } catch (error) {
-    results.push({
-      stepNumber: planStep.stepNumber,
-      output: error,
-      success: false,
-    });
-
-    // Optional: replan on failure instead of just continuing
-    plan = await replanActivity(context, plan, results, planStep, error);
-  }
-}
-
-const answer = await respondActivity(context, plan, results);
+]
 ```
 
-Plan-and-Execute aims to use LLMs more efficiently.
-The planning step gets the full reasoning power of a large model, but each execution step operates with a minimal prompt focused on a single task — making those calls faster and cheaper.
-The plan also helps prevent drift, keeping the agent on track toward the original goal rather than getting sidetracked by intermediate results.
+```text
+Execute: (dependsOn: [])
 
-Trade-offs exist between these architectures. ReAct is more flexible and can adapt to new information on the fly, while Plan-and-Execute can be more efficient and better for tasks that benefit from upfront decomposition. The best choice depends on the specific use-case and requirements of the agent being built.
+    Search["Number of daily League of Legends players"] ==> 15000000
+    Search["Distance from the Earth to the Sun"] ==> 93000000
+
+Execute: (dependsOn: [1,2])
+
+    Calculator["15000000 * 93000000"] ==> 1395000000000000
+
+Execute: (dependsOn: [1, 2, 3])
+
+    Answer["The number of daily League of Legends players is 15 million, and the distance from the Earth to the Sun is approximately 93 million miles. The product of these two values is 1395 million."]
+```
+
+Steps 1 and 2 have no dependencies and run in parallel. Step 3 references their outputs via **placeholders** (`{{result:1}}`, `{{result:2}}`) instead of hardcoded values. The Executor often needs no LLM at all — deterministic Workflow code can run the tasks in dependency order and substitute outputs into later inputs. A lightweight LLM call may still be useful to coerce a tool's output into the exact shape the next step needs, but those calls remain much smaller than ReAct's Observation step.
+
+##### Prompting the Planner
+
+Producing a DAG reliably requires a strict prompt and **Structured Output** (a JSON Schema the response is validated against). The prompt must tell the model:
+
+- The user's goal.
+- The available tools, including their inputs **and outputs**.
+- To break the goal into numbered steps tracked individually.
+- To use placeholders referencing prior step outputs rather than guessing values.
+- To maintain the dependency chain between steps.
+
+Tool definitions matter just as much as the prompt. If a user asks for the current wind speed in Rochester, NY but our Weather tool doesn't expose wind speed, the Planner can only know that from clearly described tool outputs. Take the League of Legends example: the Planner only knows it needs to look up two separate numbers before multiplying them because the Calculator and Search tools have well-defined inputs and outputs.
+
+##### Re-Planning and Trade-offs
+
+If a step fails or returns the wrong type, dependent steps can't run. We call the Planner again, passing in which steps succeeded, which failed, and the current outputs, asking for a fresh plan. After some retry limit, we give up.
+
+The structural contrast with ReAct: ReAct's `thoughtActivity` decides the next action every iteration with the full context in view, which makes it flexible and adaptive. Plan and Execute generates the full sequence upfront, then iterates through it deterministically. For a 5-step task, ReAct might make 10+ LLM calls; Plan and Execute typically makes 2–3, with much smaller token counts per call. The trade-off is dynamism: when something unexpected happens mid-execution, Plan and Execute has to re-plan, while ReAct just adapts on the next iteration.
 
 #### Model Provider Reasoning Effort
 
 Everything we've talked about so far has been about building a system _around_ the LLM that lets us construct and manage the "thought" or "plan" the model uses to solve a problem. But there are other layers of reasoning we can take advantage of — what if the model itself could think internally and reason before answering?
 
-Older LLMs (just a couple of years ago) generated tokens in a single pass — basically thinking as they wrote, relying entirely on their internal representation of the world and whatever context they were given to predict the next token. Agent loops and external Chain of Thought scaffolding turned out to be so effective at reducing errors and improving output that LLM providers started training models to generate "reasoning tokens" before producing any visible text for the user.
+Older LLMs generated tokens in a single pass, relying entirely on their training and the prompt to predict the next token. Agent loops and external Chain of Thought scaffolding turned out to be so effective at improving output that LLM providers started training models to generate "reasoning tokens" before producing any visible text.
 
-These reasoning tokens aren't anything magical. They simply give the model an internal notepad — a space to emit tokens that aren't shown to the user, where it can explore different approaches, plan, and self-correct before committing to an answer. Think of it as the difference between blurting out the first thing that comes to mind versus pausing to work through the problem on paper before speaking. The model is still just generating text; the tokens are just structured the way a person might reason about the problem instead of jumping straight to an answer and hoping it's right. The benefit is that it makes it much more likely that relevant information from the context and training data will surface during the thinking process and be incorporated into the final response.
+These reasoning tokens aren't magical. They give the model an internal notepad to explore approaches, plan, and self-correct before committing to an answer. The model is still just generating text — but structured the way a person might reason about a problem instead of jumping straight to an answer. This makes it more likely that relevant information from the context and training data surfaces during thinking and gets incorporated into the final response.
 
-Most modern models can take advantage of this — OpenAI, Anthropic, Gemini, and even smaller locally-run models like Qwen and DeepSeek all support some form of internal reasoning. This process is commonly referred to as **Chain of Thought (CoT)**. Instead of jumping straight to an answer, the model generates a sequence of intermediate "thinking" tokens that work through the problem step by step. This often produces more accurate results on tasks that involve math, logic, planning, or multi-step decision making.
+Most modern models support this — OpenAI, Anthropic, Gemini, and locally-run models like Qwen and DeepSeek. The process is commonly called **Chain of Thought (CoT)**, and it produces more accurate results on tasks involving math, logic, planning, or multi-step decision making.
 
-Many Model Providers such as OpenAI, Anthropic, and Bedrock expose arguments in their API that allow you to specify how much Chain of Thought reasoning the model should do before returning a response. This can affect how the model decides when to call tools, when to ask clarifying questions, and how it generates its final response.
-
-In some cases, you may want the model to do more reasoning and planning before taking any actions, which can lead to more accurate and useful responses. In other cases, you may want the model to take actions more quickly with little to no Chain of Thought.
-
-This can be used in combination with the 'thought' step of the ReAct agent architecture to improve the agents performance on complex tasks, by allowing it to do more reasoning before taking actions, and then using the outputs of those actions to inform its next steps. In effect, this layers two forms of reasoning together: the model's internal Chain of Thought inside each call, and the explicit reasoning step the workflow itself enforces between calls.
-
-For other steps, such as 'observation' or context 'compact' steps, we may want to have less reasoning, simply because it is not necessary, and would just add latency to the agent's response time and API costs.
+Many providers (OpenAI, Anthropic, Bedrock) expose API arguments to control how much CoT the model does. This pairs well with the **Thought** step of ReAct: layering the model's internal CoT with the explicit reasoning step the workflow enforces between calls. For Observation or context-compact steps, we usually want less reasoning to save latency and cost.
 
 AWS Bedrock:
 
@@ -286,216 +238,194 @@ ChatCompletionRequest request = new ChatCompletionRequest.Builder()
 
 ##### Why might we NOT want this?
 
-Internal reasoning isn't free. Every model still has a **fixed context length**, and while those windows are getting larger, we still pay per token for both input and output. Output tokens are typically billed at a noticeably higher rate than input tokens, and **reasoning tokens count against our output token usage** — even though we never actually see them. We also see **latency increase**, because the model now has to generate all those reasoning tokens before it begins emitting the visible response.
+Internal reasoning isn't free. **Reasoning tokens count against output token usage** even though we never see them, and output tokens are billed at a higher rate than input. Latency also increases because the model generates all those reasoning tokens before emitting the visible response.
 
-Thankfully most Model Providers let us tune this behavior, so we can dial reasoning effort up or down based on the use case:
+That's why providers let us tune effort by use case:
 
-- **Low effort:** if a request is just summarizing some provided text, we likely don't need the highest level of reasoning.
-- **High effort:** if a request is the Planning phase of a Plan and Execute agent, where the model has to follow strict instructions and produce very specific structured output, we probably want to crank reasoning effort up.
+- **Low effort:** simple text summarization, observation steps.
+- **High effort:** Planning phase of a Plan and Execute agent, where strict structured output and complex decomposition matter.
 
-Let's look at some specific examples of these reasoning tokens to see what sorts of things they might contain.
+##### Reasoning Tokens Example
 
-See [Reasoning tokens example answer](../.carbon/reasoning-tokens-example-answer.md).
+I asked a Qwen reasoning model running locally the prompt _"Can you tell me about LLM reasoning tokens?"_. The visible answer was about 11 lines / 238 output tokens — but before producing those, the model emitted **62 additional lines, ~1,000 reasoning tokens** of internal thought.
 
-As an example, I asked a reasoning model running locally on my laptop the prompt _"Can you tell me about LLM reasoning tokens?"_ The screenshot in that linked file shows the actual visible answer — about 11 lines, totaling 238 output tokens, and a pretty solid response. The model is from the **Qwen** family (recently released by Alibaba Cloud), and because it's running locally I can also see every reasoning token it generated. Before producing those 238 visible tokens, the model emitted **62 additional lines** — close to **1,000 reasoning tokens** — of internal thought.
+What's interesting is what's actually in those reasoning tokens. The model sets a goal, breaks the request down, holds the system prompt's persona in mind, and considers multiple interpretations of "LLM reasoning tokens." It then drafts the response — planning what each paragraph should contain, working through bullet points, drafting most of the answer, and even leaving itself reminders about final polish (like ending each paragraph with two newlines).
 
-What's interesting is what's actually in those reasoning tokens. The model sets a goal, breaks the request down, holds the system prompt's persona in mind, and considers multiple interpretations of the phrase "LLM reasoning tokens." It then starts drafting the actual response — planning what each paragraph should contain, working through the bullet points, drafting most of the answer, and even leaving itself little reminders about final polish (like remembering to end each paragraph with two newlines).
+The visible outputs from two different models:
+
+**Qwen 3.5:9b:**
+
+```text
+Hey there! That's a really interesting question about LLM Reasoning Tokens. While they aren't special symbols like `<B>` or `</S>`, these tokens refer to the
+sequence of words a model generates when it performs Chain-of-Thought reasoning. Basically, instead of jumping straight to an answer, the model outputs intermediate
+steps that show its logical deduction process before finalizing the output.
+
+When a model encounters a complex task—like solving a math problem or deciphering a logic puzzle—it often uses these reasoning tokens to break down the issue into
+smaller parts. This is why you sometimes see models pause and "think" aloud in text; that's simply a series of standard tokens representing internal logic rather
+than final information. It allows the model to self-correct and improve accuracy before responding to the user.
+
+The importance of these tokens lies in efficiency and quality. Researchers are always studying how many reasoning steps a model needs versus when it has thought
+enough, which is crucial for managing computational costs. While tokenization varies by model architecture, optimizing this "thinking" budget is a major focus in
+advanced AI development right now to make models smarter without wasting too much compute!
+```
+
+**GPT-OSS 20b:**
+
+```text
+Large Language Models (LLMs) like GPT‑4 don’t “see” words as whole units; they operate on **tokens**—sub‑word pieces produced by a tokenizer (e.g., Byte‑Pair
+Encoding or SentencePiece). A token can be a full word, part of a word, or even punctuation. The model’s attention, self‑attention, and hidden states are all
+computed over these token embeddings.
+
+When people talk about **“reasoning tokens”**, they’re usually referring to the tokens that comprise the model’s step‑by‑step reasoning when it generates an answer.
+For instance, if a user asks a math problem, the LLM might output:
+
+Step 1: …
+Step 2: …
+Answer: …
+
+Each word or sub‑word in that explanation is a token. There isn’t a special “reasoning” token type—rather, the model is conditioned (via prompt engineering or
+instruction tuning) to produce a chain of reasoning, and the resulting tokens are just normal tokens that happen to form a logical sequence. Understanding token
+counts is important because the cost and latency of a request depend on how many tokens are sent in the prompt plus how many the model produces.
+```
 
 #### The Future of Model Reasoning
 
-This area is a very active research space right now. I won't go too deep into it, but it's worth flagging that some of the most interesting papers in the last six months are exploring how reasoning could be introduced to models **without relying on natural-language output at all**.
+Some of the most interesting recent research explores reasoning **without natural-language output at all**. A meaningful portion of the current reasoning-token budget goes toward maintaining linguistic fluency rather than advancing the reasoning itself. If models could reason directly in their latent embedding space, they might do even better.
 
-The theory is that reasoning in natural language — while much better than no reasoning at all — may itself be a bottleneck. A meaningful portion of the token budget for current reasoning tokens goes toward maintaining full, fluent linguistic output rather than actually advancing the reasoning. So when we allow X tokens for reasoning, a chunk of that budget (and a lot of compute) is spent on language fluff. If models could "reason" directly in their own latent embedding space, they might do even better.
+Notable papers:
 
-A few notable papers in this space:
-
-- **"Training Large Language Models to Reason in a Continuous Latent Space" (COCONUT)** — Hao et al., Nov 2025 (Meta).
-  COCONUT pushes beyond text-based reasoning tokens entirely. Instead of expressing reasoning through language tokens, it uses the LLM's last hidden state as a "continuous thought" representation, feeding it back into the model as the next input embedding directly in continuous space. The argument is that natural language is a bottleneck for reasoning — much of the token budget in standard CoT goes to maintaining linguistic coherence rather than advancing the reasoning. A nice side effect: COCONUT can encode multiple alternative next steps simultaneously, enabling breadth-first exploration of the reasoning space.
-
-- **"Reasoning Beyond Language: A Comprehensive Survey on Latent Chain-of-Thought Reasoning"** — May 2025.
-  A survey that categorizes latent reasoning methods into **intrinsic** approaches (keeping the entire pipeline inside a single LLM) and **auxiliary** approaches (introducing a separate module that generates continuous tokens injected into the main model). It covers COCONUT, HCoT, CCoT, SoftCoT, CoCoMix, and others — useful if you want a map of where the field is heading.
-
-- **"Demystifying Long Chain-of-Thought Reasoning in LLMs"** — February 2025.
-  Focuses on the transition from short CoT to long CoT reasoning and the training dynamics involved, particularly how SFT (supervised fine-tuning) and RL (reinforcement learning) contribute to extended reasoning chains.
+- **"Training Large Language Models to Reason in a Continuous Latent Space" (COCONUT)** — Hao et al., Nov 2025 (Meta). Uses the LLM's last hidden state as a "continuous thought" representation, fed back as the next input embedding directly in continuous space. A nice side effect: it can encode multiple alternative next steps simultaneously, enabling breadth-first reasoning.
+- **"Reasoning Beyond Language: A Comprehensive Survey on Latent Chain-of-Thought Reasoning"** — May 2025. Categorizes latent reasoning into **intrinsic** (single LLM) and **auxiliary** (separate module generating continuous tokens) approaches; covers COCONUT, HCoT, CCoT, SoftCoT, CoCoMix.
+- **"Demystifying Long Chain-of-Thought Reasoning in LLMs"** — February 2025. How SFT and RL contribute to extended reasoning chains.
 
 #### Instruction Tuning
 
-As we talked through reasoning tokens and model output, you might have been wondering: how do they actually get the model to output those reasoning tokens first in the first place? The answer is a process called **fine-tuning** — and more specifically, **instruction fine-tuning** (or "instruction tuning").
+How do providers actually get a model to output reasoning tokens? Through **instruction fine-tuning**.
 
-Fine-tuning is a general machine learning principle: the process of adapting a model for some specific task or use case. When we talk about large language models, we tend to describe them as very clever next-word prediction machines, and in their most raw form — as **foundation models** — that's exactly what they are. Foundation models are the giant, computationally expensive models trained on enormous datasets containing roughly all of human-readable text. But after that initial pretraining, all the model really knows how to do, from its parameters and weights alone, is predict what the next token should be.
+In their raw form, **foundation models** are giant next-token predictors trained on roughly all of human-readable text. After pretraining, all the model knows how to do is predict the next token. **Instruction tuning** adapts the model for practical use: instead of training on raw text, it uses curated input/output pairs. After thousands or millions of examples, the model learns what users actually want, when to call tools, and how to format responses. This is also where reasoning-token behavior gets baked in — by showing the model many examples of "showing its work" before answering.
 
-**Instruction tuning** is the process Google, OpenAI, Amazon, Anthropic, and others use to improve model performance not just on specific tasks like coding, but on **following instructions in general** — adapting the model for practical use. Instead of training on raw text, instruction tuning uses curated datasets of input/output pairs. After thousands (or, for frontier models, millions) of examples, the model learns to understand what a user is actually asking for, when a tool call is required, and how to format its responses appropriately.
-
-This additional fine-tuning step is also where reasoning-token behavior gets baked into a model. Models are shown many examples of "showing their work" — output that resembles how a person might reason through a problem — so the model learns to produce that kind of intermediate output before its final answer.
-
-One of my favorite illustrations of the difference comes from [Dave Bergmann at IBM](https://www.ibm.com/think/topics/instruction-tuning). Given the input _"teach me how to bake bread,"_ a base foundation model might just continue the sentence with something like _"in a home oven."_ An instruction-tuned model, by contrast, recognizes — based on the question/answer pairs it was tuned with — that the user wants an actual recipe and step-by-step instructions, and responds accordingly.
-
-Let's take a look at how we can do this ourselves right on AWS Bedrock.
+A nice illustration from [Dave Bergmann at IBM](https://www.ibm.com/think/topics/instruction-tuning): given _"teach me how to bake bread,"_ a base foundation model might continue with _"in a home oven."_ An instruction-tuned model recognizes the user wants an actual recipe and responds accordingly.
 
 #### AWS Bedrock Fine-tuning
 
-As we discussed, fine-tuning lets us (hopefully) improve a model's performance on specific tasks by providing a labeled dataset. During this process, the model learns the relationship between inputs and desired outputs and adjusts its parameters accordingly. This makes it particularly useful for tasks where domain-specific knowledge is essential — by giving the model examples of your specific data, you can enhance its ability to produce accurate and relevant results for your application.
+AWS Bedrock lets us create fine-tuning jobs to customize supported models, via the AWS Console or the `boto3` Python library. Reinforcement fine-tuning supports up to **20,000 examples** per job (see the [Bedrock RFT documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/rft-nova-models.html)).
 
-AWS Bedrock lets us create model fine-tuning jobs to customize the behavior of supported models. These jobs can be kicked off either through the AWS Console or programmatically with the `boto3` Python library. For reinforcement fine-tuning, you can provide up to **20,000 examples** per job. See the [Bedrock RFT documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/rft-nova-models.html) for full details.
+Each example uses two key fields:
 
-Each example in the dataset uses two key fields:
-
-- **`messages`** — the user, system, or assistant role containing the input prompt provided to the model.
-- **`reference_answer`** — the expected output or evaluation criteria your reward function uses to score the model's response. This isn't limited to structured output; it can be any format that helps your reward function evaluate quality.
+- **`messages`** — the user/system/assistant input prompt.
+- **`reference_answer`** — the expected output or evaluation criteria your reward function uses to score the response.
 
 #### Long Context Reasoning
 
-One important topic to touch on here is how long context lengths impact the reasoning capabilities of large language models. This requires taking a look at how Transformer models, the uderlying architecture behind nearly every modern LLM, actually processes information. Specifically, we need to understand the self-attention mechanism and how it scales with context length.
+Long context lengths impact reasoning capabilities. To understand why, we need to look at how Transformer models process information — specifically, the self-attention mechanism.
 
 _Attention is All You Need_
 
-One of the major breakthroughs in Transformer models is the idea of Attention, described in the paper "Attention is All You Need" by researchers at Google in 2017.
+The Transformer breakthrough described in the 2017 Google paper is the **self-attention** mechanism: each token computes an "attention score" against every other token, determining how much each one influences the others' representations. Attention is how the model decides what to pay attention to.
 
-At the core of every Transformer is the self-attention mechanism. When a model processes a sequence of tokens, each token computes an "attention score" against every other token in the sequence. These scores determine how much influence each token has on the representation of every other token. In simplified terms: attention is how the model decides what to pay attention to.
-
-The attention scores are computed via a softmax function across all tokens in the context window. This means attention is inherently a competitive resource — the scores must sum to 1 across the full sequence. As the number of tokens grows, the attention budget gets spread thinner. A critical piece of information buried in token 50,000 of a 200,000-token context is competing for attention weight against 199,999 other tokens.
-
-**A quick note on softmax:** softmax is the process of taking a bunch of raw numbers — in this case, the relevance scores from all the tokens in the context — and converting them into a **probability distribution**: a set of values between 0 and 1 that all add up to 1. The key thing about softmax is that it's competitive. If the score of one item goes up, the others must go down proportionally because the total is fixed at 1. In the context of attention, the model computes a raw relevance score for every token pair, and softmax converts those into attention weights. So when you have 200K tokens, every token's attention weight is competing against 199,999 others within a fixed budget of 1.0 — which is exactly why attention dilution becomes a real concern at long context lengths.
-
-This mechanism works remarkably well for typical prompt lengths. But as context grows into the tens or hundreds of thousands of tokens, several practical problems emerge.
+Attention scores are computed via **softmax** across all tokens in the context window. Softmax is competitive: it converts raw relevance scores into a probability distribution that sums to 1. If one score goes up, others must go down. So in a 200K-token context, every token competes against 199,999 others for a fixed attention budget — which is why **attention dilution** becomes a real problem at long context lengths.
 
 _Context Rot_
 
-"Context rot" is a term coined by Anthropic to describe a phenomenon where model quality degrades as context length increases. As the number of tokens in the context window grows, the model's ability to accurately recall and reason over that context decreases. But the reality is more nuanced than just "more tokens = worse performance."
+"Context rot" is a term coined by Anthropic for the phenomenon where model quality degrades as context length increases. The reality is more nuanced than "more tokens = worse performance." Frontier models actually score 90%+ on needle-in-a-haystack benchmarks like RULER even at very long contexts — they can _find_ information in large contexts. The degradation shows up on tasks that require **reasoning over** large contexts: aggregating across thousands of entries, tracking state changes, synthesizing distributed evidence. The model can find any individual piece of information but struggles to hold and manipulate many pieces simultaneously.
 
-What we'd expect: If context rot were purely about attention dilution, models should struggle with basic retrieval tasks in long contexts — finding a specific fact ("needle") hidden in a large body of irrelevant text ("haystack"). But frontier models actually score 90%+ on needle-in-a-haystack benchmarks like RULER, even at very long context lengths. The models can find information in large contexts.
+Contributing factors:
 
-What actually happens: The degradation shows up on tasks that require reasoning over large contexts, not just retrieving from them. Tasks like aggregating information across thousands of entries, tracking state changes over long sequences, or synthesizing insights from distributed evidence across a large document. The model can find any individual piece of information, but struggles to hold and manipulate many pieces simultaneously.
-
-This suggests context rot is caused by a combination of factors, not just attention dilution:
-
-- Attention score dilution: With more tokens competing for attention weight, the model's ability to maintain sharp focus on the most relevant information decreases. Critical relationships between distant tokens can get "washed out" in the noise.
-- Lost in the middle: Research has shown that models attend more strongly to tokens near the beginning and end of their context window, with weaker attention to information in the middle. This "U-shaped" attention pattern means that where information appears in the context matters almost as much as whether it's there at all — so **how we organize our context can have a real effect on the output we get**.
-- Training data distribution: Models are trained predominantly on sequences much shorter than their maximum context window. Ultra-long sequences are statistically rare in training data, making them effectively out-of-distribution at inference time. Tying this back to instruction tuning — how many of those tuning samples are actually examples of reasoning over an entire encyclopedia worth of information? Very few. The model simply has less practice reasoning over very long inputs.
-- Positional encoding limitations: Transformers use positional encodings to understand token ordering. Techniques like RoPE (Rotary Position Embeddings) and ALiBi (Attention with Linear Biases) have extended positional awareness, but extrapolating to positions far beyond training lengths still introduces degradation.
-- MoE routing bottlenecks: For Mixture-of-Experts models (used by many frontier LLMs), the routing layer that selects which expert processes each token can become a bottleneck at extreme context lengths. The RLM authors noted this was a bigger factor than attention itself in some cases.
+- **Attention dilution**: critical relationships between distant tokens get washed out as more tokens compete for the fixed attention budget.
+- **Lost in the middle**: models attend more strongly to tokens near the beginning and end of their context, with weaker attention to information in the middle. This "U-shaped" pattern means **how we organize our context matters**.
+- **Training data distribution**: models are trained predominantly on shorter sequences. Ultra-long sequences are out-of-distribution at inference time, including for instruction tuning examples.
+- **Positional encoding limitations**: techniques like RoPE and ALiBi extend positional awareness, but extrapolating far beyond training lengths still introduces degradation.
+- **MoE routing bottlenecks**: in Mixture-of-Experts models, the routing layer can bottleneck at extreme context lengths — the RLM authors noted this was sometimes a bigger factor than attention itself.
 
 _Why This Matters for Agent Architecture_
 
-Context rot is not just an academic concern. It has direct practical implications for how we build agents:
+- **ReAct loops accumulate context.** The model sees the entire conversation history every iteration. After 10 or 100 iterations, the context can grow substantially, and reasoning quality in later iterations may degrade — this is one reason a ReAct agent might "forget" its original goal.
+- **Plan and Execute mitigates this by design.** The Planner gets full context, but each execution step ideally runs with no LLM (or a minimal, focused prompt). The trade-off: Plan and Execute is harder for open-ended use cases where you can't plan around data you haven't seen yet.
+- **Reasoning effort interacts with context length.** Higher reasoning effort generates more internal CoT tokens, which also consume context and attention budget. For very long contexts, there's tension between deep reasoning and the context pressure CoT creates.
 
-- ReAct loops accumulate context. In the ReAct architecture described earlier, the model sees the entire conversation history — every thought, action, and observation — on each iteration. Depending on the use case and how much information is being pulled in, after 10, or even 100, iterations of tool calls and observations the context can grow substantially, and the model's reasoning quality in later iterations may degrade compared to earlier ones. This is one reason why a ReAct agent might "forget" its original goal or start making worse decisions in later iterations of a long-running task.
-- Plan and Execute mitigates this by design. The Plan and Execute architecture naturally reduces the context rot problem. The planning step gets the full context and reasoning power, but in the best case each execution step operates with **no LLM inference at all** — and if it does, it's with a minimal, focused prompt for a single task. The executor only needs to be aware of the specific step it's executing. The trade-off is that Plan and Execute is much harder to implement for open-ended use cases where the agent has to search the web or work with unstructured data — it's difficult to plan around data you haven't seen yet. But for more specialized agents with well-known tools and outputs, it can be extremely effective.
-- Reasoning effort settings interact with context length. When we use higher reasoning effort (as discussed in the Model Provider Reasoning Effort section), the model generates more internal Chain of Thought tokens. These tokens also consume context window space and attention budget. For very long contexts, there's a tension between wanting deep reasoning and the additional context pressure that Chain of Thought tokens create.
-
-This is a fundamental motivation for building multi-agent systems, which we will talk a lot more about in the later sections.
+This is a fundamental motivation for multi-agent systems, which we'll cover in later sections.
 
 #### Recursive Language Models: Treating Context as an Environment
 
-Recursive Language Models (RLMs) are a fairly new and very interesting approach for solving some of the long-context problems we just discussed. In a way, RLMs combine ideas from both ReAct and Plan and Execute: there's a **Root** language model — our top-tier reasoning model — that acts as an orchestrator, performing the initial thinking and planning, and then splitting the problem up into sub-queries assigned to sub-Agents that work over slices of the context. The Root keeps its own context focused only on what it needs to solve the problem.
+Recursive Language Models (RLMs) combine ideas from ReAct and Plan and Execute to address long-context problems. A **Root** language model orchestrates: it does the initial thinking and planning, then splits the problem into sub-queries handed to **Sub-Agents** that work over slices of the context. The Root keeps its own context focused on only what it needs.
 
-The other defining feature of RLMs is that they lean hard into something modern frontier models are very good at: **writing simple Python**. Instead of feeding a massive context directly into the model's context window (which we often can't, because it's too big), the context is stored as a variable inside a Python **Read-Eval-Print Loop (REPL)** environment. The Root agent then uses tool calls to write Python code that runs against that environment. From the outside, an RLM call looks identical to a normal LLM API call — query in, string out — but under the hood the model is orchestrating its own recursive decomposition of the problem.
+The defining trick: instead of feeding a massive context directly into the model, the context is stored as a variable inside a Python **REPL**. The Root uses tool calls to write Python that runs against that environment. From outside, an RLM call looks like a normal LLM call — query in, string out — but internally the model is orchestrating its own recursive decomposition.
 
-With the context held as a variable in the REPL, the agent can:
+With context as a REPL variable, the agent can:
 
-- Peek at subsets of the data (e.g., `print(context[:2000])`)
-- Search using regex, keyword matching, or any Python string operations
-- Transform the data with arbitrary Python code, extract pieces into new variables
-- Recursively call itself (or a smaller/cheaper model) over slices of the data
+- Peek at subsets (e.g., `print(context[:2000])`)
+- Search via regex, keyword matching, or any Python string operations
+- Transform with arbitrary Python, extracting pieces into new variables
+- Recursively call itself (or a cheaper model) over slices of the data
 
-When the Root model spawns a recursive query, that **Sub-Agent** is essentially the same as the Root Agent with one important restriction: Sub-Agents cannot spawn additional Sub-Agents. Each Sub-Agent gets its own fresh REPL initialized with whatever chunk of the original context the Root assigned to it, and its result is returned to the Root agent as a normal return value.
+Sub-Agents are the same as the Root with one restriction: they cannot spawn further Sub-Agents. Each gets a fresh REPL initialized with its assigned chunk and returns its result as a normal value.
 
-One of the most important and compelling aspects of RLMs is that the model can develop its own strategies for working with data. We don't need to define a fixed chunking strategy or retrieval pipeline. In fact, the Recursive Language Models (RLM) paper documents several patterns that emerge naturally:
+The most compelling aspect: the model develops its own data strategies. The RLM paper documents patterns that emerge naturally:
 
-- Peeking: The Root Model starts by inspecting the first few thousand characters of the context to understand its structure — exactly like a programmer opening a new dataset and running `head()`.
-- Grepping: To narrow the search space, the model uses regex patterns or keyword matching over the context. This is far cheaper and faster than semantic retrieval, and the model decides when it's appropriate.
-- Partitioning + Mapping: For tasks requiring semantic understanding across the full context, the model chunks the data and launches parallel recursive sub-calls over each chunk. For example, if asked to classify thousands of entries, the root LM might partition into groups of 100 and ask sub-calls to label each group, then aggregate.
-- Summarization: The model naturally summarizes intermediate results from sub-calls, condensing information before making final decisions. It only summarizes when it determines it's the right strategy.
-- Programmatic Solutions: For tasks that are fundamentally computational, the RLM can bypass the LLM entirely for that portion and just write Python code to compute the answer directly.
+- **Peeking**: inspecting the first few thousand characters to understand structure (like running `head()`).
+- **Grepping**: regex/keyword matching to narrow the search space — cheaper and faster than semantic retrieval.
+- **Partitioning + Mapping**: chunking and launching parallel recursive sub-calls over each chunk (e.g., classify thousands of entries in groups of 100, then aggregate).
+- **Summarization**: condensing intermediate sub-call results before final decisions.
+- **Programmatic Solutions**: bypassing the LLM for fundamentally computational portions by writing Python directly.
 
 #### Techniques for Optimizing Decision Making
 
-Now that we've covered a lot of agent- and model-centric reasoning techniques, it's worth asking: are there things we can do at the **system level**, before the LLM or agent ever gets involved, that can help the reasoning process? And given the non-deterministic nature of LLMs and agents, we may not always get the results we want — what can we do to mitigate that?
+Given the non-deterministic nature of LLMs, what can we do at the **system level** — around the agent — to steer it toward better outcomes? In our Temporal Workflow there are several places to intervene:
 
-In our agent system (our Temporal Workflow) there are several places we can help steer the agent in the right direction:
+- **Pre-processing**: before a user's message reaches the agent.
+- **Post-processing**: guardrails, validation, and escalation after the LLM produces output.
+- **Inline retrieval**: RAG and memory inside the agent loop to fetch policies, business rules, or examples.
 
-- **Pre-processing steps**: when a user's message comes in, but before it gets sent to the agent.
-- **Post-processing steps**: guardrails, validation, and escalation that run after the agent or LLM produces output.
-- **Inline retrieval**: using RAG and other memory systems as part of the agent loop to fetch policy documents, business rules, or examples.
+##### Bayesian Classifiers
 
-Let's look at some specific options.
-
-##### Baysian Classifiers
-
-Depending on the specific Agent use-case, sometimes the best answer is to remove some of the decision making from the LLM entirely, and instead use more traditional programming techniques to make decisions.
-
-For example, if we have a specific set of tools that the agent can call, and we want to determine which tool to call based on the user's query, we could use a Bayesian Classifier to classify the user's query into one of several categories, and then map those categories to specific tools. This can be more efficient and cost effective than having the model determine which tool to call, especially if the categories are well defined and the mapping to tools is straightforward.
+Sometimes the best answer is to remove decision making from the LLM entirely and use traditional programming. If we have a fixed set of tools, a Bayesian Classifier can categorize the user's query and map it to the right tool — more efficient and cheaper than asking the model to choose, especially when categories are well-defined.
 
 ##### Rule-Based Decisions
 
-Rule-based decision making is essentially **hard-coded business rules that run before or after the LLM generates a response, or before or after the agent loop executes a tool call**. They give us a deterministic safety net around the parts of the system where we don't want the LLM making the final call.
+Rule-based decision making means **hard-coded business rules running before or after the LLM**. They give us a deterministic safety net for parts of the system where we don't want the LLM making the final call.
 
-For example, if we have a customer-service AI agent that can process refunds, we might have a hard-coded business rule that checks tool inputs to ensure the agent **can't issue a refund greater than $100 without human approval**. We might also have analysis steps that check for internal company information leaking into outputs, or that screen incoming messages for potentially malicious users. We let the AI agent do all of its adaptive problem solving and natural-language interaction, but for important business-critical transactions we rely on this **second layer of validation**.
+For example, a customer-service agent that processes refunds might enforce that the agent **can't issue a refund over $100 without human approval**, plus checks for internal company info leaking into outputs and screens for malicious messages. The LLM handles adaptive problem solving; rules enforce the second layer of validation.
 
-A simple example might look like:
+A simple example: `if (applicant.creditScore < 400) { requestManualReview(); }`
 
-`if (applicant.creditScore < 400) { requestManualReview(); }`
+To keep things seamless, surface these rules in the agent's prompt or via RAG lookups of policy documents so the agent knows the constraints rather than hitting a wall.
 
-To make things feel seamless to both the user and the agent, we can also surface some of these rules in **natural language inside the agent's prompt** or via **RAG lookups** of policy documents, so the agent itself is aware of the constraints rather than just hitting a wall when it tries to do something disallowed.
+A sophisticated agent typically combines both — deterministic rules for high-frequency, structured tasks and LLM inference for unstructured, adaptive work. In regulated environments (banking, healthcare), rule-based logic also provides auditability and compliance.
 
-A sophisticated AI agent often takes a hybrid approach — deterministic rules for high-frequency, structured tasks (like refund approvals) and LLM inference for unstructured, adaptive problem solving. In a regulated environment like a bank, rule-based decision making is also what gives us regulatory compliance and auditability, and serves as guardrails against hallucinations or erratic behaviors in complex environments.
-
-**Strengths:**
-
-- Predictable.
-- Easy to audit.
-
-**Weaknesses:**
-
-- Requires more up-front effort to design and maintain.
+**Strengths:** predictable, easy to audit. **Weaknesses:** more up-front design and maintenance effort.
 
 ##### Intent Classification
 
-Before the agent ever sees a user's message, we can run a small classifier to figure out **what kind of request this actually is** — a refund inquiry, a billing question, an account update, a general FAQ, simple small talk, etc. Based on the classification we can then **tweak the agent's system prompt**, **pare down the list of available tools**, or **route to a completely different agent** purpose-built for that category of request.
+Before the agent sees a message, a small classifier can figure out **what kind of request it is** — refund, billing, account update, FAQ, small talk — and then **tweak the system prompt**, **pare down available tools**, or **route to a different agent** built for that category. Agents perform better with focused context, and intent classification enforces that focus from the start.
 
-This is more impactful than it might first sound. As we've discussed several times, agents almost always perform better when their context is focused and their prompt only contains information relevant to the problem at hand. Intent classification is one of the cleanest ways to enforce that focus from the very beginning of the workflow.
+**Naive Bayes** is the standard approach (same family used for spam filtering): a probabilistic algorithm that assumes feature independence — mathematically wrong but fast and surprisingly accurate for short-text classification. It can also be implemented with a small fine-tuned model or a single LLM call with a constrained Structured Output schema.
 
-**Naive Bayes** is one of the standard approaches for this kind of text classification — it's the same family of algorithm used for spam filtering and sentiment analysis. It's a probabilistic machine learning algorithm based on Bayes' Theorem that classifies text by assuming all features (words, tokens) are independent of one another — the "naive" part of the name — regardless of their actual correlation. That assumption is mathematically wrong, but in practice the algorithm is fast, efficient, and surprisingly accurate for short-text classification. It can also be implemented with a small fine-tuned model or even a single LLM call with a tightly constrained Structured Output schema returning one of a fixed set of categories.
-
-A concrete example: in one of my own agent projects, intent classification did a great job of cutting down costs for simple small-talk messages. If a user just writes _"hello"_, the agent shouldn't need to pull in 20,000 tokens of previous context, load all of the tool definitions, and spin up a high-power reasoning model just to respond. A lightweight model with limited context and no tools defined can answer with _"Hello! How can I help you today?"_ — saving cost and latency for the cases that actually need the full agent.
+Concrete example: a user typing _"hello"_ doesn't need 20K tokens of context, all tool definitions, and a high-power reasoning model. A lightweight model can respond with _"Hello! How can I help you today?"_ — saving cost and latency for the cases that actually need the full agent.
 
 ##### Decision Tables
 
-In some cases the "decision" we want the agent to make is really just a **lookup**. Instead of having the LLM reason over account details and policies on every request, we can encode that logic in a table.
+Sometimes the "decision" is really just a **lookup**. Instead of having the LLM reason over account details on every request, encode the logic in a table — essentially a more complex decision tree across multiple conditions.
 
-This sits in the middle of the techniques we've covered: where **Rule-Based Validation** is about guardrails and **Intent Classification** is about figuring out what kind of request we have, **Decision Tables** are something in between. We can think of them as a more complex decision tree — given this combination of factors, what should we do?
-
-For example, if we're talking to a verified user whose account details we know, and they have a certain account age and purchase history, we might choose to reduce friction for our local customers and **automatically approve refunds under $20**. Decision tables are particularly powerful because they let us evaluate **multiple conditions simultaneously** and resolve them into a single action.
-
-Decision tables are easy to read, easy to test, and easy to update by people who don't write LLM prompts. They pair particularly well with Intent Classification — the classifier turns the user's free-form message into a discrete category, and the decision table turns that category (plus context) into a deterministic plan of action.
+For example, for a verified user with a known account age and purchase history, we might **automatically approve refunds under $20**. Decision tables evaluate **multiple conditions simultaneously** to resolve into a single action. They're easy to read, test, and update by people who don't write LLM prompts, and they pair well with Intent Classification — the classifier produces a category, the table produces the action.
 
 ##### Optimization Algorithms
 
-LLMs typically generate responses by predicting the most likely next token at each step — a process known as probabilistic generation. To achieve better reasoning and results, we often need more strategic selection techniques that look beyond immediate next steps and optimize for the overall outcome.
+LLMs generate by predicting the most likely next token — probabilistic generation. To get better outcomes, we sometimes need strategies that look beyond the immediate next step:
 
-**Best-of-N:** Run the prompt multiple times (e.g., 10), then use a separate 'Reward Model' or 'Validator' to score and select the best response. This brute-force approach is highly effective for coding or math tasks.
-
-**Monte Carlo Tree Search (MCTS):** For complex, multi-step tasks, MCTS allows the agent to 'look ahead' at the consequences of actions before committing, similar to how AlphaGo evaluates chess moves.
-
-**Beam Search:** By keeping the top 3 or 5 paths open simultaneously, beam search helps avoid the 'Greedy Algorithm' trap, optimizing for the final outcome rather than just the immediate next step.
+- **Best-of-N**: run the prompt N times, then use a Reward Model or Validator to score and select. Effective for coding/math.
+- **Monte Carlo Tree Search (MCTS)**: "look ahead" at consequences before committing, similar to AlphaGo evaluating chess moves.
+- **Beam Search**: keep the top 3–5 paths open simultaneously to avoid the greedy-algorithm trap, optimizing for the final outcome rather than the immediate next step.
 
 ##### Reinforcement Learning
 
-Reinforcement Learning (RL) enables agents to improve by learning from experience and remembering past outcomes.
-
-When an agent makes a mistake—such as hallucinating a tool's capability or failing a multi-step task—a negative reward signal forces it to adjust its internal reasoning policy. Over time, this turns every failure into a training data point.
-
-In enterprise settings, RL allows your AI to become a 'digital worker' that learns specific edge cases and refines its logic, rather than remaining at its initial performance level.
+Reinforcement Learning lets agents improve by learning from past outcomes. When an agent fails — hallucinating a tool's capability, failing a multi-step task — a negative reward signal adjusts its internal policy. Over time, every failure becomes a training data point. In enterprise settings, RL turns the agent into a "digital worker" that learns edge cases rather than staying at its initial performance.
 
 ##### Multi-Agent Coordination
 
-Single agents often hit reasoning walls, such as hallucination loops or difficulties with complex, multi-step planning. To overcome this, we treat AI as a digital team.
+Single agents hit reasoning walls — hallucination loops, complex multi-step planning. We can treat AI as a digital team:
 
-**Collaborative modes:** Specialized agents (e.g., researcher, writer, critic) debate and verify each other’s work, ensuring higher accuracy.
-
-**Competitive modes:** Agents are pitted against each other to find flaws or edge cases, using game-theory dynamics to reach the most resilient decision possible.
-
-By balancing cooperative and competitive forces, we move from simple automation to proactive, collective intelligence.
+- **Collaborative modes:** specialized agents (researcher, writer, critic) debate and verify each other's work for higher accuracy.
+- **Competitive modes:** agents are pitted against each other to find flaws or edge cases, using game-theory dynamics for the most resilient decision.
 
 #### Exercise
 
