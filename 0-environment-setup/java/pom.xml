@@ -12,7 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws.java.sdk.version>2.31.56</aws.java.sdk.version>
-        <postgresql.driver.version>42.7.7</postgresql.driver.version>
+        <postgresql.driver.version>42.7.12</postgresql.driver.version>
         <qdrant.client.version>1.17.0</qdrant.client.version>
     </properties>
 
